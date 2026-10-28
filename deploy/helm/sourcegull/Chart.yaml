@@ -2,13 +2,13 @@ apiVersion: v2
 name: sourcegull
 description: Sourcegull, a self-hosted code intelligence platform (code search, navigation, bulk changes).
 type: application
-version: 0.4.0
+version: 0.4.1
 appVersion: "0.1.0"
 kubeVersion: ">=1.27.0-0"
 keywords:
   - code-search
   - code-intelligence
   - gitlab
-home: https://github.com/altoing/sourcegull
+home: https://github.com/sourcegull/sourcegull
 sources:
-  - https://github.com/altoing/sourcegull
+  - https://github.com/sourcegull/sourcegull

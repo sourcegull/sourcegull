@@ -4,6 +4,8 @@
 # chart version ct skips that test.
 externalURL: http://sourcegull.ct.invalid
 image:
+  # The locally built image (docker.io is how Docker names an unqualified tag).
+  registry: docker.io
   repository: sourcegull/sourcegull
   tag: ct
   # Loaded into the kind node by the script; never pulled.

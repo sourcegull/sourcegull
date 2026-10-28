@@ -101,7 +101,7 @@
         "type": "prometheus",
         "uid": "${datasource}"
       },
-      "description": "Alerts (warning): web: share of requests answered with 5xx above 2% for 5m.\nAlerts (critical): web: share of requests answered with 5xx above 10% for 10m.\n\nNext steps: https://github.com/altoing/sourcegull/blob/main/docs/observability/alerts.md#web_http_5xx_ratio",
+      "description": "Alerts (warning): web: share of requests answered with 5xx above 2% for 5m.\nAlerts (critical): web: share of requests answered with 5xx above 10% for 10m.\n\nNext steps: https://github.com/sourcegull/sourcegull/blob/main/docs/observability/alerts.md#web_http_5xx_ratio",
       "fieldConfig": {
         "defaults": {
           "custom": {
@@ -174,7 +174,7 @@
         "type": "prometheus",
         "uid": "${datasource}"
       },
-      "description": "Alerts (warning): web: 90th percentile request duration by route above 5s for 15m.\n\nNext steps: https://github.com/altoing/sourcegull/blob/main/docs/observability/alerts.md#web_http_p90_latency",
+      "description": "Alerts (warning): web: 90th percentile request duration by route above 5s for 15m.\n\nNext steps: https://github.com/sourcegull/sourcegull/blob/main/docs/observability/alerts.md#web_http_p90_latency",
       "fieldConfig": {
         "defaults": {
           "custom": {
@@ -256,7 +256,7 @@
         "type": "prometheus",
         "uid": "${datasource}"
       },
-      "description": "Time from the request until the search stream ends, as users see it. Histogram buckets end at 60 s.\n\nAlerts (warning): web: 90th percentile streaming search duration above 20s for 15m.\n\nNext steps: https://github.com/altoing/sourcegull/blob/main/docs/observability/alerts.md#web_search_stream_p90_duration",
+      "description": "Time from the request until the search stream ends, as users see it. Histogram buckets end at 60 s.\n\nAlerts (warning): web: 90th percentile streaming search duration above 20s for 15m.\n\nNext steps: https://github.com/sourcegull/sourcegull/blob/main/docs/observability/alerts.md#web_search_stream_p90_duration",
       "fieldConfig": {
         "defaults": {
           "custom": {
@@ -390,7 +390,7 @@
         "type": "prometheus",
         "uid": "${datasource}"
       },
-      "description": "Alerts (warning): web: 90th percentile GraphQL request duration above 5s for 15m.\n\nNext steps: https://github.com/altoing/sourcegull/blob/main/docs/observability/alerts.md#web_graphql_p90_duration",
+      "description": "Alerts (warning): web: 90th percentile GraphQL request duration above 5s for 15m.\n\nNext steps: https://github.com/sourcegull/sourcegull/blob/main/docs/observability/alerts.md#web_graphql_p90_duration",
       "fieldConfig": {
         "defaults": {
           "custom": {
@@ -537,7 +537,7 @@
         "type": "prometheus",
         "uid": "${datasource}"
       },
-      "description": "Alerts (warning): web: share of code host webhooks rejected above 50% for 30m.\n\nNext steps: https://github.com/altoing/sourcegull/blob/main/docs/observability/alerts.md#web_webhook_rejection_ratio",
+      "description": "Alerts (warning): web: share of code host webhooks rejected above 50% for 30m.\n\nNext steps: https://github.com/sourcegull/sourcegull/blob/main/docs/observability/alerts.md#web_webhook_rejection_ratio",
       "fieldConfig": {
         "defaults": {
           "custom": {
@@ -619,7 +619,7 @@
         "type": "prometheus",
         "uid": "${datasource}"
       },
-      "description": "1 while Prometheus can scrape the instance's internal listener (:6060), 0 when it cannot.\n\nAlerts (critical): web: instances answering Prometheus scrapes below 1 for 5m.\n\nNext steps: https://github.com/altoing/sourcegull/blob/main/docs/observability/alerts.md#web_instance_up",
+      "description": "1 while Prometheus can scrape the instance's internal listener (:6060), 0 when it cannot.\n\nAlerts (critical): web: instances answering Prometheus scrapes below 1 for 5m.\n\nNext steps: https://github.com/sourcegull/sourcegull/blob/main/docs/observability/alerts.md#web_instance_up",
       "fieldConfig": {
         "defaults": {
           "custom": {

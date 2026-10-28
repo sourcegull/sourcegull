@@ -1,5 +1,7 @@
 # CI: one job runs rustfmt, clippy and the tests against Postgres. cargo-deny, Helm lint and the Docker image build run only when
 # the workflow is started by hand (Actions → CI → Run workflow). Chart tests on kind: helm.yml.
+# Every workflow runs on the self-hosted runner ([self-hosted, linux]); only release.yml runs on
+# its own (on tags), the others by hand.
 name: CI
 
 # Manual only: no push, PR or schedule triggers.
@@ -24,7 +26,7 @@ env:
 jobs:
   check:
     name: fmt, clippy, test
-    runs-on: ubuntu-24.04
+    runs-on: [self-hosted, linux]
     services:
       postgres:
         image: postgres:18
@@ -32,25 +34,21 @@ jobs:
           POSTGRES_USER: sourcegull
           POSTGRES_PASSWORD: sourcegull
           POSTGRES_DB: sourcegull
+        # A free host port: the self-hosted runner may have other Postgres servers.
         ports:
-          - 5432:5432
+          - 5432
         options: >-
           --health-cmd "pg_isready -U sourcegull -d sourcegull"
           --health-interval 5s
           --health-timeout 5s
           --health-retries 20
     env:
-      SOURCEGULL_TEST_DATABASE_URL: postgres://sourcegull:sourcegull@localhost:5432/sourcegull
       SOURCEGULL_REQUIRE_TEST_DATABASE: "1"
     steps:
-      # The workspace's test binaries and Postgres outgrew the runner's free disk (~14 GB).
-      # Drop preinstalled SDKs this job never uses (~25 GB).
-      - name: Free disk space
-        run: |
-          sudo rm -rf /usr/share/dotnet /usr/local/lib/android /opt/ghc /usr/local/.ghcup \
-            /opt/hostedtoolcache/CodeQL /usr/share/swift /usr/local/share/powershell
-          df -h /
       - uses: actions/checkout@v5
+      # The service's host port is known only here (the job context is not available in job env).
+      - name: Test database
+        run: echo "SOURCEGULL_TEST_DATABASE_URL=postgres://sourcegull:sourcegull@localhost:${{ job.services.postgres.ports['5432'] }}/sourcegull" >>"$GITHUB_ENV"
       - uses: dtolnay/rust-toolchain@stable
         with:
           components: rustfmt, clippy
@@ -64,7 +62,7 @@ jobs:
       # corpus generation and checksum, indexing, and the SSE runner, with a few samples.
       - name: Search benchmark (tiny corpus)
         env:
-          SOURCEGULL_DATABASE_URL: postgres://sourcegull:sourcegull@localhost:5432/sourcegull
+          SOURCEGULL_DATABASE_URL: postgres://sourcegull:sourcegull@localhost:${{ job.services.postgres.ports['5432'] }}/sourcegull
           SOURCEGULL_CORPUS_DIR: ${{ runner.temp }}/corpora
         run: scripts/bench/search.sh --corpus tiny --repeats 3 --warmups 1
       # promtool and helm on the generated monitoring files, in Docker.
@@ -74,7 +72,7 @@ jobs:
   extra:
     name: cargo-deny, helm lint, docker build
     if: github.event_name == 'workflow_dispatch'
-    runs-on: ubuntu-24.04
+    runs-on: [self-hosted, linux]
     steps:
       - uses: actions/checkout@v5
       - uses: EmbarkStudios/cargo-deny-action@v2

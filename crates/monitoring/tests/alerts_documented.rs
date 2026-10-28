@@ -8,7 +8,7 @@ use std::path::{Path, PathBuf};
 
 const DOC: &str = "docs/observability/alerts.md";
 const RUNBOOK: &str =
-    "https://github.com/altoing/sourcegull/blob/main/docs/observability/alerts.md#";
+    "https://github.com/sourcegull/sourcegull/blob/main/docs/observability/alerts.md#";
 
 fn repo_root() -> PathBuf {
     Path::new(env!("CARGO_MANIFEST_DIR")).join("../..")

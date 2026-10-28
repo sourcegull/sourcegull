@@ -166,7 +166,7 @@
         "type": "prometheus",
         "uid": "${datasource}"
       },
-      "description": "The number of queued executor jobs when no executor has sent a heartbeat for a minute, else 0.\n\nAlerts (warning): executor: queued executor jobs while no executor is active above 0 for 15m.\n\nNext steps: https://github.com/altoing/sourcegull/blob/main/docs/observability/alerts.md#executor_jobs_without_executors",
+      "description": "The number of queued executor jobs when no executor has sent a heartbeat for a minute, else 0.\n\nAlerts (warning): executor: queued executor jobs while no executor is active above 0 for 15m.\n\nNext steps: https://github.com/sourcegull/sourcegull/blob/main/docs/observability/alerts.md#executor_jobs_without_executors",
       "fieldConfig": {
         "defaults": {
           "custom": {
@@ -313,7 +313,7 @@
         "type": "prometheus",
         "uid": "${datasource}"
       },
-      "description": "Alerts (warning): executor: age of the oldest queued executor job by queue above 1h for 30m.\n\nNext steps: https://github.com/altoing/sourcegull/blob/main/docs/observability/alerts.md#executor_queue_oldest_queued",
+      "description": "Alerts (warning): executor: age of the oldest queued executor job by queue above 1h for 30m.\n\nNext steps: https://github.com/sourcegull/sourcegull/blob/main/docs/observability/alerts.md#executor_queue_oldest_queued",
       "fieldConfig": {
         "defaults": {
           "custom": {
@@ -525,7 +525,7 @@
         "type": "prometheus",
         "uid": "${datasource}"
       },
-      "description": "Alerts (warning): executor: share of executor API requests answered with 5xx above 5% for 15m.\n\nNext steps: https://github.com/altoing/sourcegull/blob/main/docs/observability/alerts.md#executor_api_5xx_ratio",
+      "description": "Alerts (warning): executor: share of executor API requests answered with 5xx above 5% for 15m.\n\nNext steps: https://github.com/sourcegull/sourcegull/blob/main/docs/observability/alerts.md#executor_api_5xx_ratio",
       "fieldConfig": {
         "defaults": {
           "custom": {

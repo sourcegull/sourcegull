@@ -65,6 +65,7 @@ scripts/dev <command>
                     toolbox against the dev Postgres (see docs/development.md)
   e2e               browser checks of the search UI and admin pages (scripts/test/e2e-ui.sh);
                     CHECKS="search gitea" runs some of them (`gitea` starts a fresh Gitea first)
+                    SOURCEGULL_E2E_IMAGE=<image> tests that image's binary instead of this checkout
   app               build the production image and run it on :7081 (database sourcegull_app)
   gitlab up|down|seed|logs|test
                     a real GitLab CE on :8929 with seed data (deploy/docker/dev/gitlab-seed.rb);
@@ -289,6 +290,15 @@ EOF
     deps=()
     [ -n "$(compose ps -q --status running postgres 2>/dev/null)" ] && deps=(--no-deps)
     case " ${CHECKS:-} " in *" gitea "*) gitea up ;; esac
+    # A released image instead of this checkout: its binary, copied out to .e2e-out/.
+    if [ -n "${SOURCEGULL_E2E_IMAGE:-}" ]; then
+      docker image inspect "$SOURCEGULL_E2E_IMAGE" >/dev/null 2>&1 || docker pull "$SOURCEGULL_E2E_IMAGE"
+      cid=$(docker create "$SOURCEGULL_E2E_IMAGE")
+      mkdir -p .e2e-out/image
+      docker cp "$cid:/usr/local/bin/sourcegull" .e2e-out/image/sourcegull
+      docker rm "$cid" >/dev/null
+      export SOURCEGULL_E2E_BIN=/src/.e2e-out/image/sourcegull
+    fi
     compose --profile e2e run --rm --build ${deps[@]+"${deps[@]}"} e2e
     ;;
   app)

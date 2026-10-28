@@ -77,12 +77,10 @@ dashboards and documented alerts. See [the documentation](docs/README.md).
 
 ## Install
 
-Build the image from this checkout, then start the Compose stack (PostgreSQL, `migrate`, `web`,
-`worker`, one repo node and a blob store):
+Start the Compose stack (PostgreSQL, `migrate`, `web`, `worker`, one repo node and a blob store)
+with the published image, `ghcr.io/sourcegull/sourcegull` (linux/amd64 and linux/arm64):
 
 ```sh
-docker buildx build -f deploy/docker/Dockerfile -t sourcegull/sourcegull:0.1.0 --load .
-
 cd deploy/docker
 cp .env.example .env            # then change every password
 mkdir -p secrets && printf 'k1:%s\n' "$(openssl rand -base64 32)" > secrets/encryption-keys

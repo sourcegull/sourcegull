@@ -13,9 +13,10 @@
 #
 # Then set two CI/CD variables:
 # - SOURCEGULL_ENDPOINT, the Sourcegull URL (e.g. https://sourcegull.example.com);
-# - SOURCEGULL_CLI_IMAGE, an image with the `gull` client, built from the `cli` target of
-#   deploy/docker/Dockerfile (`docker build --target cli -t registry.example.com/sourcegull-cli:<version> .`)
-#   and pushed to a registry your runners can pull from.
+# - SOURCEGULL_CLI_IMAGE, an image with the `gull` client: ghcr.io/sourcegull/gull:<version> (the
+#   version of your Sourcegull), or one built from the `cli` target of deploy/docker/Dockerfile
+#   (`docker build --target cli -t registry.example.com/gull:<version> .`) and pushed to a
+#   registry your runners can pull from.
 # Without either one, no index or upload job runs; without SOURCEGULL_CLI_IMAGE, the job
 # sourcegull-scip-missing-cli-image fails (allowed to fail) with a message saying so.
 #
@@ -95,7 +96,7 @@ sourcegull-scip-missing-cli-image:
     - !reference [.sourcegull-scip-base-rules, rules]
     - if: $SOURCEGULL_CLI_IMAGE == null || $SOURCEGULL_CLI_IMAGE == ""
   script:
-    - echo "Sourcegull SCIP jobs skipped. Set the CI/CD variable SOURCEGULL_CLI_IMAGE to your Sourcegull CLI image (the cli target of deploy/docker/Dockerfile)." >&2
+    - echo "Sourcegull SCIP jobs skipped. Set the CI/CD variable SOURCEGULL_CLI_IMAGE to a Sourcegull CLI image, e.g. ghcr.io/sourcegull/gull:<your Sourcegull version>." >&2
     - exit 1
 
 .sourcegull-scip-index:

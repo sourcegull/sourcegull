@@ -151,6 +151,7 @@ services:
       SOURCEGULL_E2E_DATABASE_URL: postgres://sourcegull:sourcegull@postgres:5432/sourcegull
       OUT: /src/.e2e-out
       CHECKS: ${CHECKS:-}
+      SOURCEGULL_E2E_BIN: ${SOURCEGULL_E2E_BIN:-}
       GITEA_URL: http://gitea:3000
     volumes: *dev-volumes
     depends_on:

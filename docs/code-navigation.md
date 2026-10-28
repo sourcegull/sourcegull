@@ -72,10 +72,11 @@ A copy committed to the project itself works too (`include: - local: /ci/sourceg
 Then set two CI/CD variables:
 
 - `SOURCEGULL_ENDPOINT`, the Sourcegull URL (e.g. `https://sourcegull.example.com`);
-- `SOURCEGULL_CLI_IMAGE`, an image with the `gull` client. Build it from the `cli` target of
-  [`deploy/docker/Dockerfile`](../deploy/docker/Dockerfile)
-  (`docker build -f deploy/docker/Dockerfile --target cli -t registry.example.com/sourcegull-cli:<version> .`)
-  and push it to a registry your runners can pull from. The template has no default: without
+- `SOURCEGULL_CLI_IMAGE`, an image with the `gull` client: the published
+  `ghcr.io/sourcegull/gull:<version>` (the version of your Sourcegull), a mirror of it, or one
+  built from the `cli` target of [`deploy/docker/Dockerfile`](../deploy/docker/Dockerfile)
+  (`docker build -f deploy/docker/Dockerfile --target cli -t registry.example.com/gull:<version> .`)
+  and pushed to a registry your runners can pull from. The template has no default: without
   it, the index and upload jobs are skipped and the job `sourcegull-scip-missing-cli-image` fails
   (allowed to fail) with a message saying what to set. (GitLab does not accept an empty
   `image:`, so the template skips the jobs by rule instead.)

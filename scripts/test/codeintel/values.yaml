@@ -2,6 +2,8 @@
 # Postgres, the blob StatefulSet and the Kubernetes executor on the codeintel queue, sized for
 # one k3s node. The image tag and the external URL are set on the command line.
 image:
+  # The locally built image (docker.io is how Docker names an unqualified tag).
+  registry: docker.io
   repository: sourcegull/sourcegull
   pullPolicy: IfNotPresent
 logFormat: pretty

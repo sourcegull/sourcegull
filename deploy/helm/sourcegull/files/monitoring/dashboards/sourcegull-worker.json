@@ -166,7 +166,7 @@
         "type": "prometheus",
         "uid": "${datasource}"
       },
-      "description": "Alerts (warning): worker: age of the oldest queued job by queue above 6h for 30m.\n\nNext steps: https://github.com/altoing/sourcegull/blob/main/docs/observability/alerts.md#worker_queue_oldest_queued",
+      "description": "Alerts (warning): worker: age of the oldest queued job by queue above 6h for 30m.\n\nNext steps: https://github.com/sourcegull/sourcegull/blob/main/docs/observability/alerts.md#worker_queue_oldest_queued",
       "fieldConfig": {
         "defaults": {
           "custom": {
@@ -378,7 +378,7 @@
         "type": "prometheus",
         "uid": "${datasource}"
       },
-      "description": "Alerts (warning): worker: share of SCIP upload processing runs failing above 25% for 30m.\n\nNext steps: https://github.com/altoing/sourcegull/blob/main/docs/observability/alerts.md#worker_upload_processing_failure_ratio",
+      "description": "Alerts (warning): worker: share of SCIP upload processing runs failing above 25% for 30m.\n\nNext steps: https://github.com/sourcegull/sourcegull/blob/main/docs/observability/alerts.md#worker_upload_processing_failure_ratio",
       "fieldConfig": {
         "defaults": {
           "custom": {
@@ -837,7 +837,7 @@
         "type": "prometheus",
         "uid": "${datasource}"
       },
-      "description": "Alerts (warning): worker: growth in repositories whose precise indexing fails, over 6 hours above 0 for 1h.\n\nNext steps: https://github.com/altoing/sourcegull/blob/main/docs/observability/alerts.md#worker_codeintel_failing_repos_growth",
+      "description": "Alerts (warning): worker: growth in repositories whose precise indexing fails, over 6 hours above 0 for 1h.\n\nNext steps: https://github.com/sourcegull/sourcegull/blob/main/docs/observability/alerts.md#worker_codeintel_failing_repos_growth",
       "fieldConfig": {
         "defaults": {
           "custom": {
@@ -1323,7 +1323,7 @@
         "type": "prometheus",
         "uid": "${datasource}"
       },
-      "description": "Alerts (warning): worker: share of changeset reconciliations failing above 20% for 30m.\n\nNext steps: https://github.com/altoing/sourcegull/blob/main/docs/observability/alerts.md#worker_reconciler_failure_ratio",
+      "description": "Alerts (warning): worker: share of changeset reconciliations failing above 20% for 30m.\n\nNext steps: https://github.com/sourcegull/sourcegull/blob/main/docs/observability/alerts.md#worker_reconciler_failure_ratio",
       "fieldConfig": {
         "defaults": {
           "custom": {
@@ -1392,7 +1392,7 @@
         "type": "prometheus",
         "uid": "${datasource}"
       },
-      "description": "Alerts (warning): worker: share of changeset syncs failing above 50% for 1h.\n\nNext steps: https://github.com/altoing/sourcegull/blob/main/docs/observability/alerts.md#worker_changeset_sync_error_ratio",
+      "description": "Alerts (warning): worker: share of changeset syncs failing above 50% for 1h.\n\nNext steps: https://github.com/sourcegull/sourcegull/blob/main/docs/observability/alerts.md#worker_changeset_sync_error_ratio",
       "fieldConfig": {
         "defaults": {
           "custom": {
@@ -1604,7 +1604,7 @@
         "type": "prometheus",
         "uid": "${datasource}"
       },
-      "description": "Alerts (warning): worker: share of watch notifications failing by kind above 50% for 30m.\n\nNext steps: https://github.com/altoing/sourcegull/blob/main/docs/observability/alerts.md#worker_code_monitor_delivery_error_ratio",
+      "description": "Alerts (warning): worker: share of watch notifications failing by kind above 50% for 30m.\n\nNext steps: https://github.com/sourcegull/sourcegull/blob/main/docs/observability/alerts.md#worker_code_monitor_delivery_error_ratio",
       "fieldConfig": {
         "defaults": {
           "custom": {
@@ -1738,7 +1738,7 @@
         "type": "prometheus",
         "uid": "${datasource}"
       },
-      "description": "Alerts (warning): worker: share of outbound webhook deliveries failing above 50% for 30m.\n\nNext steps: https://github.com/altoing/sourcegull/blob/main/docs/observability/alerts.md#worker_outbound_webhook_error_ratio",
+      "description": "Alerts (warning): worker: share of outbound webhook deliveries failing above 50% for 30m.\n\nNext steps: https://github.com/sourcegull/sourcegull/blob/main/docs/observability/alerts.md#worker_outbound_webhook_error_ratio",
       "fieldConfig": {
         "defaults": {
           "custom": {
@@ -1885,7 +1885,7 @@
         "type": "prometheus",
         "uid": "${datasource}"
       },
-      "description": "Alerts (warning): worker: out-of-band migration errors in the last hour above 0.\n\nNext steps: https://github.com/altoing/sourcegull/blob/main/docs/observability/alerts.md#worker_oob_migration_errors",
+      "description": "Alerts (warning): worker: out-of-band migration errors in the last hour above 0.\n\nNext steps: https://github.com/sourcegull/sourcegull/blob/main/docs/observability/alerts.md#worker_oob_migration_errors",
       "fieldConfig": {
         "defaults": {
           "custom": {
@@ -2241,7 +2241,7 @@
         "type": "prometheus",
         "uid": "${datasource}"
       },
-      "description": "1 while Prometheus can scrape the instance's internal listener (:6060), 0 when it cannot.\n\nAlerts (critical): worker: instances answering Prometheus scrapes below 1 for 5m.\n\nNext steps: https://github.com/altoing/sourcegull/blob/main/docs/observability/alerts.md#worker_instance_up",
+      "description": "1 while Prometheus can scrape the instance's internal listener (:6060), 0 when it cannot.\n\nAlerts (critical): worker: instances answering Prometheus scrapes below 1 for 5m.\n\nNext steps: https://github.com/sourcegull/sourcegull/blob/main/docs/observability/alerts.md#worker_instance_up",
       "fieldConfig": {
         "defaults": {
           "custom": {

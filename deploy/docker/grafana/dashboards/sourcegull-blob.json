@@ -101,7 +101,7 @@
         "type": "prometheus",
         "uid": "${datasource}"
       },
-      "description": "Alerts (warning): blob: share of blob requests answered with 5xx above 1% for 10m.\nAlerts (critical): blob: share of blob requests answered with 5xx above 10% for 10m.\n\nNext steps: https://github.com/altoing/sourcegull/blob/main/docs/observability/alerts.md#blob_error_ratio",
+      "description": "Alerts (warning): blob: share of blob requests answered with 5xx above 1% for 10m.\nAlerts (critical): blob: share of blob requests answered with 5xx above 10% for 10m.\n\nNext steps: https://github.com/sourcegull/sourcegull/blob/main/docs/observability/alerts.md#blob_error_ratio",
       "fieldConfig": {
         "defaults": {
           "custom": {
@@ -252,7 +252,7 @@
         "type": "prometheus",
         "uid": "${datasource}"
       },
-      "description": "1 while Prometheus can scrape the instance's internal listener (:6060), 0 when it cannot.\n\nAlerts (critical): blob: instances answering Prometheus scrapes below 1 for 5m.\n\nNext steps: https://github.com/altoing/sourcegull/blob/main/docs/observability/alerts.md#blob_instance_up",
+      "description": "1 while Prometheus can scrape the instance's internal listener (:6060), 0 when it cannot.\n\nAlerts (critical): blob: instances answering Prometheus scrapes below 1 for 5m.\n\nNext steps: https://github.com/sourcegull/sourcegull/blob/main/docs/observability/alerts.md#blob_instance_up",
       "fieldConfig": {
         "defaults": {
           "custom": {

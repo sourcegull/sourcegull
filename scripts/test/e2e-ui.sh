@@ -15,6 +15,8 @@
 #   mkdir -p ~/.cache/sourcegull-e2e && cd ~/.cache/sourcegull-e2e && npm i playwright@1.49.1 && npx playwright install chromium
 #   NODE_PATH=~/.cache/sourcegull-e2e/node_modules scripts/test/e2e-ui.sh
 # In Docker, with nothing installed: scripts/dev e2e   (the `e2e` service of compose.yaml)
+# SOURCEGULL_E2E_BIN runs that binary instead of building one (the UI is embedded in it);
+# `SOURCEGULL_E2E_IMAGE=<image> scripts/dev e2e` sets it to the binary of a pulled image.
 set -euo pipefail
 cd "$(dirname "$0")/../.."
 ROOT=$(pwd)
@@ -36,7 +38,9 @@ case "$PROFILE" in
   release) BIN=${CARGO_TARGET_DIR:-target}/release/sourcegull; BUILD_ARGS=(--release) ;;
   *) echo "PROFILE must be debug or release" >&2; exit 2 ;;
 esac
-if [ "${SKIP_BUILD:-}" = "" ]; then
+if [ -n "${SOURCEGULL_E2E_BIN:-}" ]; then
+  BIN=$SOURCEGULL_E2E_BIN
+elif [ "${SKIP_BUILD:-}" = "" ]; then
   (cd ui && npm run wasm && npm run build)
   cargo build -p sourcegull "${BUILD_ARGS[@]}"
 fi

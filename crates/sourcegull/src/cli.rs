@@ -639,7 +639,7 @@ pub struct KubernetesArgs {
     #[arg(
         long = "kubernetes-helper-image",
         env = "SOURCEGULL_EXECUTOR_KUBERNETES_HELPER_IMAGE",
-        default_value = concat!("sourcegull/sourcegull:", env!("CARGO_PKG_VERSION"))
+        default_value = concat!("ghcr.io/sourcegull/sourcegull:", env!("CARGO_PKG_VERSION"))
     )]
     pub helper_image: String,
 

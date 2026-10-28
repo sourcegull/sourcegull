@@ -48,7 +48,7 @@ externalURL: https://sourcegull.example.com
 existingSecret: ""
 
 image:
-  registry: docker.io
+  registry: ghcr.io
   repository: sourcegull/sourcegull
   # Defaults to the chart's appVersion.
   tag: ""

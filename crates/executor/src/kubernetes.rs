@@ -134,7 +134,7 @@ impl Default for KubernetesOptions {
     fn default() -> Self {
         Self {
             namespace: "default".into(),
-            helper_image: "sourcegull/sourcegull:latest".into(),
+            helper_image: "ghcr.io/sourcegull/sourcegull:latest".into(),
             pod_frontend_url: None,
             runtime_class: None,
             node_selector: BTreeMap::new(),

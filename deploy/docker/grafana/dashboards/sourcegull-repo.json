@@ -36,7 +36,7 @@
         "type": "prometheus",
         "uid": "${datasource}"
       },
-      "description": "Measured by the repo node janitor (2 minutes after start, then hourly). The node pauses clones when free space is below both SOURCEGULL_REPO_PAUSE_CLONES_FREE_PERCENT (default 10%) of the volume and SOURCEGULL_REPO_PAUSE_CLONES_FREE_GIB (default 20 GiB); Site admin > Repo nodes shows the threshold.\n\nAlerts (warning): repo: free disk space on the data volume below 15% for 10m.\nAlerts (critical): repo: free disk space on the data volume below 5% for 5m.\n\nNext steps: https://github.com/altoing/sourcegull/blob/main/docs/observability/alerts.md#repo_disk_free_ratio",
+      "description": "Measured by the repo node janitor (2 minutes after start, then hourly). The node pauses clones when free space is below both SOURCEGULL_REPO_PAUSE_CLONES_FREE_PERCENT (default 10%) of the volume and SOURCEGULL_REPO_PAUSE_CLONES_FREE_GIB (default 20 GiB); Site admin > Repo nodes shows the threshold.\n\nAlerts (warning): repo: free disk space on the data volume below 15% for 10m.\nAlerts (critical): repo: free disk space on the data volume below 5% for 5m.\n\nNext steps: https://github.com/sourcegull/sourcegull/blob/main/docs/observability/alerts.md#repo_disk_free_ratio",
       "fieldConfig": {
         "defaults": {
           "custom": {
@@ -252,7 +252,7 @@
         "type": "prometheus",
         "uid": "${datasource}"
       },
-      "description": "Alerts (warning): repo: share of clones and fetches failing above 20% for 30m.\nAlerts (critical): repo: share of clones and fetches failing above 80% for 30m.\n\nNext steps: https://github.com/altoing/sourcegull/blob/main/docs/observability/alerts.md#repo_repo_update_error_ratio",
+      "description": "Alerts (warning): repo: share of clones and fetches failing above 20% for 30m.\nAlerts (critical): repo: share of clones and fetches failing above 80% for 30m.\n\nNext steps: https://github.com/sourcegull/sourcegull/blob/main/docs/observability/alerts.md#repo_repo_update_error_ratio",
       "fieldConfig": {
         "defaults": {
           "custom": {
@@ -390,7 +390,7 @@
         "type": "prometheus",
         "uid": "${datasource}"
       },
-      "description": "Alerts (warning): repo: age of the oldest queued clone or fetch above 2h for 30m.\n\nNext steps: https://github.com/altoing/sourcegull/blob/main/docs/observability/alerts.md#repo_update_queue_oldest",
+      "description": "Alerts (warning): repo: age of the oldest queued clone or fetch above 2h for 30m.\n\nNext steps: https://github.com/sourcegull/sourcegull/blob/main/docs/observability/alerts.md#repo_update_queue_oldest",
       "fieldConfig": {
         "defaults": {
           "custom": {
@@ -667,7 +667,7 @@
         "type": "prometheus",
         "uid": "${datasource}"
       },
-      "description": "Alerts (warning): repo: repositories marked corrupt above 0 for 5m.\n\nNext steps: https://github.com/altoing/sourcegull/blob/main/docs/observability/alerts.md#repo_repos_corrupted",
+      "description": "Alerts (warning): repo: repositories marked corrupt above 0 for 5m.\n\nNext steps: https://github.com/sourcegull/sourcegull/blob/main/docs/observability/alerts.md#repo_repos_corrupted",
       "fieldConfig": {
         "defaults": {
           "custom": {
@@ -749,7 +749,7 @@
         "type": "prometheus",
         "uid": "${datasource}"
       },
-      "description": "Alerts (warning): repo: repositories waiting to be indexed above 500 for 1h.\n\nNext steps: https://github.com/altoing/sourcegull/blob/main/docs/observability/alerts.md#repo_index_queue_length",
+      "description": "Alerts (warning): repo: repositories waiting to be indexed above 500 for 1h.\n\nNext steps: https://github.com/sourcegull/sourcegull/blob/main/docs/observability/alerts.md#repo_index_queue_length",
       "fieldConfig": {
         "defaults": {
           "custom": {
@@ -883,7 +883,7 @@
         "type": "prometheus",
         "uid": "${datasource}"
       },
-      "description": "Alerts (warning): repo: share of index builds failing above 20% for 30m.\n\nNext steps: https://github.com/altoing/sourcegull/blob/main/docs/observability/alerts.md#repo_index_error_ratio",
+      "description": "Alerts (warning): repo: share of index builds failing above 20% for 30m.\n\nNext steps: https://github.com/sourcegull/sourcegull/blob/main/docs/observability/alerts.md#repo_index_error_ratio",
       "fieldConfig": {
         "defaults": {
           "custom": {
@@ -1355,7 +1355,7 @@
         "type": "prometheus",
         "uid": "${datasource}"
       },
-      "description": "Alerts (warning): repo: repository moves that gave up above 0 for 30m.\n\nNext steps: https://github.com/altoing/sourcegull/blob/main/docs/observability/alerts.md#repo_repo_moves_failed",
+      "description": "Alerts (warning): repo: repository moves that gave up above 0 for 30m.\n\nNext steps: https://github.com/sourcegull/sourcegull/blob/main/docs/observability/alerts.md#repo_repo_moves_failed",
       "fieldConfig": {
         "defaults": {
           "custom": {
@@ -1437,7 +1437,7 @@
         "type": "prometheus",
         "uid": "${datasource}"
       },
-      "description": "1 while Prometheus can scrape the instance's internal listener (:6060), 0 when it cannot.\n\nAlerts (critical): repo: instances answering Prometheus scrapes below 1 for 5m.\n\nNext steps: https://github.com/altoing/sourcegull/blob/main/docs/observability/alerts.md#repo_instance_up",
+      "description": "1 while Prometheus can scrape the instance's internal listener (:6060), 0 when it cannot.\n\nAlerts (critical): repo: instances answering Prometheus scrapes below 1 for 5m.\n\nNext steps: https://github.com/sourcegull/sourcegull/blob/main/docs/observability/alerts.md#repo_instance_up",
       "fieldConfig": {
         "defaults": {
           "custom": {

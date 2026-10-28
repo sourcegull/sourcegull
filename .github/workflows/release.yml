@@ -1,0 +1,208 @@
+# Release: builds the runtime and cli images for linux/amd64 and linux/arm64 (arm64 is
+# cross-compiled, see deploy/docker/Dockerfile), smoke-tests both (arm64 under emulation) and the
+# Gitea browser check against the amd64 image, then pushes ghcr.io/<owner>/sourcegull and
+# ghcr.io/<owner>/gull with an SBOM and provenance, signs them by digest (keyless) and creates the
+# GitHub release.
+#
+# Runs on `v*` tags. Started by hand on a branch it builds and tests without pushing; on a tag it
+# releases that tag. The tag must match the workspace version in Cargo.toml (vX.Y.Z or
+# vX.Y.Z-pre); pre-releases get only the X.Y.Z-pre tag, others X.Y.Z, X.Y and latest.
+name: Release
+
+on:
+  push:
+    tags: ["v*"]
+  workflow_dispatch:
+
+permissions:
+  contents: write
+  packages: write
+  # Keyless signing.
+  id-token: write
+
+concurrency:
+  group: release-${{ github.ref }}
+  cancel-in-progress: false
+
+env:
+  IMAGE: ghcr.io/${{ github.repository_owner }}/sourcegull
+  CLI_IMAGE: ghcr.io/${{ github.repository_owner }}/gull
+  PUSH: ${{ github.ref_type == 'tag' }}
+
+jobs:
+  release:
+    name: build, test, publish
+    runs-on: [self-hosted, linux]
+    timeout-minutes: 300
+    steps:
+      - uses: actions/checkout@v5
+
+      - name: Version
+        id: version
+        run: |
+          version=$(sed -n 's/^version = "\(.*\)"$/\1/p' Cargo.toml | head -n 1)
+          if [ "$GITHUB_REF_TYPE" = tag ]; then
+            tag=${GITHUB_REF_NAME#v}
+            if [ "${tag%%-*}" != "$version" ]; then
+              echo "::error::tag $GITHUB_REF_NAME does not match the Cargo.toml version $version"
+              exit 1
+            fi
+            version=$tag
+          fi
+          case "$version" in *-*) prerelease=true ;; *) prerelease=false ;; esac
+          {
+            echo "version=$version"
+            echo "prerelease=$prerelease"
+            echo "build-args<<EOF"
+            echo "VERSION=$version"
+            echo "REVISION=$GITHUB_SHA"
+            echo "SOURCE_DATE_EPOCH=$(git log -1 --format=%ct)"
+            echo "EOF"
+          } >>"$GITHUB_OUTPUT"
+          echo "version $version (prerelease: $prerelease, push: $PUSH)"
+
+      - uses: docker/setup-qemu-action@v3
+        with:
+          platforms: arm64
+      - uses: docker/setup-buildx-action@v3
+
+      # One image per platform, loaded for the tests below; the multi-platform push reuses the
+      # layers from the cache.
+      - name: Build runtime (amd64)
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          file: deploy/docker/Dockerfile
+          target: runtime
+          platforms: linux/amd64
+          load: true
+          tags: sourcegull-release:amd64
+          build-args: ${{ steps.version.outputs.build-args }}
+          cache-from: type=gha,scope=release-amd64
+          cache-to: type=gha,scope=release-amd64,mode=max
+      - name: Build runtime (arm64)
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          file: deploy/docker/Dockerfile
+          target: runtime
+          platforms: linux/arm64
+          load: true
+          tags: sourcegull-release:arm64
+          build-args: ${{ steps.version.outputs.build-args }}
+          cache-from: type=gha,scope=release-arm64
+          cache-to: type=gha,scope=release-arm64,mode=max
+
+      - name: Smoke test (amd64)
+        run: scripts/test/release-smoke.sh sourcegull-release:amd64 linux/amd64
+      - name: Smoke test (arm64, emulated)
+        run: SMOKE_TIMEOUT=900 scripts/test/release-smoke.sh sourcegull-release:arm64 linux/arm64
+      # Gitea connection, sign-in through Gitea and search results, in the browser.
+      - name: Gitea check (amd64)
+        run: SOURCEGULL_E2E_IMAGE=sourcegull-release:amd64 CHECKS=gitea scripts/dev e2e
+      - name: Clean up the test stack
+        if: always()
+        run: scripts/dev reset || true
+
+      - name: Image tags
+        id: meta
+        uses: docker/metadata-action@v5
+        with:
+          images: ${{ env.IMAGE }}
+          flavor: latest=auto
+          tags: |
+            type=semver,pattern={{version}},value=v${{ steps.version.outputs.version }}
+            type=semver,pattern={{major}}.{{minor}},value=v${{ steps.version.outputs.version }}
+      - name: CLI image tags
+        id: cli-meta
+        uses: docker/metadata-action@v5
+        with:
+          images: ${{ env.CLI_IMAGE }}
+          flavor: latest=auto
+          tags: |
+            type=semver,pattern={{version}},value=v${{ steps.version.outputs.version }}
+            type=semver,pattern={{major}}.{{minor}},value=v${{ steps.version.outputs.version }}
+
+      - uses: docker/login-action@v3
+        if: env.PUSH == 'true'
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Push runtime
+        id: push
+        if: env.PUSH == 'true'
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          file: deploy/docker/Dockerfile
+          target: runtime
+          platforms: linux/amd64,linux/arm64
+          push: true
+          sbom: true
+          provenance: mode=max
+          tags: ${{ steps.meta.outputs.tags }}
+          labels: ${{ steps.meta.outputs.labels }}
+          build-args: ${{ steps.version.outputs.build-args }}
+          cache-from: |
+            type=gha,scope=release-amd64
+            type=gha,scope=release-arm64
+      - name: Push cli
+        id: push-cli
+        if: env.PUSH == 'true'
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          file: deploy/docker/Dockerfile
+          target: cli
+          platforms: linux/amd64,linux/arm64
+          push: true
+          sbom: true
+          provenance: mode=max
+          tags: ${{ steps.cli-meta.outputs.tags }}
+          labels: ${{ steps.cli-meta.outputs.labels }}
+          build-args: ${{ steps.version.outputs.build-args }}
+          cache-from: |
+            type=gha,scope=release-amd64
+            type=gha,scope=release-arm64
+
+      - uses: sigstore/cosign-installer@v3
+        if: env.PUSH == 'true'
+      - name: Sign
+        if: env.PUSH == 'true'
+        env:
+          DIGEST: ${{ steps.push.outputs.digest }}
+          CLI_DIGEST: ${{ steps.push-cli.outputs.digest }}
+        run: cosign sign --yes "$IMAGE@$DIGEST" "$CLI_IMAGE@$CLI_DIGEST"
+
+      - name: Release notes
+        if: env.PUSH == 'true'
+        env:
+          VERSION: ${{ steps.version.outputs.version }}
+          DIGEST: ${{ steps.push.outputs.digest }}
+          CLI_DIGEST: ${{ steps.push-cli.outputs.digest }}
+        run: |
+          cat >"$RUNNER_TEMP/notes.md" <<EOF
+          ## Images
+
+          | Image | Digest |
+          |---|---|
+          | \`$IMAGE:$VERSION\` | \`$DIGEST\` |
+          | \`$CLI_IMAGE:$VERSION\` | \`$CLI_DIGEST\` |
+
+          linux/amd64 and linux/arm64, signed with keyless cosign:
+
+          \`\`\`sh
+          cosign verify $IMAGE@$DIGEST \\
+            --certificate-identity-regexp '^https://github.com/$GITHUB_REPOSITORY/' \\
+            --certificate-oidc-issuer https://token.actions.githubusercontent.com
+          \`\`\`
+          EOF
+      - uses: softprops/action-gh-release@v2
+        if: env.PUSH == 'true'
+        with:
+          prerelease: ${{ steps.version.outputs.prerelease }}
+          body_path: ${{ runner.temp }}/notes.md
+          append_body: true
+          generate_release_notes: true

@@ -36,7 +36,7 @@
         "type": "prometheus",
         "uid": "${datasource}"
       },
-      "description": "1 when the last metrics collection by a worker (every 30 s) reached Postgres, else 0.\n\nAlerts (critical): postgres: workers reaching Postgres below 1 for 5m.\n\nNext steps: https://github.com/altoing/sourcegull/blob/main/docs/observability/alerts.md#postgres_postgres_up",
+      "description": "1 when the last metrics collection by a worker (every 30 s) reached Postgres, else 0.\n\nAlerts (critical): postgres: workers reaching Postgres below 1 for 5m.\n\nNext steps: https://github.com/sourcegull/sourcegull/blob/main/docs/observability/alerts.md#postgres_postgres_up",
       "fieldConfig": {
         "defaults": {
           "custom": {
@@ -170,7 +170,7 @@
         "type": "prometheus",
         "uid": "${datasource}"
       },
-      "description": "Alerts (warning): postgres: share of max_connections in use by Sourcegull's database above 80% for 5m.\nAlerts (critical): postgres: share of max_connections in use by Sourcegull's database above 95% for 5m.\n\nNext steps: https://github.com/altoing/sourcegull/blob/main/docs/observability/alerts.md#postgres_connection_saturation",
+      "description": "Alerts (warning): postgres: share of max_connections in use by Sourcegull's database above 80% for 5m.\nAlerts (critical): postgres: share of max_connections in use by Sourcegull's database above 95% for 5m.\n\nNext steps: https://github.com/sourcegull/sourcegull/blob/main/docs/observability/alerts.md#postgres_connection_saturation",
       "fieldConfig": {
         "defaults": {
           "custom": {
@@ -243,7 +243,7 @@
         "type": "prometheus",
         "uid": "${datasource}"
       },
-      "description": "Alerts (warning): postgres: age of the oldest open transaction above 30m for 5m.\n\nNext steps: https://github.com/altoing/sourcegull/blob/main/docs/observability/alerts.md#postgres_oldest_transaction",
+      "description": "Alerts (warning): postgres: age of the oldest open transaction above 30m for 5m.\n\nNext steps: https://github.com/sourcegull/sourcegull/blob/main/docs/observability/alerts.md#postgres_oldest_transaction",
       "fieldConfig": {
         "defaults": {
           "custom": {
@@ -455,7 +455,7 @@
         "type": "prometheus",
         "uid": "${datasource}"
       },
-      "description": "Alerts (warning): postgres: share of the connection pool in use by process above 90% for 15m.\n\nNext steps: https://github.com/altoing/sourcegull/blob/main/docs/observability/alerts.md#postgres_pool_saturation",
+      "description": "Alerts (warning): postgres: share of the connection pool in use by process above 90% for 15m.\n\nNext steps: https://github.com/sourcegull/sourcegull/blob/main/docs/observability/alerts.md#postgres_pool_saturation",
       "fieldConfig": {
         "defaults": {
           "custom": {

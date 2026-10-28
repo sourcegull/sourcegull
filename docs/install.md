@@ -1,7 +1,8 @@
 # Install
 
-Sourcegull ships as one image, `sourcegull/sourcegull`, which holds the `sourcegull` server binary and the
-`gull` command-line client. There are two ways to run it:
+Sourcegull ships as one image, `ghcr.io/sourcegull/sourcegull`, which holds the `sourcegull` server
+binary and the `gull` command-line client, for linux/amd64 and linux/arm64. There are two ways to
+run it:
 
 | Option | For | Database |
 |---|---|---|
@@ -10,16 +11,31 @@ Sourcegull ships as one image, `sourcegull/sourcegull`, which holds the `sourceg
 
 Every option needs only PostgreSQL 18; there is no Redis or other service to run.
 
-## Build the images
+## Images
 
-Images are built from a checkout of this repository:
+Each release publishes, with an SBOM and build provenance, signed by digest:
+
+| Image | Contents |
+|---|---|
+| `ghcr.io/sourcegull/sourcegull` | the server and `gull`; what Compose and the Helm chart run |
+| `ghcr.io/sourcegull/gull` | only `gull` and git, for CI jobs ([SCIP uploads](code-navigation.md)) |
+
+Tags: `X.Y.Z`, `X.Y` (the newest patch release) and `latest`. Compose and the chart default to
+the release they ship with, so neither needs a build. The release notes show how to check a
+signature with `cosign verify`.
+
+### Building from source
+
+To run a change of your own, build the image from a checkout of this repository and point
+Compose (`SOURCEGULL_IMAGE`, `SOURCEGULL_VERSION` in `.env`) or the chart (`image.registry`,
+`image.repository`, `image.tag`) at it:
 
 ```sh
-docker buildx build -f deploy/docker/Dockerfile -t sourcegull/sourcegull:0.1.0 --load .
+docker buildx build -f deploy/docker/Dockerfile -t registry.example.com/sourcegull/sourcegull:dev --load .
 ```
 
-The build compiles the web UI and embeds it in the binary. `--target cli` builds a small image
-with only `gull` and git, for CI jobs.
+The build compiles the web UI and embeds it in the binary. `--platform linux/arm64` cross-compiles
+for arm64; `--target cli` builds the `gull` image.
 
 ## Docker Compose
 
@@ -32,7 +48,7 @@ cd deploy/docker
 cp .env.example .env            # then change every password
 mkdir -p secrets && printf 'k1:%s\n' "$(openssl rand -base64 32)" > secrets/encryption-keys
 chmod 0644 secrets/encryption-keys   # read by UID 10001 in the containers
-docker compose up -d
+docker compose up -d            # pulls ghcr.io/sourcegull/sourcegull
 ```
 
 Back up `secrets/encryption-keys` together with the database: without it, the stored code host
@@ -67,15 +83,14 @@ Upgrades (pull, migrate, up), multi-version upgrades, backups and key rotation a
 The chart in [`deploy/helm/sourcegull`](../deploy/helm/sourcegull/README.md) deploys `web`, the repo
 nodes as a StatefulSet, `worker`, the blob store, optional executors (Kubernetes runtime: one
 Job per auto-indexing job, one per bulk change step), a migration hook and optional monitoring
-objects. Push the [image you built](#build-the-images) to a registry the cluster can pull from
-and set `image.registry` and `image.repository` to it (the tag defaults to the chart's
-`appVersion`, `0.1.0`). With no other values the chart runs the bundled database and generates
-the encryption keys, which is enough to evaluate Sourcegull:
+objects. It runs `ghcr.io/sourcegull/sourcegull` at the chart's `appVersion` (`0.1.0`); set
+`image.registry` and `image.repository` for a mirror or an [image of your own](#building-from-source).
+With no other values the chart runs the bundled database and generates the encryption keys,
+which is enough to evaluate Sourcegull:
 
 ```sh
 helm install sourcegull deploy/helm/sourcegull -f deploy/helm/sourcegull/examples/small.yaml \
-  --set externalURL=https://sourcegull.example.com \
-  --set image.registry=registry.example.com --set image.repository=sourcegull/sourcegull
+  --set externalURL=https://sourcegull.example.com
 helm test sourcegull
 ```
 
