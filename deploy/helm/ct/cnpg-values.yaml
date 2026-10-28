@@ -1,0 +1,10 @@
+# The CloudNativePG case of scripts/test/helm-ct.sh install (SOURCEGULL_CT_CNPG=1), layered on
+# kind-values.yaml: one instance on the kind node, with the smoke test.
+postgresql:
+  mode: cnpg
+  cnpg:
+    instances: 1
+tests:
+  smoke:
+    enabled: true
+    signUp: true

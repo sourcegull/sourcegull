@@ -1,0 +1,20 @@
+{{- if eq .Values.blobstore.mode "builtin" }}
+{{- $ctx := dict "root" . "component" "blob" -}}
+{{- $svc := .Values.blobstore.service -}}
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ include "sourcegull.componentName" $ctx }}
+  labels:
+    {{- include "sourcegull.componentLabels" $ctx | nindent 4 }}
+  {{- with (include "sourcegull.annotations" (dict "root" . "extra" $svc.annotations) | trim) }}{{ . | nindent 2 }}{{ end }}
+spec:
+  type: ClusterIP
+  selector:
+    {{- include "sourcegull.selectorLabels" $ctx | nindent 4 }}
+  ports:
+    - name: internal
+      port: {{ $svc.ports.internal }}
+      targetPort: internal
+      protocol: TCP
+{{- end }}

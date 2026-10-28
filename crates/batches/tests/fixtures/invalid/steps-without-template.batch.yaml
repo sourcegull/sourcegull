@@ -1,0 +1,6 @@
+name: no-template
+on:
+  - repositoriesMatchingQuery: file:README.md
+steps:
+  - run: echo
+    container: alpine:3

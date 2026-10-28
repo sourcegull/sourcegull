@@ -1,0 +1,7 @@
+name: template
+steps:
+  - run: echo
+    container: alpine:3
+changesetTemplate:
+  body: no title, branch or commit
+  fork: "yes"

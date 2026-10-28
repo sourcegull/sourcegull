@@ -1,0 +1,12 @@
+/target
+*.swp
+.env
+ui/node_modules
+ui/build
+ui/.svelte-kit
+ui/static/query.wasm
+/.e2e-out
+/.k3s
+/.test-out
+/.ct
+CLAUDE.local.md

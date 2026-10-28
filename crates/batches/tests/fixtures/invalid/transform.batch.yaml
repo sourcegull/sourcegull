@@ -1,0 +1,23 @@
+name: transform
+steps:
+  - run: echo
+    container: alpine:3
+transformChanges:
+  group:
+    - directory: a
+      branch: split-a
+    - directory: b
+      branch: split-a
+    - directory: c
+      branch: main-change
+    - directory: d
+      branch: split-d
+      repository: gitlab.example.com/x/y
+    - directory: e
+      branch: split-d
+      repository: gitlab.example.com/x/y
+changesetTemplate:
+  title: t
+  branch: main-change
+  commit:
+    message: m

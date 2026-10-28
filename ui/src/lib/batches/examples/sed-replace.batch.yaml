@@ -1,0 +1,22 @@
+name: inclusive-wording
+description: Use "allowlist" and "denylist" instead of "whitelist" and "blacklist" in Markdown files.
+
+# Repositories whose Markdown files use either term.
+on:
+  - repositoriesMatchingQuery: whitelist OR blacklist lang:markdown -file:vendor/
+
+steps:
+  # Replace the terms in every Markdown file outside vendor/ and node_modules/.
+  - run: |
+      find . -type f \( -name '*.md' -o -name '*.markdown' \) \
+        -not -path '*/vendor/*' -not -path '*/node_modules/*' -print0 |
+        xargs -0 -r sed -i 's/whitelist/allowlist/g; s/blacklist/denylist/g'
+    container: alpine:3
+
+changesetTemplate:
+  title: Use allowlist and denylist in the docs
+  body: Replaces "whitelist" and "blacklist" with "allowlist" and "denylist" in Markdown files.
+  branch: batch/inclusive-wording
+  commit:
+    message: Use allowlist/denylist wording in the docs
+  published: false

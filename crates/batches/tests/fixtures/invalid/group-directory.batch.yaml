@@ -1,0 +1,6 @@
+name: group-directory
+transformChanges:
+  group:
+    - directory: ""
+      branch: split
+    - branch: split-2

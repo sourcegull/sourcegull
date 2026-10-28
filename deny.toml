@@ -1,0 +1,63 @@
+# cargo-deny configuration: no copyleft in the binary, RustSec advisories, crates.io as the only
+# source. Run locally with `cargo deny check`.
+
+[graph]
+all-features = true
+
+[output]
+feature-depth = 1
+
+[advisories]
+version = 2
+db-urls = ["https://github.com/rustsec/advisory-db"]
+yanked = "deny"
+# Add RUSTSEC ids here, each with a reason, only after reviewing the advisory.
+ignore = [
+    # bincode 1.x is unmaintained (no fix). It comes only through syntect, which uses it to load
+    # its bundled syntax and theme dumps; no untrusted input is decoded with it.
+    { id = "RUSTSEC-2025-0141", reason = "via syntect; only decodes syntect's bundled dumps" },
+]
+
+[licenses]
+version = 2
+# Permissive licenses, plus MPL-2.0 (file-level weak copyleft, acceptable for a shipped binary).
+# GPL, AGPL and LGPL are not listed, so they are rejected.
+allow = [
+    "Apache-2.0",
+    "Apache-2.0 WITH LLVM-exception",
+    "MIT",
+    "MIT-0",
+    "BSD-2-Clause",
+    "BSD-3-Clause",
+    "ISC",
+    "Unicode-3.0",
+    "Zlib",
+    "CC0-1.0",
+    "BSL-1.0",
+    "CDLA-Permissive-2.0",
+    "MPL-2.0",
+]
+confidence-threshold = 0.93
+# The allowlist is policy, not inventory: listing a license nobody uses yet is fine.
+unused-allowed-license = "allow"
+exceptions = []
+
+# Workspace crates are not published (publish = false).
+[licenses.private]
+ignore = true
+
+[bans]
+multiple-versions = "warn"
+wildcards = "deny"
+# Workspace path dependencies have no version; allowed because the crates are private.
+allow-wildcard-paths = true
+highlight = "all"
+deny = []
+skip = []
+skip-tree = []
+
+[sources]
+unknown-registry = "deny"
+unknown-git = "deny"
+allow-registry = ["https://github.com/rust-lang/crates.io-index"]
+allow-git = []

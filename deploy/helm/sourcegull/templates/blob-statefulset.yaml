@@ -1,0 +1,67 @@
+{{- if eq .Values.blobstore.mode "builtin" }}
+{{- $component := "blob" -}}
+{{- $v := .Values.blobstore -}}
+{{- $ctx := dict "root" . "component" $component "values" $v -}}
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: {{ include "sourcegull.componentName" $ctx }}
+  labels:
+    {{- include "sourcegull.componentLabels" $ctx | nindent 4 }}
+  {{- with (include "sourcegull.annotations" (dict "root" .) | trim) }}{{ . | nindent 2 }}{{ end }}
+spec:
+  # One pod: the store is the PVC.
+  replicas: 1
+  serviceName: {{ include "sourcegull.componentName" $ctx }}
+  revisionHistoryLimit: 5
+  updateStrategy:
+    {{- toYaml $v.updateStrategy | nindent 4 }}
+  {{- with (include "sourcegull.pvcRetentionPolicy" $v | trim) }}{{ . | nindent 2 }}{{ end }}
+  selector:
+    matchLabels:
+      {{- include "sourcegull.selectorLabels" $ctx | nindent 6 }}
+  template:
+    metadata:
+      labels:
+        {{- include "sourcegull.podLabels" (merge (dict "dbClient" true) $ctx) | nindent 8 }}
+      {{- $podAnnotations := deepCopy (default dict $v.podAnnotations) }}
+      {{- if not .Values.existingSecret }}
+      {{- $_ := set $podAnnotations "checksum/secret" (include (print $.Template.BasePath "/secret.yaml") . | sha256sum) }}
+      {{- end }}
+      {{- with (include "sourcegull.annotations" (dict "root" . "extra" $podAnnotations) | trim) }}{{ . | nindent 6 }}{{ end }}
+    spec:
+      serviceAccountName: {{ include "sourcegull.serviceAccountName" . }}
+      automountServiceAccountToken: false
+      {{- with (include "sourcegull.imagePullSecrets" (dict "root" . "images" (list .Values.image .Values.postgresql.image)) | trim) }}{{ . | nindent 6 }}{{ end }}
+      {{- with (include "sourcegull.podSecurityContext" $ctx | trim) }}{{ . | nindent 6 }}{{ end }}
+      terminationGracePeriodSeconds: {{ $v.terminationGracePeriodSeconds }}
+      {{- with (include "sourcegull.podScheduling" $ctx | trim) }}{{ . | nindent 6 }}{{ end }}
+      {{- with (include "sourcegull.initContainers" (merge (dict "builtin" (include "sourcegull.migrateInitContainers" .)) $ctx) | trim) }}{{ . | nindent 6 }}{{ end }}
+      containers:
+        - name: blob
+          image: {{ include "sourcegull.sourcegullImage" . }}
+          imagePullPolicy: {{ .Values.image.pullPolicy }}
+          {{- with (include "sourcegull.commandArgs" (merge (dict "defaultArgs" (list "run" "--roles=blob")) $ctx) | trim) }}{{ . | nindent 10 }}{{ end }}
+          env:
+            {{- include "sourcegull.runtimeEnv" . | trim | nindent 12 }}
+            {{- with (include "sourcegull.extraEnv" (merge (dict "global" true) $ctx) | trim) }}{{ . | nindent 12 }}{{ end }}
+          {{- with (include "sourcegull.envFrom" (merge (dict "global" true) $ctx) | trim) }}{{ . | nindent 10 }}{{ end }}
+          ports:
+            - name: internal
+              containerPort: 6060
+              protocol: TCP
+          {{- with (include "sourcegull.probes" $ctx | trim) }}{{ . | nindent 10 }}{{ end }}
+          {{- with (include "sourcegull.lifecycle" (merge (dict "preStopPause" true) $ctx) | trim) }}{{ . | nindent 10 }}{{ end }}
+          resources:
+            {{- toYaml $v.resources | nindent 12 }}
+          {{- with (include "sourcegull.containerSecurityContext" $ctx | trim) }}{{ . | nindent 10 }}{{ end }}
+          volumeMounts:
+            {{- include "sourcegull.runtimeVolumeMounts" $ctx | nindent 12 }}
+        {{- with (include "sourcegull.sidecars" $ctx | trim) }}{{ . | nindent 8 }}{{ end }}
+      volumes:
+        {{- include "sourcegull.runtimeVolumes" (merge (dict "dataEmptyDir" (not $v.persistence.enabled)) $ctx) | nindent 8 }}
+  {{- if $v.persistence.enabled }}
+  volumeClaimTemplates:
+    {{- include "sourcegull.volumeClaimTemplate" (dict "root" . "component" $component "persistence" $v.persistence) | nindent 4 }}
+  {{- end }}
+{{- end }}

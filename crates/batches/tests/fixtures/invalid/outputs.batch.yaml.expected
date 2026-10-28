@@ -1,0 +1,2 @@
+7:17 steps.0.outputs.a.format: must be one of the following: text, json, yaml
+10:9 steps.0.outputs.b: property "value" is required

@@ -1,0 +1,176 @@
+[workspace]
+resolver = "3"
+members = ["crates/*"]
+
+[workspace.package]
+version = "0.1.0"
+edition = "2024"
+rust-version = "1.85"
+license = "Apache-2.0"
+repository = "https://github.com/altoing/sourcegull"
+
+[workspace.lints.rust]
+unsafe_code = "deny"
+unused_must_use = "deny"
+
+[workspace.lints.clippy]
+all = { level = "warn", priority = -1 }
+dbg_macro = "warn"
+todo = "warn"
+
+[workspace.dependencies]
+# internal
+sourcegull-types = { path = "crates/types" }
+sourcegull-config = { path = "crates/config" }
+sourcegull-db = { path = "crates/db" }
+sourcegull-pgqueue = { path = "crates/pgqueue" }
+sourcegull-leader = { path = "crates/leader" }
+sourcegull-pubsub = { path = "crates/pubsub" }
+sourcegull-observability = { path = "crates/observability" }
+sourcegull-crypto = { path = "crates/crypto" }
+sourcegull-authn = { path = "crates/authn" }
+sourcegull = { path = "crates/sourcegull" }
+sourcegull-graphql = { path = "crates/graphql" }
+sourcegull-graphql-core = { path = "crates/graphql-core" }
+sourcegull-http-api = { path = "crates/http-api" }
+sourcegull-http-extract = { path = "crates/http-extract" }
+sourcegull-services = { path = "crates/services" }
+sourcegull-web-assets = { path = "crates/web-assets" }
+sourcegull-testutil = { path = "crates/testutil" }
+sourcegull-codehost = { path = "crates/codehost" }
+sourcegull-codehost-gitlab = { path = "crates/codehost-gitlab" }
+sourcegull-codehost-github = { path = "crates/codehost-github" }
+sourcegull-codehost-gitea = { path = "crates/codehost-gitea" }
+sourcegull-repos = { path = "crates/repos" }
+sourcegull-declarative = { path = "crates/declarative" }
+sourcegull-batches-reconciler = { path = "crates/batches-reconciler" }
+sourcegull-rpc = { path = "crates/rpc" }
+sourcegull-gitstore = { path = "crates/gitstore" }
+sourcegull-repo-node = { path = "crates/repo-node" }
+sourcegull-feature = { path = "crates/feature" }
+sourcegull-languages = { path = "crates/languages" }
+sourcegull-highlight = { path = "crates/highlight" }
+sourcegull-symbols = { path = "crates/symbols" }
+sourcegull-query = { path = "crates/query" }
+sourcegull-query-wasm = { path = "crates/query-wasm" }
+sourcegull-search = { path = "crates/search" }
+sourcegull-search-exec = { path = "crates/search-exec" }
+sourcegull-search-client = { path = "crates/search-client" }
+sourcegull-search-web = { path = "crates/search-web" }
+sourcegull-index-format = { path = "crates/index-format" }
+sourcegull-indexer = { path = "crates/indexer" }
+sourcegull-structural = { path = "crates/structural" }
+sourcegull-authz = { path = "crates/authz" }
+sourcegull-codenav = { path = "crates/codenav" }
+sourcegull-mcp = { path = "crates/mcp" }
+sourcegull-oauth-server = { path = "crates/oauth-server" }
+sourcegull-codeintel-syntactic = { path = "crates/codeintel-syntactic" }
+sourcegull-blobstore = { path = "crates/blobstore" }
+sourcegull-codeintel-policies = { path = "crates/codeintel-policies" }
+sourcegull-codeintel-scip = { path = "crates/codeintel-scip" }
+sourcegull-executor-api = { path = "crates/executor-api" }
+sourcegull-executor = { path = "crates/executor" }
+sourcegull-executors-graphql = { path = "crates/executors-graphql" }
+sourcegull-cli = { path = "crates/cli" }
+sourcegull-ranking = { path = "crates/ranking" }
+sourcegull-autoindex = { path = "crates/autoindex" }
+sourcegull-batches = { path = "crates/batches" }
+sourcegull-batches-template = { path = "crates/batches-template" }
+sourcegull-batches-resolver = { path = "crates/batches-resolver" }
+sourcegull-batches-steps = { path = "crates/batches-steps" }
+sourcegull-outbound-webhooks = { path = "crates/outbound-webhooks" }
+sourcegull-outbound-webhooks-graphql = { path = "crates/outbound-webhooks-graphql" }
+sourcegull-analytics = { path = "crates/analytics" }
+sourcegull-analytics-graphql = { path = "crates/analytics-graphql" }
+sourcegull-searchjobs = { path = "crates/searchjobs" }
+sourcegull-searchjobs-graphql = { path = "crates/searchjobs-graphql" }
+sourcegull-compute = { path = "crates/compute" }
+sourcegull-notebooks = { path = "crates/notebooks" }
+sourcegull-notebooks-graphql = { path = "crates/notebooks-graphql" }
+sourcegull-saved-searches-graphql = { path = "crates/saved-searches-graphql" }
+sourcegull-monitors = { path = "crates/monitors" }
+sourcegull-monitors-graphql = { path = "crates/monitors-graphql" }
+sourcegull-own = { path = "crates/own", default-features = false }
+sourcegull-own-graphql = { path = "crates/own-graphql" }
+sourcegull-insights = { path = "crates/insights" }
+sourcegull-insights-graphql = { path = "crates/insights-graphql" }
+sourcegull-batches-graphql = { path = "crates/batches-graphql" }
+sourcegull-codeintel-graphql = { path = "crates/codeintel-graphql" }
+sourcegull-ratelimit = { path = "crates/ratelimit" }
+sourcegull-oobmigration = { path = "crates/oobmigration" }
+sourcegull-monitoring = { path = "crates/monitoring" }
+
+# external
+anyhow = "1"
+thiserror = "2"
+async-trait = "0.1"
+lettre = { version = "0.11", default-features = false, features = ["builder", "smtp-transport", "tokio1", "tokio1-rustls-tls"] }
+tokio = { version = "1", features = ["full"] }
+tokio-util = "0.7"
+futures = "0.3"
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
+schemars = "0.8"
+jsonschema = { version = "0.30", default-features = false }
+arc-swap = "1"
+moka = { version = "0.12", features = ["future"] }
+roaring = "0.11"
+sqlx = { version = "0.8", default-features = false, features = ["runtime-tokio", "tls-rustls", "postgres", "macros", "migrate", "chrono", "uuid", "json"] }
+chrono = { version = "0.4", features = ["serde"] }
+uuid = { version = "1", features = ["v4", "serde"] }
+tracing = "0.1"
+tracing-subscriber = { version = "0.3", features = ["env-filter", "json"] }
+metrics = "0.24"
+metrics-exporter-prometheus = { version = "0.17", default-features = false }
+axum = { version = "0.8", features = ["macros"] }
+tower = "0.5"
+tower-http = { version = "0.6", features = ["trace", "compression-gzip", "limit", "request-id", "util"] }
+hyper = "1"
+async-graphql = { version = "7", features = ["chrono"] }
+async-graphql-axum = "7"
+clap = { version = "4", features = ["derive", "env"] }
+aes-gcm = "0.10"
+argon2 = "0.5"
+sha2 = "0.10"
+hmac = "0.12"
+ipnet = "2"
+hex = "0.4"
+base64 = "0.22"
+rand = "0.8"
+subtle = "2"
+zeroize = "1"
+mimalloc = "0.1"
+cookie = "0.18"
+rust-embed = "8"
+mime_guess = "2"
+reqwest = { version = "0.12", default-features = false, features = ["json", "rustls-tls"] }
+jsonwebtoken = "9.3"
+crc = "3"
+http-body-util = "0.1"
+http = "1"
+url = "2"
+regex = "1"
+regex-syntax = "0.8"
+wiremock = "0.6"
+rayon = "1"
+globset = "0.4"
+
+# Panics unwind: a panicking job or search request fails alone (pgqueue records it as
+# errored, the search pool returns an error) instead of taking down every role in the process.
+[profile.release]
+lto = "fat"
+codegen-units = 1
+panic = "unwind"
+
+# The query box parser (ui/static/query.wasm): small over fast.
+[profile.release.package.sourcegull-query-wasm]
+opt-level = "s"
+
+# Line tables only: backtraces keep file and line, and test binaries stay small (full debug
+# info is most of a binary's size, copied into every test binary).
+[profile.dev]
+debug = "line-tables-only"
+
+[profile.dev.package."*"]
+opt-level = 1
+debug = false

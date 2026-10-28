@@ -1,0 +1,7 @@
+name: on-entries
+on:
+  - branch: main
+  - repositoriesMatchingQuery: file:x
+    repository: gitlab.example.com/a/b
+  - repository: gitlab.example.com/a/b
+    brnch: main

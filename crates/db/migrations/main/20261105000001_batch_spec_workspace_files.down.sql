@@ -1,0 +1,1 @@
+DROP TABLE batch_spec_workspace_files;

@@ -1,0 +1,28 @@
+[package]
+name = "sourcegull-search-client"
+description = "The web side of the repo nodes' search service: search fan-out, repository predicates and the wire forms of searches."
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+publish = false
+
+[lints]
+workspace = true
+
+[dependencies]
+sourcegull-languages = { workspace = true }
+sourcegull-own = { workspace = true }
+sourcegull-query = { workspace = true }
+sourcegull-rpc = { workspace = true }
+sourcegull-search = { workspace = true }
+sourcegull-types = { workspace = true }
+chrono = { workspace = true }
+futures = { workspace = true }
+regex = { workspace = true }
+tokio = { workspace = true }
+tokio-stream = "0.1"
+tracing = { workspace = true }
+
+[dev-dependencies]
+serde_json = { workspace = true }

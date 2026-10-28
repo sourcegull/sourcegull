@@ -1,0 +1,27 @@
+// VS Code Dev Containers: opens the checkout inside the `dev` service of compose.yaml (Rust,
+// Node.js, psql), with the dev Postgres next to it. `docker compose up sourcegull ui` runs the app.
+{
+	"name": "sourcegull",
+	"dockerComposeFile": ["../compose.yaml"],
+	"service": "dev",
+	"runServices": ["postgres", "dev"],
+	"workspaceFolder": "/src",
+	// The image's entrypoint already gives `dev` the checkout owner's UID.
+	"remoteUser": "dev",
+	"updateRemoteUserUID": false,
+	"overrideCommand": false,
+	"shutdownAction": "none",
+	"customizations": {
+		"vscode": {
+			"extensions": [
+				"rust-lang.rust-analyzer",
+				"svelte.svelte-vscode",
+				"tamasfe.even-better-toml"
+			],
+			"settings": {
+				// Separate target dir, so rust-analyzer does not fight `cargo build` for the lock.
+				"rust-analyzer.cargo.targetDir": true
+			}
+		}
+	}
+}

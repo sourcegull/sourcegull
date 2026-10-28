@@ -1,0 +1,47 @@
+[package]
+name = "sourcegull-codehost-gitlab"
+description = "GitLab code host: connection config, API client, repository discovery, webhooks and merge requests."
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+publish = false
+autotests = false
+
+[lints]
+workspace = true
+
+[features]
+## A mock GitLab API server for tests of this and dependent crates.
+testing = ["dep:axum"]
+
+[[test]]
+name = "integration"
+path = "tests/main.rs"
+
+[dependencies]
+sourcegull-codehost = { workspace = true }
+sourcegull-config = { workspace = true }
+sourcegull-crypto = { workspace = true }
+sourcegull-types = { workspace = true }
+async-trait = { workspace = true }
+base64 = { workspace = true }
+chrono = { workspace = true }
+futures = { workspace = true }
+http = { workspace = true }
+jsonschema = { workspace = true }
+regex = { workspace = true }
+reqwest = { workspace = true, features = ["gzip", "http2"] }
+schemars = { workspace = true }
+serde = { workspace = true }
+serde_json = { workspace = true }
+thiserror = { workspace = true }
+tokio = { workspace = true }
+tracing = { workspace = true }
+url = { workspace = true }
+axum = { workspace = true, optional = true }
+
+[dev-dependencies]
+sourcegull-codehost-gitlab = { workspace = true, features = ["testing"] }
+tokio = { workspace = true, features = ["test-util"] }
+wiremock = { workspace = true }

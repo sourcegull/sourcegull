@@ -1,0 +1,30 @@
+name: lint-fix
+description: Runs the lint fixer, with an extra step for one group of repositories.
+
+on:
+  - repositoriesMatchingQuery: file:^package\.json$ lint
+
+steps:
+  - run: npm ci && npx eslint --fix .
+    container: node:20
+  - run: npx prettier --write .
+    container: node:20
+    if: ${{ matches repository.name "gitlab.example.com/acme/frontend-*" }}
+  - run: echo "skipped"
+    container: alpine:3
+    if: "false"
+  - run: echo "${{ repository.name }}" > .linted
+    container: alpine:3
+    if: true
+
+changesetTemplate:
+  title: Fix lint findings
+  body: |
+    Ran the lint fixer in ${{ repository.name }}.
+    Modified files: ${{ join steps.modified_files ", " }}
+  branch: batch/lint-fix
+  commit:
+    message: Fix lint findings
+  published:
+    - gitlab.example.com/acme/frontend-*: draft
+    - gitlab.example.com/acme/frontend-legacy: false

@@ -1,0 +1,46 @@
+[package]
+name = "sourcegull-batches"
+description = "Batch Changes: batch spec and changeset spec parsing and validation, and (feature `store`) the bulk change tables."
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+publish = false
+autotests = false
+
+[lints]
+workspace = true
+
+[features]
+# The Postgres tables. The CLI uses the spec parsing only.
+store = ["dep:sourcegull-db", "dep:sourcegull-types", "dep:sourcegull-crypto", "dep:sourcegull-pgqueue", "dep:sqlx", "dep:chrono"]
+
+[[test]]
+name = "integration"
+path = "tests/main.rs"
+
+[dependencies]
+base64 = { workspace = true }
+hex = { workspace = true }
+jsonschema = { workspace = true }
+regex = { workspace = true }
+saphyr-parser = "0.2"
+serde = { workspace = true }
+serde_json = { workspace = true }
+sha2 = { workspace = true }
+thiserror = { workspace = true }
+sourcegull-db = { workspace = true, optional = true }
+sourcegull-types = { workspace = true, optional = true }
+sourcegull-crypto = { workspace = true, optional = true }
+sourcegull-pgqueue = { workspace = true, optional = true }
+sqlx = { workspace = true, optional = true }
+chrono = { workspace = true, optional = true }
+
+[dev-dependencies]
+proptest = "1"
+sourcegull-testutil = { workspace = true }
+tokio = { workspace = true }
+
+[[test]]
+name = "store"
+required-features = ["store"]

@@ -1,0 +1,8 @@
+# ct install case: the bundled database, with the smoke test (sign-in, GraphQL, search) signing up
+# its own account on the throwaway install. deploy/helm/ct/kind-values.yaml is layered on top.
+postgresql:
+  mode: bundled
+tests:
+  smoke:
+    enabled: true
+    signUp: true

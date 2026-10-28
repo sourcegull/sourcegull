@@ -1,0 +1,7 @@
+name: import
+importChangesets:
+  - repository: gitlab.example.com/a/b
+    externalIDs: [1, 2, 1]
+  - repository: gitlab.example.com/a/c
+    externalIDs: [1.5, true]
+  - externalIDs: [3]

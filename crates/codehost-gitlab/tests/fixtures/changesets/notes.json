@@ -1,0 +1,20 @@
+[
+  {"id": 301, "type": null, "body": "requested review from @bob", "attachment": null,
+   "author": {"id": 3, "username": "alice", "name": "Alice"}, "created_at": "2026-10-10T12:01:00.000Z",
+   "updated_at": "2026-10-10T12:01:00.000Z", "system": true, "noteable_id": 1007, "noteable_type": "MergeRequest", "noteable_iid": 7},
+  {"id": 302, "type": null, "body": "Looks good, one nit.", "attachment": null,
+   "author": {"id": 4, "username": "bob", "name": "Bob"}, "created_at": "2026-10-11T09:00:00.000Z",
+   "updated_at": "2026-10-11T09:00:00.000Z", "system": false, "noteable_id": 1007, "noteable_type": "MergeRequest", "noteable_iid": 7},
+  {"id": 303, "type": null, "body": "approved this merge request", "attachment": null,
+   "author": {"id": 4, "username": "bob", "name": "Bob"}, "created_at": "2026-10-11T09:05:00.000Z",
+   "updated_at": "2026-10-11T09:05:00.000Z", "system": true, "noteable_id": 1007, "noteable_type": "MergeRequest", "noteable_iid": 7},
+  {"id": 304, "type": null, "body": "marked this merge request as **ready**", "attachment": null,
+   "author": {"id": 3, "username": "alice", "name": "Alice"}, "created_at": "2026-10-11T10:00:00.000Z",
+   "updated_at": "2026-10-11T10:00:00.000Z", "system": true, "noteable_id": 1007, "noteable_type": "MergeRequest", "noteable_iid": 7},
+  {"id": 305, "type": null, "body": "marked this merge request as **draft**", "attachment": null,
+   "author": {"id": 3, "username": "alice", "name": "Alice"}, "created_at": "2026-10-12T08:00:00.000Z",
+   "updated_at": "2026-10-12T08:00:00.000Z", "system": true, "noteable_id": 1007, "noteable_type": "MergeRequest", "noteable_iid": 7},
+  {"id": 306, "type": null, "body": "added 1 commit\n\n<ul><li>8f2a6c1d - Update deps</li></ul>", "attachment": null,
+   "author": {"id": 3, "username": "alice", "name": "Alice"}, "created_at": "2026-10-12T14:59:00.000Z",
+   "updated_at": "2026-10-12T14:59:00.000Z", "system": true, "noteable_id": 1007, "noteable_type": "MergeRequest", "noteable_iid": 7}
+]

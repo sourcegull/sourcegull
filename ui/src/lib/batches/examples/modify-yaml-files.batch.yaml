@@ -1,0 +1,33 @@
+name: compose-debug-entrypoint
+description: Add `--debug` to the entrypoint of every service in docker-compose.yaml files that set one.
+
+on:
+  - repositoriesMatchingQuery: 'file:docker-compose\.ya?ml$ entrypoint:'
+
+steps:
+  # Edit only the files the search found, with a script mounted into the container.
+  - run: |
+      for file in ${{ join repository.search_result_paths " " }}; do
+        ruby /tmp/add-debug.rb "$file" > "$file.new" && mv "$file.new" "$file"
+      done
+    container: ruby:3.3-alpine
+    files:
+      /tmp/add-debug.rb: |
+        require 'yaml'
+
+        doc = YAML.load(ARGF.read)
+        (doc['services'] || {}).each_value do |service|
+          case service['entrypoint']
+          when Array then service['entrypoint'] << '--debug'
+          when String then service['entrypoint'] += ' --debug'
+          end
+        end
+        puts doc.to_yaml
+
+changesetTemplate:
+  title: Add --debug to compose entrypoints
+  body: Adds `--debug` to every service entrypoint defined in docker-compose files.
+  branch: batch/compose-debug-entrypoint
+  commit:
+    message: Add --debug to compose entrypoints
+  published: false

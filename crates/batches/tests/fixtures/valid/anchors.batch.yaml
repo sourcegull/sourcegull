@@ -1,0 +1,19 @@
+name: anchors
+on:
+  - repositoriesMatchingQuery: file:README.md
+steps:
+  - &base
+    run: echo one >> README.md
+    container: alpine:3
+    env: &env
+      LANG: C
+  - <<: *base
+    run: echo two >> README.md
+  - run: echo three >> README.md
+    container: alpine:3
+    env: *env
+changesetTemplate:
+  title: Append lines
+  branch: append-lines
+  commit:
+    message: Append lines

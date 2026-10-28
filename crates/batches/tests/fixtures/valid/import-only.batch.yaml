@@ -1,0 +1,8 @@
+name: track-migrations
+description: Tracks merge requests opened by hand.
+importChangesets:
+  - repository: gitlab.example.com/a/b
+    externalIDs: [1, 2, 3]
+  - repository: gitlab.example.com/a/c
+    externalIDs:
+      - "42"

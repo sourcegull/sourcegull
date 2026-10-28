@@ -1,0 +1,14 @@
+name: dup
+steps:
+  - run: echo
+    container: alpine:3
+    outputs:
+      result:
+        value: a
+      result:
+        value: b
+changesetTemplate:
+  title: t
+  branch: b
+  commit:
+    message: m

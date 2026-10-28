@@ -1,0 +1,24 @@
+[package]
+name = "sourcegull-index-format"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+publish = false
+
+[lints]
+workspace = true
+
+[dependencies]
+crc32fast = "1"
+fst = "0.4"
+lz4_flex = { version = "0.14", default-features = false, features = ["std", "safe-encode", "safe-decode", "checked-decode"] }
+memchr = "2"
+memmap2 = "0.9"
+rustc-hash = "2"
+roaring = "0.11"
+tempfile = "3"
+thiserror = { workspace = true }
+
+[dev-dependencies]
+proptest = "1"

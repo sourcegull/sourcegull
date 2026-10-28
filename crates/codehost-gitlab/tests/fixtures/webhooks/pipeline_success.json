@@ -1,0 +1,100 @@
+{
+  "object_kind": "pipeline",
+  "object_attributes": {
+    "id": 3101,
+    "iid": 101,
+    "name": null,
+    "ref": "fix",
+    "tag": false,
+    "sha": "da1560886d4f094c3e6c9ef40349f7d38b5d27d7",
+    "before_sha": "0000000000000000000000000000000000000000",
+    "source": "merge_request_event",
+    "status": "success",
+    "detailed_status": "success",
+    "stages": [
+      "test"
+    ],
+    "created_at": "2026-10-19 09:01:00 UTC",
+    "finished_at": "2026-10-19 09:02:03 UTC",
+    "duration": 63,
+    "queued_duration": 2,
+    "variables": [],
+    "url": "https://gitlab.example.com/a/one/-/pipelines/3101"
+  },
+  "merge_request": {
+    "id": 9001,
+    "iid": 1,
+    "title": "Fix the readme",
+    "source_branch": "fix",
+    "source_project_id": 42,
+    "target_branch": "main",
+    "target_project_id": 42,
+    "state": "opened",
+    "merge_status": "can_be_merged",
+    "detailed_merge_status": "mergeable",
+    "url": "https://gitlab.example.com/a/one/-/merge_requests/1"
+  },
+  "user": {
+    "id": 7,
+    "name": "Bob Reviewer",
+    "username": "bob",
+    "avatar_url": "https://www.gravatar.com/avatar/b?s=80&d=identicon",
+    "email": "[REDACTED]"
+  },
+  "project": {
+    "id": 42,
+    "name": "one",
+    "description": "",
+    "web_url": "https://gitlab.example.com/a/one",
+    "avatar_url": null,
+    "git_ssh_url": "git@gitlab.example.com:a/one.git",
+    "git_http_url": "https://gitlab.example.com/a/one.git",
+    "namespace": "a",
+    "visibility_level": 0,
+    "path_with_namespace": "a/one",
+    "default_branch": "main",
+    "ci_config_path": null
+  },
+  "commit": {
+    "id": "da1560886d4f094c3e6c9ef40349f7d38b5d27d7",
+    "message": "Fix the readme\n",
+    "title": "Fix the readme",
+    "timestamp": "2026-10-19T08:59:00+00:00",
+    "url": "https://gitlab.example.com/a/one/-/commit/da1560886d4f094c3e6c9ef40349f7d38b5d27d7",
+    "author": {
+      "name": "Alice",
+      "email": "alice@example.com"
+    }
+  },
+  "source_pipeline": null,
+  "builds": [
+    {
+      "id": 31010,
+      "stage": "test",
+      "name": "test",
+      "status": "success",
+      "created_at": "2026-10-19 09:01:00 UTC",
+      "started_at": "2026-10-19 09:01:00 UTC",
+      "finished_at": "2026-10-19 09:02:03 UTC",
+      "duration": 61.2,
+      "queued_duration": 1.1,
+      "failure_reason": null,
+      "when": "on_success",
+      "manual": false,
+      "allow_failure": false,
+      "user": {
+        "id": 7,
+        "name": "Bob Reviewer",
+        "username": "bob",
+        "avatar_url": "https://www.gravatar.com/avatar/b?s=80&d=identicon",
+        "email": "[REDACTED]"
+      },
+      "runner": null,
+      "artifacts_file": {
+        "filename": null,
+        "size": null
+      },
+      "environment": null
+    }
+  ]
+}

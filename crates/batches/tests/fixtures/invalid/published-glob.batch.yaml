@@ -1,0 +1,12 @@
+name: published-glob
+steps:
+  - run: echo
+    container: alpine:3
+changesetTemplate:
+  title: t
+  branch: b
+  commit:
+    message: m
+  published:
+    - "*": false
+    - "gitlab.example.com/[abc": true

@@ -1,0 +1,18 @@
+[package]
+name = "sourcegull-analytics-graphql"
+description = "The GraphQL API of usage analytics: site.analytics, site.usageStatistics and site.users, merged into the schema by sourcegull-graphql."
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+publish = false
+
+[lints]
+workspace = true
+
+[dependencies]
+sourcegull-analytics = { workspace = true }
+sourcegull-graphql-core = { workspace = true }
+sourcegull-services = { workspace = true }
+async-graphql = { workspace = true }
+chrono = { workspace = true }

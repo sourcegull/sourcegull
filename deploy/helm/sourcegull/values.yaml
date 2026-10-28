@@ -1,0 +1,989 @@
+# Default values for the Sourcegull chart.
+#
+# Components: web, worker, repo, blobstore (builtin StatefulSet or S3), executor, migrate,
+# postgresql (bundled, CloudNativePG or an external database), ingress, networkPolicy, metrics,
+# tests. The Sourcegull components take the same pod settings (command, probes, security contexts,
+# scheduling, extra env/volumes/containers); they are documented once, under `web`.
+#
+# The defaults install a working evaluation instance: the bundled database, generated encryption
+# keys and the builtin blob store. Sizing presets (small/medium/large) are in examples/ and
+# explained in SIZING.md.
+
+## @section Global parameters
+global:
+  # Registry of every image; overrides each image's `registry`.
+  imageRegistry: ""
+  # Pull secrets of every pod, e.g. [{ name: regcred }].
+  imagePullSecrets: []
+  # StorageClass of every PersistentVolumeClaim whose `persistence.storageClass` is empty; empty
+  # uses the cluster's default class.
+  defaultStorageClass: ""
+
+## @section Common parameters
+# Override the chart name in resource names and the `app.kubernetes.io/name` label.
+nameOverride: ""
+# Override the full resource name prefix (`<release>-<chart>`).
+fullnameOverride: ""
+# Labels and annotations added to every resource the chart creates.
+commonLabels: {}
+commonAnnotations: {}
+# Extra manifests rendered with the release (each a map or a string; both go through `tpl`).
+extraDeploy: []
+
+## @section Sourcegull parameters
+# Public URL users reach Sourcegull at. Used as the default site config `externalURL`, and as the
+# default Ingress host.
+externalURL: https://sourcegull.example.com
+
+# Name of an existing Secret with the application secrets:
+#   database-url     postgres:// URL (postgresql.mode=external, unless externalDatabase.existingSecret)
+#   encryption-keys  encryption key file, one `id:base64key` line per key
+#   executor-token   the shared executor token (executor.enabled, unless executor.existingSecret)
+# Create it with e.g.:
+#   kubectl create secret generic sourcegull-secrets \
+#     --from-literal=database-url='postgres://sourcegull:...@db.example.com:5432/sourcegull' \
+#     --from-literal=encryption-keys="k1:$(openssl rand -base64 32)"
+# Empty: the chart generates a Secret holding random encryption keys (and the executor token),
+# kept on uninstall and reused across upgrades; back it up.
+existingSecret: ""
+
+image:
+  registry: docker.io
+  repository: sourcegull/sourcegull
+  # Defaults to the chart's appVersion.
+  tag: ""
+  # Takes precedence over tag when set (e.g. "sha256:...").
+  digest: ""
+  pullPolicy: IfNotPresent
+  # Pull secrets of the Sourcegull pods, added to global.imagePullSecrets.
+  pullSecrets: []
+
+# json|pretty
+logFormat: json
+# RUST_LOG filter, e.g. "info,sourcegull_db=debug"
+logLevel: info
+
+# Extra environment of every Sourcegull container (web, worker, repo, blob, migrate), e.g. the
+# variables the configuration files reference with ${env:NAME}:
+#   - name: GITLAB_TOKEN
+#     valueFrom: { secretKeyRef: { name: gitlab, key: token } }
+# Each component's own extraEnvVars come after these.
+extraEnvVars: []
+# A ConfigMap and a Secret whose keys become environment variables of every Sourcegull container.
+extraEnvVarsCM: ""
+extraEnvVarsSecret: ""
+
+# How the Sourcegull containers get the encryption keys (the `encryption-keys` entry of the app
+# Secret, see existingSecret). Every Sourcegull container needs the same keys.
+encryptionKeys:
+  # file: mounted and read as SOURCEGULL_KEYS_FILE (a rotated Secret is re-read without a restart).
+  # env: passed as SOURCEGULL_KEYS from the Secret (secretKeyRef; the pod spec holds no key).
+  # external: the chart passes neither; set SOURCEGULL_KEYS yourself, e.g. with extraEnvVars and a
+  #   secret-injecting webhook, or a valueFrom of your own.
+  source: file
+
+# Configuration as code. Each document is rendered as JSON into a Secret mounted on every Sourcegull
+# pod, and is then read-only in the UI. Strings can reference secrets with ${env:NAME} (see
+# extraEnvVars) or ${file:/path} (see extraVolumes); $${ is a literal ${. Changes apply without a
+# restart: the site config is re-read every 30 s, the other files by the leader worker every 30 s.
+config:
+  # The site configuration (SOURCEGULL_SITE_CONFIG_FILE), e.g.
+  #   auth.providers: [{ type: openidconnect, clientID: sourcegull, clientSecret: "${env:OIDC_SECRET}", ... }]
+  siteConfig: {}
+  # The global settings (SOURCEGULL_GLOBAL_SETTINGS_FILE). Every user can read them: no secrets.
+  globalSettings: {}
+  # Code host connections, search contexts, roles, site admins, outbound webhooks, executor
+  # secrets, code intelligence policies and feature flags (SOURCEGULL_RESOURCES_FILE), e.g.
+  #   siteAdmins: [admin@example.com]
+  #   connections:
+  #     - key: gitlab-main
+  #       kind: gitlab
+  #       displayName: GitLab
+  #       config: { url: https://gitlab.example.com, token: "${env:GITLAB_TOKEN}", projectQuery: [groups/acme/projects] }
+  resources: {}
+  # A Secret managed elsewhere instead of the three values above, holding some of the keys
+  # site-config.json, global-settings.json and resources.json; list the ones it has in
+  # existingSecretKeys.
+  existingSecret: ""
+  existingSecretKeys: []
+
+# Leader election for the worker's singleton tasks. `kubernetes`: coordination.k8s.io
+# Lease objects named `<fullname>-<task>` in the release namespace (the chart adds a Role and
+# RoleBinding for leases and mounts the service account token in worker pods). `postgres`:
+# Postgres advisory locks (needs direct connections, not through PgBouncer).
+leader:
+  backend: kubernetes
+  # How long a crashed leader blocks a takeover (leases are renewed every 5 s).
+  leaseDurationSeconds: 15
+
+# Code host request budgets. `postgres`: each connection's `rateLimit.requestsPerHour`
+# is shared by every web, worker and repo pod. `memory`: a budget per pod.
+rateLimit:
+  backend: postgres
+
+serviceAccount:
+  create: true
+  # Defaults to the release fullname.
+  name: ""
+  annotations: {}
+  # The ServiceAccount's own default. Pods set it explicitly: only worker pods mount the token
+  # (leader.backend=kubernetes).
+  automountServiceAccountToken: false
+
+## @section Web
+# The web role: UI, GraphQL and search APIs on port 7080; metrics and health on 6060.
+web:
+  # Ignored when autoscaling.hpa.enabled.
+  replicaCount: 2
+  # Container command and arguments; empty keeps the image's entrypoint and the role's arguments.
+  # Secret-injecting webhooks that wrap the command read it from the pod spec, e.g.
+  # ["/usr/bin/tini", "--", "/usr/local/bin/sourcegull"].
+  command: []
+  args: []
+  resources:
+    requests: { cpu: 500m, memory: 512Mi }
+    limits: { memory: 2Gi }
+  # Pod and container security contexts; `enabled: false` leaves them out.
+  podSecurityContext:
+    enabled: true
+    fsGroup: 10001
+    fsGroupChangePolicy: Always
+    supplementalGroups: []
+    sysctls: []
+  containerSecurityContext:
+    enabled: true
+    runAsUser: 10001
+    runAsGroup: 10001
+    runAsNonRoot: true
+    privileged: false
+    readOnlyRootFilesystem: true
+    allowPrivilegeEscalation: false
+    capabilities: { drop: [ALL] }
+    seccompProfile: { type: RuntimeDefault }
+    seLinuxOptions: {}
+  # Probes on the internal port (/healthz, /readyz). custom*Probe replaces a probe entirely.
+  startupProbe:
+    enabled: true
+    initialDelaySeconds: 0
+    periodSeconds: 5
+    timeoutSeconds: 3
+    failureThreshold: 60
+    successThreshold: 1
+  livenessProbe:
+    enabled: true
+    initialDelaySeconds: 0
+    periodSeconds: 10
+    timeoutSeconds: 3
+    failureThreshold: 3
+    successThreshold: 1
+  readinessProbe:
+    enabled: true
+    initialDelaySeconds: 0
+    periodSeconds: 5
+    timeoutSeconds: 3
+    failureThreshold: 3
+    successThreshold: 1
+  customStartupProbe: {}
+  customLivenessProbe: {}
+  customReadinessProbe: {}
+  # Empty: a 5 s preStop pause, so the pod keeps serving while it is removed from Services (the
+  # process closes its listeners as soon as it gets SIGTERM).
+  lifecycleHooks: {}
+  terminationGracePeriodSeconds: 60
+  updateStrategy:
+    type: RollingUpdate
+    rollingUpdate: { maxUnavailable: 0, maxSurge: 25% }
+  # Extra environment, envFrom sources, volumes, mounts, sidecars and init containers of this
+  # component (they go through `tpl`).
+  extraEnvVars: []
+  extraEnvVarsCM: ""
+  extraEnvVarsSecret: ""
+  extraVolumes: []
+  extraVolumeMounts: []
+  sidecars: []
+  initContainers: []
+  # Size limit of each of the pod's scratch emptyDirs (/tmp and the data directory), e.g. 2Gi.
+  emptyDirSizeLimit: ""
+  podLabels: {}
+  podAnnotations: {}
+  hostAliases: []
+  priorityClassName: ""
+  schedulerName: ""
+  # Scheduling presets (soft, hard or ""), used when `affinity` is empty.
+  podAffinityPreset: ""
+  podAntiAffinityPreset: soft
+  nodeAffinityPreset:
+    type: ""
+    key: ""
+    values: []
+  affinity: {}
+  nodeSelector: {}
+  tolerations: []
+  topologySpreadConstraints: []
+  autoscaling:
+    # Horizontal autoscaling on CPU (and memory, when targetMemory is set), in percent of requests.
+    hpa:
+      enabled: true
+      minReplicas: 2
+      maxReplicas: 10
+      targetCPU: 70
+      targetMemory: ""
+  pdb:
+    create: true
+    # minAvailable wins over maxUnavailable; both empty: maxUnavailable 1.
+    minAvailable: 1
+    maxUnavailable: ""
+  service:
+    type: ClusterIP
+    ports:
+      http: 7080
+      internal: 6060
+    # With type NodePort or LoadBalancer; empty: one is assigned.
+    nodePorts:
+      http: ""
+    clusterIP: ""
+    loadBalancerIP: ""
+    loadBalancerSourceRanges: []
+    externalTrafficPolicy: Cluster
+    sessionAffinity: None
+    annotations: {}
+    extraPorts: []
+
+## @section Worker
+# Background jobs and the leader-elected singleton tasks. Pod settings as for `web`.
+worker:
+  # Ignored when autoscaling.hpa or autoscaling.keda is enabled.
+  replicaCount: 2
+  command: []
+  args: []
+  resources:
+    requests: { cpu: 250m, memory: 256Mi }
+    limits: { memory: 2Gi }
+  podSecurityContext:
+    enabled: true
+    fsGroup: 10001
+    fsGroupChangePolicy: Always
+    supplementalGroups: []
+    sysctls: []
+  containerSecurityContext:
+    enabled: true
+    runAsUser: 10001
+    runAsGroup: 10001
+    runAsNonRoot: true
+    privileged: false
+    readOnlyRootFilesystem: true
+    allowPrivilegeEscalation: false
+    capabilities: { drop: [ALL] }
+    seccompProfile: { type: RuntimeDefault }
+    seLinuxOptions: {}
+  startupProbe:
+    enabled: true
+    initialDelaySeconds: 0
+    periodSeconds: 5
+    timeoutSeconds: 3
+    failureThreshold: 60
+    successThreshold: 1
+  livenessProbe:
+    enabled: true
+    initialDelaySeconds: 0
+    periodSeconds: 10
+    timeoutSeconds: 3
+    failureThreshold: 3
+    successThreshold: 1
+  readinessProbe:
+    enabled: true
+    initialDelaySeconds: 0
+    periodSeconds: 5
+    timeoutSeconds: 3
+    failureThreshold: 3
+    successThreshold: 1
+  customStartupProbe: {}
+  customLivenessProbe: {}
+  customReadinessProbe: {}
+  # Empty: none (the worker serves no traffic).
+  lifecycleHooks: {}
+  terminationGracePeriodSeconds: 60
+  updateStrategy:
+    type: RollingUpdate
+    rollingUpdate: { maxUnavailable: 0, maxSurge: 25% }
+  extraEnvVars: []
+  extraEnvVarsCM: ""
+  extraEnvVarsSecret: ""
+  extraVolumes: []
+  extraVolumeMounts: []
+  sidecars: []
+  initContainers: []
+  emptyDirSizeLimit: ""
+  podLabels: {}
+  podAnnotations: {}
+  hostAliases: []
+  priorityClassName: ""
+  schedulerName: ""
+  podAffinityPreset: ""
+  podAntiAffinityPreset: soft
+  nodeAffinityPreset:
+    type: ""
+    key: ""
+    values: []
+  affinity: {}
+  nodeSelector: {}
+  tolerations: []
+  topologySpreadConstraints: []
+  # Created when more than one worker can run (replicaCount > 1 or autoscaling).
+  pdb:
+    create: true
+    minAvailable: ""
+    maxUnavailable: 1
+  autoscaling:
+    # CPU autoscaling, for clusters without KEDA. Exclusive with keda.
+    hpa:
+      enabled: false
+      minReplicas: 1
+      maxReplicas: 6
+      targetCPU: 70
+      targetMemory: ""
+    # A KEDA ScaledObject scaling on pgqueue depth; needs KEDA >= 2.12 in the cluster. The
+    # trigger counts the jobs queued plus the jobs running in every queue table the worker
+    # processes, and runs ceil(count / targetJobsPerReplica) workers between minReplicas and
+    # maxReplicas.
+    keda:
+      enabled: false
+      # `postgresql`: KEDA runs a query on Sourcegull's database (jobs queued and due, plus running).
+      # `prometheus`: KEDA reads the `sourcegull_queue_jobs` gauge from Prometheus instead (no database
+      # access for KEDA; needs the worker pods scraped, e.g. metrics.serviceMonitor.enabled). The
+      # gauge is refreshed every 30 s and its `queued` also counts jobs waiting out a retry delay.
+      trigger: postgresql
+      prometheus:
+        # Prometheus HTTP API base URL, required with trigger=prometheus
+        # (e.g. http://prometheus-operated.monitoring.svc:9090).
+        serverAddress: ""
+        # Jobs per replica; empty uses targetJobsPerReplica.
+        threshold: ""
+        # Replaces the generated PromQL (it must return one number); excludeQueues applies to the
+        # generated one.
+        query: ""
+        # Name of an existing KEDA TriggerAuthentication for the Prometheus server, and the
+        # scaler's authModes (e.g. "bearer", "basic", "tls"); both empty for no authentication.
+        authenticationRef: ""
+        authModes: ""
+      # At least 1: the worker also runs the leader-elected singleton tasks.
+      minReplicas: 1
+      maxReplicas: 8
+      targetJobsPerReplica: 25
+      # Seconds between queue checks, and before scaling back to minReplicas once idle.
+      pollingInterval: 30
+      cooldownPeriod: 300
+      scaleDownStabilizationSeconds: 300
+      # Queue tables not processed by the worker: the executor queues and the repo nodes' fetches.
+      excludeQueues:
+        - codeintel_index_jobs
+        - batch_spec_workspace_execution_jobs
+        - repo_update_jobs
+      # trigger=postgresql: replaces the generated SQL query (it must return one number).
+      query: ""
+      # NetworkPolicy peers of the KEDA operator, let into the bundled database
+      # (trigger=postgresql, postgresql.mode=bundled with networkPolicy.enabled).
+      operatorFrom:
+        - namespaceSelector: { matchLabels: { kubernetes.io/metadata.name: keda } }
+          podSelector: { matchLabels: { app: keda-operator } }
+
+## @section Repo nodes
+# A StatefulSet with one PVC per pod (bare repos and index shards) behind a headless Service.
+# Each repo is assigned to one node by rendezvous hashing over the pod list, and the assignment is
+# persisted. After a change of `replicaCount`, once every pod runs with the new list, the repos
+# whose node changed (about 1/N) are copied to their new node, switched over and removed from the
+# old one, without downtime (Site admin > Repo nodes shows progress). When scaling in, the
+# removed pods' repos are cloned again from the code host. Pod settings as for `web`.
+repo:
+  enabled: true
+  replicaCount: 1
+  command: []
+  args: []
+  resources:
+    requests: { cpu: "1", memory: 2Gi }
+    limits: { memory: 8Gi }
+  # Sizing: about 1.5x the total size of the mirrored repos per node.
+  persistence:
+    # false: an emptyDir (repos are cloned again after every restart; for testing only).
+    enabled: true
+    # Empty: global.defaultStorageClass, else the cluster's default.
+    storageClass: ""
+    accessModes: [ReadWriteOnce]
+    size: 100Gi
+    annotations: {}
+    labels: {}
+  # What happens to the PVCs when the StatefulSet is deleted or scaled in (Retain or Delete).
+  persistentVolumeClaimRetentionPolicy:
+    enabled: false
+    whenScaled: Retain
+    whenDeleted: Retain
+  # Secret with keys `id` (private key) and `known_hosts`, for code host connections that clone
+  # over SSH. Empty: HTTPS with the connection's token only.
+  ssh:
+    existingSecret: ""
+  podSecurityContext:
+    enabled: true
+    fsGroup: 10001
+    # Large volumes: skip the recursive chown when the root already matches.
+    fsGroupChangePolicy: OnRootMismatch
+    supplementalGroups: []
+    sysctls: []
+  containerSecurityContext:
+    enabled: true
+    runAsUser: 10001
+    runAsGroup: 10001
+    runAsNonRoot: true
+    privileged: false
+    readOnlyRootFilesystem: true
+    allowPrivilegeEscalation: false
+    capabilities: { drop: [ALL] }
+    seccompProfile: { type: RuntimeDefault }
+    seLinuxOptions: {}
+  startupProbe:
+    enabled: true
+    initialDelaySeconds: 0
+    periodSeconds: 5
+    timeoutSeconds: 3
+    failureThreshold: 60
+    successThreshold: 1
+  livenessProbe:
+    enabled: true
+    initialDelaySeconds: 0
+    periodSeconds: 10
+    timeoutSeconds: 3
+    failureThreshold: 3
+    successThreshold: 1
+  readinessProbe:
+    enabled: true
+    initialDelaySeconds: 0
+    periodSeconds: 5
+    timeoutSeconds: 3
+    failureThreshold: 3
+    successThreshold: 1
+  customStartupProbe: {}
+  customLivenessProbe: {}
+  customReadinessProbe: {}
+  # Empty: a 5 s preStop pause, as for web.
+  lifecycleHooks: {}
+  # In-flight clones and fetches are cancelled and requeued on shutdown.
+  terminationGracePeriodSeconds: 60
+  updateStrategy:
+    type: RollingUpdate
+  # Pods are independent shards: start and stop them in parallel.
+  podManagementPolicy: Parallel
+  extraEnvVars: []
+  extraEnvVarsCM: ""
+  extraEnvVarsSecret: ""
+  extraVolumes: []
+  extraVolumeMounts: []
+  sidecars: []
+  initContainers: []
+  emptyDirSizeLimit: ""
+  podLabels: {}
+  podAnnotations: {}
+  hostAliases: []
+  priorityClassName: ""
+  schedulerName: ""
+  podAffinityPreset: ""
+  podAntiAffinityPreset: soft
+  nodeAffinityPreset:
+    type: ""
+    key: ""
+    values: []
+  affinity: {}
+  nodeSelector: {}
+  tolerations: []
+  topologySpreadConstraints: []
+  # Created when replicaCount > 1.
+  pdb:
+    create: true
+    minAvailable: ""
+    maxUnavailable: 1
+  service:
+    ports:
+      grpc: 3178
+      internal: 6060
+    annotations: {}
+
+## @section Blob store
+# SCIP uploads, code graph files and search job results, shared by web and worker.
+#   builtin: one PVC-backed `blob` StatefulSet (the settings below; pod settings as for `web`).
+#   s3:      an external S3-compatible bucket (MinIO, Garage, SeaweedFS, Ceph RGW, Amazon S3);
+#            the blob StatefulSet is not deployed.
+blobstore:
+  mode: builtin
+  s3:
+    # Bucket and optional key prefix inside it (to share a bucket).
+    bucket: ""
+    prefix: ""
+    # S3 API URL, e.g. http://minio.minio.svc:9000 or https://s3.example.com. Empty: Amazon S3.
+    endpoint: ""
+    region: us-east-1
+    # Path-style requests (endpoint/bucket/key); most self-hosted servers need them.
+    forcePathStyle: true
+    # Create the bucket at startup if it does not exist.
+    createBucket: false
+    # Secret with the access key pair (required).
+    existingSecret: ""
+    existingSecretAccessKeyIdKey: access-key-id
+    existingSecretSecretAccessKeyKey: secret-access-key
+    # Optional ConfigMap with a PEM CA certificate for the endpoint (private CA).
+    caConfigMap: ""
+    caConfigMapKey: ca.crt
+  command: []
+  args: []
+  resources:
+    requests: { cpu: 100m, memory: 128Mi }
+    limits: { memory: 512Mi }
+  persistence:
+    enabled: true
+    storageClass: ""
+    accessModes: [ReadWriteOnce]
+    size: 100Gi
+    annotations: {}
+    labels: {}
+  persistentVolumeClaimRetentionPolicy:
+    enabled: false
+    whenScaled: Retain
+    whenDeleted: Retain
+  podSecurityContext:
+    enabled: true
+    fsGroup: 10001
+    fsGroupChangePolicy: OnRootMismatch
+    supplementalGroups: []
+    sysctls: []
+  containerSecurityContext:
+    enabled: true
+    runAsUser: 10001
+    runAsGroup: 10001
+    runAsNonRoot: true
+    privileged: false
+    readOnlyRootFilesystem: true
+    allowPrivilegeEscalation: false
+    capabilities: { drop: [ALL] }
+    seccompProfile: { type: RuntimeDefault }
+    seLinuxOptions: {}
+  startupProbe:
+    enabled: true
+    initialDelaySeconds: 0
+    periodSeconds: 5
+    timeoutSeconds: 3
+    failureThreshold: 60
+    successThreshold: 1
+  livenessProbe:
+    enabled: true
+    initialDelaySeconds: 0
+    periodSeconds: 10
+    timeoutSeconds: 3
+    failureThreshold: 3
+    successThreshold: 1
+  readinessProbe:
+    enabled: true
+    initialDelaySeconds: 0
+    periodSeconds: 5
+    timeoutSeconds: 3
+    failureThreshold: 3
+    successThreshold: 1
+  customStartupProbe: {}
+  customLivenessProbe: {}
+  customReadinessProbe: {}
+  # Empty: a 5 s preStop pause, as for web.
+  lifecycleHooks: {}
+  terminationGracePeriodSeconds: 60
+  updateStrategy:
+    type: RollingUpdate
+  extraEnvVars: []
+  extraEnvVarsCM: ""
+  extraEnvVarsSecret: ""
+  extraVolumes: []
+  extraVolumeMounts: []
+  sidecars: []
+  initContainers: []
+  emptyDirSizeLimit: ""
+  podLabels: {}
+  podAnnotations: {}
+  hostAliases: []
+  priorityClassName: ""
+  schedulerName: ""
+  podAffinityPreset: ""
+  podAntiAffinityPreset: ""
+  nodeAffinityPreset:
+    type: ""
+    key: ""
+    values: []
+  affinity: {}
+  nodeSelector: {}
+  tolerations: []
+  topologySpreadConstraints: []
+  service:
+    ports:
+      internal: 6060
+    annotations: {}
+
+## @section Executors
+# Run auto-indexing jobs (`codeintel`), each as a Kubernetes Job in `jobs.namespace`, and
+# server-side bulk change spec workspaces (`batches`): the executor checks the workspace out into
+# its scratch volume and runs each step as a Kubernetes Job there, copying the working copy in and
+# out of the step pod (no shared storage needed). Set site config `executors.accessToken` to the
+# token first (see existingSecret). Pod settings as for `web`, without probes (executors listen on
+# nothing).
+executor:
+  enabled: false
+  replicaCount: 1
+  queues: [codeintel, batches]
+  # Jobs each executor runs at the same time.
+  maxConcurrentJobs: 4
+  # Secret with the shared executor token (site config `executors.accessToken`). Empty: the app
+  # Secret (existingSecret, or the generated one).
+  existingSecret: ""
+  existingSecretTokenKey: executor-token
+  # The web role's URL for executors and job pods; empty: the web Service.
+  frontendURL: ""
+  # Image of the checkout, upload and batch step copy containers (sh, git, cat, sleep, head, tar,
+  # find, chmod); empty: the Sourcegull image.
+  helperImage: ""
+  # The pods jobs run in.
+  jobs:
+    # Namespace of job pods; empty: the release namespace. A dedicated namespace is recommended:
+    # the executor may create pods and Secrets there, so anything in it is readable by jobs.
+    # The namespace must exist; the chart creates the executor's Role and a NetworkPolicy in it.
+    namespace: ""
+    # `runtimeClassName` of job pods, e.g. gvisor or kata, to isolate untrusted code.
+    runtimeClassName: ""
+    nodeSelector: {}
+    tolerations: []
+    # Service account of job pods (its token is never mounted); empty: the namespace default.
+    serviceAccount: ""
+    # Requests and limits of each step container (cpu, memory), batch steps included.
+    resources:
+      requests: {}
+      limits: {}
+    # Size limit of each job's workspace emptyDir, e.g. 20Gi.
+    workspaceSize: ""
+    # A job is stopped after this long.
+    deadlineSeconds: 14400
+    # Time a job pod may take to be scheduled and to start each container, image pulls included.
+    startTimeoutSeconds: 600
+    # Deny all ingress to job pods.
+    networkPolicy: true
+  command: []
+  args: []
+  resources:
+    requests: { cpu: 50m, memory: 64Mi }
+    limits: { memory: 512Mi }
+  podSecurityContext:
+    enabled: true
+    fsGroup: 10001
+    fsGroupChangePolicy: Always
+    supplementalGroups: []
+    sysctls: []
+  containerSecurityContext:
+    enabled: true
+    runAsUser: 10001
+    runAsGroup: 10001
+    runAsNonRoot: true
+    privileged: false
+    readOnlyRootFilesystem: true
+    allowPrivilegeEscalation: false
+    capabilities: { drop: [ALL] }
+    seccompProfile: { type: RuntimeDefault }
+    seLinuxOptions: {}
+  lifecycleHooks: {}
+  # Running jobs are handed back to the queue on shutdown.
+  terminationGracePeriodSeconds: 60
+  updateStrategy:
+    type: RollingUpdate
+  extraEnvVars: []
+  extraEnvVarsCM: ""
+  extraEnvVarsSecret: ""
+  extraVolumes: []
+  extraVolumeMounts: []
+  sidecars: []
+  initContainers: []
+  # Size limit of the executor's scratch emptyDir (batches working copies, one per running job),
+  # e.g. 20Gi.
+  emptyDirSizeLimit: ""
+  podLabels: {}
+  podAnnotations: {}
+  hostAliases: []
+  priorityClassName: ""
+  schedulerName: ""
+  podAffinityPreset: ""
+  podAntiAffinityPreset: soft
+  nodeAffinityPreset:
+    type: ""
+    key: ""
+    values: []
+  affinity: {}
+  nodeSelector: {}
+  tolerations: []
+  topologySpreadConstraints: []
+
+## @section Migrations
+# Database migrations (`sourcegull migrate up`).
+#  - postgresql.mode=external: a Job run as a Helm hook (pre-install,pre-upgrade, hook-weight -5),
+#    so the schema is current before any new pod starts. It uses the namespace's default
+#    ServiceAccount (the chart's own does not exist yet when a pre-install hook runs).
+#  - bundled and cnpg: a pre-install hook would run before the database exists, so instead web,
+#    worker, repo and blob pods run the migration as an init container (after waiting for the
+#    database). `sourcegull migrate up` serializes concurrent runs with a Postgres advisory lock, so
+#    several pods starting together are safe. The init containers take command, resources,
+#    containerSecurityContext and the extraEnvVars* below.
+migrate:
+  enabled: true
+  backoffLimit: 3
+  activeDeadlineSeconds: 1800
+  # Finished Jobs (and their logs) are kept for this long.
+  ttlSecondsAfterFinished: 86400
+  command: []
+  resources:
+    requests: { cpu: 100m, memory: 128Mi }
+    limits: { memory: 512Mi }
+  podSecurityContext:
+    enabled: true
+    fsGroup: 10001
+    fsGroupChangePolicy: Always
+    supplementalGroups: []
+    sysctls: []
+  containerSecurityContext:
+    enabled: true
+    runAsUser: 10001
+    runAsGroup: 10001
+    runAsNonRoot: true
+    privileged: false
+    readOnlyRootFilesystem: true
+    allowPrivilegeEscalation: false
+    capabilities: { drop: [ALL] }
+    seccompProfile: { type: RuntimeDefault }
+    seLinuxOptions: {}
+  extraEnvVars: []
+  extraEnvVarsCM: ""
+  extraEnvVarsSecret: ""
+  # The hook Job's extra volumes and mounts.
+  extraVolumes: []
+  extraVolumeMounts: []
+  podLabels: {}
+  podAnnotations: {}
+  hostAliases: []
+  priorityClassName: ""
+  schedulerName: ""
+  affinity: {}
+  nodeSelector: {}
+  tolerations: []
+
+## @section Database
+postgresql:
+  # Where the database runs:
+  #   bundled   a single-instance PostgreSQL StatefulSet inside the release (evaluation and small
+  #             installs; no HA, no automated backups).
+  #   cnpg      a CloudNativePG `Cluster` (HA, backups) managed by the CloudNativePG operator,
+  #             which must be installed; see `cnpg` below.
+  #   external  an external PostgreSQL 18 (recommended for production); see externalDatabase.
+  mode: bundled
+  # The settings below apply to the bundled database; auth (names only), persistence, config,
+  # resources, nodeSelector and tolerations also apply to cnpg.
+  image:
+    registry: docker.io
+    repository: library/postgres
+    tag: "18.6-bookworm"
+    digest: ""
+    pullPolicy: IfNotPresent
+    pullSecrets: []
+  auth:
+    username: sourcegull
+    database: sourcegull
+    # Existing Secret with the user's password (URL-safe characters only). Empty: the chart
+    # generates a random password, kept across upgrades and on uninstall.
+    existingSecret: ""
+    existingSecretPasswordKey: password
+  persistence:
+    storageClass: ""
+    accessModes: [ReadWriteOnce]
+    size: 50Gi
+    annotations: {}
+    labels: {}
+  persistentVolumeClaimRetentionPolicy:
+    enabled: false
+    whenScaled: Retain
+    whenDeleted: Retain
+  # Passed to postgres as `-c key=value` (cnpg: Cluster parameters).
+  config:
+    shared_buffers: 512MB
+    effective_cache_size: 1536MB
+    work_mem: 16MB
+    maintenance_work_mem: 256MB
+    max_connections: "200"
+    random_page_cost: "1.1"
+    shared_preload_libraries: pg_stat_statements
+    pg_stat_statements.track: all
+  resources:
+    requests: { cpu: 500m, memory: 1Gi }
+    limits: { memory: 2Gi }
+  # The official image runs as the `postgres` user (UID 999) when started non-root.
+  podSecurityContext:
+    enabled: true
+    fsGroup: 999
+    fsGroupChangePolicy: OnRootMismatch
+    supplementalGroups: []
+    sysctls: []
+  containerSecurityContext:
+    enabled: true
+    runAsUser: 999
+    runAsGroup: 999
+    runAsNonRoot: true
+    privileged: false
+    readOnlyRootFilesystem: true
+    allowPrivilegeEscalation: false
+    capabilities: { drop: [ALL] }
+    seccompProfile: { type: RuntimeDefault }
+    seLinuxOptions: {}
+  terminationGracePeriodSeconds: 120
+  extraEnvVars: []
+  extraVolumes: []
+  extraVolumeMounts: []
+  podLabels: {}
+  podAnnotations: {}
+  priorityClassName: ""
+  schedulerName: ""
+  affinity: {}
+  nodeSelector: {}
+  tolerations: []
+  topologySpreadConstraints: []
+  # CloudNativePG (mode=cnpg). The operator generates the owner's password into Secret
+  # `<fullname>-pg-app`, whose `uri` the app uses.
+  cnpg:
+    instances: 3
+    # Empty: the operator's default PostgreSQL image. Pin an 18.x image, e.g.
+    # ghcr.io/cloudnative-pg/postgresql:18.6.
+    imageName: ""
+    # unsupervised: the operator switches over to a replica when updating the primary.
+    primaryUpdateStrategy: unsupervised
+    # e.g. { size: 20Gi, storageClass: fast }
+    walStorage: {}
+    # CNPG affinity (enablePodAntiAffinity, topologyKey, nodeAffinity, ...); postgresql.nodeSelector
+    # and tolerations are added to it.
+    affinity: {}
+    # The Cluster's `backup` section, e.g. barmanObjectStore to an S3-compatible bucket.
+    backup: {}
+    # Extra fields merged into the Cluster spec (e.g. monitoring, managed roles).
+    extraSpec: {}
+
+# postgresql.mode=external: the Secret and key holding the postgres:// URL. Empty existingSecret:
+# the app Secret (existingSecret), which must then be given.
+externalDatabase:
+  existingSecret: ""
+  existingSecretUrlKey: database-url
+
+## @section Traffic
+ingress:
+  enabled: false
+  ingressClassName: nginx
+  # Empty: the host of externalURL.
+  hostname: ""
+  path: /
+  pathType: Prefix
+  # Defaults suit ingress-nginx and the streaming (SSE) search API: no proxy buffering, long
+  # timeouts. Add cert-manager annotations here for TLS (e.g. cert-manager.io/cluster-issuer).
+  annotations:
+    nginx.ingress.kubernetes.io/proxy-buffering: "off"
+    nginx.ingress.kubernetes.io/proxy-request-buffering: "off"
+    nginx.ingress.kubernetes.io/proxy-read-timeout: "3600"
+    nginx.ingress.kubernetes.io/proxy-send-timeout: "3600"
+    nginx.ingress.kubernetes.io/proxy-body-size: "100m"
+  # TLS for `hostname` with the certificate in Secret `<hostname>-tls` (e.g. issued by
+  # cert-manager through an annotation).
+  tls: false
+  # More hosts to the web Service, e.g. [{ name: sourcegull.internal, path: / }].
+  extraHosts: []
+  # More paths on `hostname`, as written in the Ingress spec.
+  extraPaths: []
+  # More TLS entries, e.g. [{ secretName: sourcegull-tls, hosts: [sourcegull.internal] }].
+  extraTls: []
+  # More rules, as written in the Ingress spec.
+  extraRules: []
+
+# Ingress-only policies: egress stays open because Sourcegull must reach code hosts, LLM endpoints
+# and other services that vary per install.
+networkPolicy:
+  enabled: true
+  # NetworkPolicy peers allowed to reach the public port (7080) of web pods. Empty: any source
+  # (the ingress controller usually runs in another namespace). Example:
+  #   - namespaceSelector: { matchLabels: { kubernetes.io/metadata.name: ingress-nginx } }
+  webIngressFrom: []
+  # Peers allowed to reach the internal port (6060: /metrics, /healthz, /readyz) of web, worker
+  # and repo pods. Empty: any source. The repo gRPC port only accepts this release's pods;
+  # the blob port only accepts web and worker pods of this release.
+  metricsFrom: []
+  # More ingress rules of the web policy, as written in the NetworkPolicy spec.
+  extraIngress: []
+
+## @section Metrics
+# Monitoring with the Prometheus Operator and Grafana (docs/observability/). The rules and
+# dashboards are generated from crates/monitoring into files/monitoring/.
+metrics:
+  # A ServiceMonitor scraping /metrics on the internal port of web, worker, repo and blob,
+  # labelled `role` like the dashboards expect (adds a headless Service for the worker pods).
+  serviceMonitor:
+    enabled: false
+    # Empty: the release namespace.
+    namespace: ""
+    # Empty: Prometheus's defaults.
+    interval: 30s
+    scrapeTimeout: ""
+    # Extra labels, e.g. the `release: <name>` your Prometheus' serviceMonitorSelector matches.
+    labels: {}
+    annotations: {}
+    honorLabels: false
+    jobLabel: ""
+    # Added after the chart's relabelings (which set `role` and `pod`).
+    relabelings: []
+    metricRelabelings: []
+  # A PrometheusRule with Sourcegull's alerts (docs/observability/alerts.md).
+  prometheusRule:
+    enabled: false
+    namespace: ""
+    labels: {}
+    annotations: {}
+  # One ConfigMap per Grafana dashboard, picked up by the Grafana sidecar (kube-prometheus-stack's
+  # `grafana.sidecar.dashboards`) through `labels`.
+  grafanaDashboards:
+    enabled: false
+    namespace: ""
+    labels:
+      grafana_dashboard: "1"
+    # e.g. `grafana_folder: Sourcegull` for the sidecar's folderAnnotation.
+    annotations: {}
+  # The blob pods' internal port serves metrics and the (unauthenticated) blob API, and the blob
+  # NetworkPolicy admits only web and worker pods. With networkPolicy.enabled, blob is scraped
+  # only when these NetworkPolicy peers (your Prometheus) are allowed in too, e.g.
+  #   - namespaceSelector: { matchLabels: { kubernetes.io/metadata.name: monitoring } }
+  #     podSelector: { matchLabels: { app.kubernetes.io/name: prometheus } }
+  blobScrapeFrom: []
+
+## @section Tests
+# `helm test` smoke tests.
+tests:
+  # Image of the readyz test (always on).
+  image:
+    registry: docker.io
+    repository: library/busybox
+    tag: "1.37"
+    digest: ""
+    pullPolicy: IfNotPresent
+  # Sign-in, a GraphQL query and a search (needs a built-in auth account).
+  smoke:
+    enabled: false
+    image:
+      registry: docker.io
+      repository: curlimages/curl
+      tag: "8.11.1"
+      digest: ""
+      pullPolicy: IfNotPresent
+    # Secret with keys `username` and `password` of a built-in account (no `"` or `\` in them).
+    # Empty: the chart generates one for `username` with a random password.
+    credentialsSecret: ""
+    username: smoke-test
+    # Sign the account up when sign-in fails. On a fresh install the first account becomes site
+    # admin, so enable this only on throwaway installs (CI) or with sign-up open.
+    signUp: false
+    searchQuery: "sourcegull count:10"

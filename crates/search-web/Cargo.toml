@@ -1,0 +1,33 @@
+[package]
+name = "sourcegull-search-web"
+description = "Search execution on the web side: query resolution and planning, the repo catalog, and the jobs run on the repo nodes."
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+publish = false
+
+[lints]
+workspace = true
+
+[dependencies]
+sourcegull-authn = { workspace = true }
+sourcegull-authz = { workspace = true }
+sourcegull-config = { workspace = true }
+sourcegull-db = { workspace = true }
+sourcegull-own = { workspace = true }
+sourcegull-query = { workspace = true }
+sourcegull-rpc = { workspace = true }
+sourcegull-search = { workspace = true }
+sourcegull-search-client = { workspace = true }
+sourcegull-types = { workspace = true }
+async-trait = { workspace = true }
+chrono = { workspace = true }
+regex = { workspace = true }
+serde = { workspace = true }
+tokio = { workspace = true }
+tracing = { workspace = true }
+
+[dev-dependencies]
+sourcegull-testutil = { workspace = true }
+sqlx = { workspace = true }

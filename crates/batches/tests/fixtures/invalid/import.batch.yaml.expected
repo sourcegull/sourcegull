@@ -1,0 +1,4 @@
+4:25 importChangesets.0.externalIDs: must not contain duplicate items
+6:19 importChangesets.1.externalIDs.0: must be of type integer or string, not number
+6:24 importChangesets.1.externalIDs.1: must be of type integer or string, not boolean
+7:5 importChangesets.2: property "repository" is required

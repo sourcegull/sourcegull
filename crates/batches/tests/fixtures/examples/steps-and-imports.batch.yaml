@@ -1,0 +1,31 @@
+name: add-codeowners
+description: Adds a CODEOWNERS file and tracks the related merge requests.
+
+on:
+  - repository: gitlab.example.com/acme/api
+    branch: main
+  - repository: gitlab.example.com/acme/web
+    branches: [main, release-2]
+
+steps:
+  - run: cp /tmp/CODEOWNERS CODEOWNERS
+    container: alpine:3
+    files:
+      /tmp/CODEOWNERS: |
+        * @acme/maintainers
+        /docs/ @acme/writers
+
+importChangesets:
+  - repository: gitlab.example.com/acme/docs
+    externalIDs: [5]
+
+changesetTemplate:
+  title: Add CODEOWNERS
+  body: Adds a CODEOWNERS file.
+  branch: batch/add-codeowners
+  commit:
+    message: Add CODEOWNERS
+    author:
+      name: Acme Automation
+      email: automation@example.com
+  published: true

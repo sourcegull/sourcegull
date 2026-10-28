@@ -1,0 +1,17 @@
+name: hello-world
+description: Adds a greeting to every README.
+
+on:
+  - repositoriesMatchingQuery: file:README.md
+
+steps:
+  - run: echo Hello World | tee -a $(find -name README.md)
+    container: alpine:3
+
+changesetTemplate:
+  title: Hello World
+  body: My first bulk change!
+  branch: hello-world
+  commit:
+    message: Append Hello World to all README.md files
+  published: false

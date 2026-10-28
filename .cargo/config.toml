@@ -1,0 +1,4 @@
+# Development builds only (.dockerignore keeps this out of the image build). Compressed debug
+# sections make the test binaries about 30% smaller; backtraces still resolve file and line.
+[target.x86_64-unknown-linux-gnu]
+rustflags = ["-C", "link-arg=-Wl,--compress-debug-sections=zlib"]

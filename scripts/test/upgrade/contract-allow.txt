@@ -1,0 +1,3 @@
+# Removals scripts/test/upgrade/contract.sh flags although the previous release does not use
+# them, one `column TABLE.COLUMN` or `value TABLE.COLUMN VALUE` line each. Remove the lines once
+# that release is no longer the previous one.

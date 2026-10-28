@@ -1,0 +1,6 @@
+[toolchain]
+# Same version as the Docker images (RUST_VERSION in deploy/docker/Dockerfile and
+# deploy/docker/dev/Dockerfile), so CI and `scripts/dev check` run the same rustfmt and clippy.
+# Bump all three together.
+channel = "1.97"
+components = ["rustfmt", "clippy"]

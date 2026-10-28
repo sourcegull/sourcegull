@@ -1,0 +1,5 @@
+{{- /* extraDeploy: extra manifests rendered with the release. */ -}}
+{{- range .Values.extraDeploy }}
+---
+{{ include "sourcegull.tplvalues.render" (dict "value" . "context" $) }}
+{{- end }}

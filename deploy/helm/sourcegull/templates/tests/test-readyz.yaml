@@ -1,0 +1,40 @@
+apiVersion: v1
+kind: Pod
+metadata:
+  name: {{ include "sourcegull.componentName" (dict "root" . "component" "test-readyz") }}
+  labels:
+    {{- include "sourcegull.componentLabels" (dict "root" . "component" "test") | nindent 4 }}
+  annotations:
+    {{- with .Values.commonAnnotations }}
+    {{- include "sourcegull.tplvalues.render" (dict "value" . "context" $) | nindent 4 }}
+    {{- end }}
+    helm.sh/hook: test
+    helm.sh/hook-delete-policy: before-hook-creation,hook-succeeded
+spec:
+  restartPolicy: Never
+  automountServiceAccountToken: false
+  {{- with (include "sourcegull.imagePullSecrets" (dict "root" . "images" (list)) | trim) }}{{ . | nindent 2 }}{{ end }}
+  securityContext:
+    runAsNonRoot: true
+    runAsUser: 65534
+    runAsGroup: 65534
+    seccompProfile:
+      type: RuntimeDefault
+  containers:
+    - name: wget
+      image: {{ include "sourcegull.image" (dict "root" . "image" .Values.tests.image "defaultTag" "1.37") }}
+      imagePullPolicy: {{ .Values.tests.image.pullPolicy }}
+      command:
+        - sh
+        - -c
+        - >-
+          wget -q -T 10 -O - http://{{ include "sourcegull.componentName" (dict "root" . "component" "web") }}:{{ .Values.web.service.ports.http }}/readyz
+          && echo && echo "readyz OK"
+      securityContext:
+        allowPrivilegeEscalation: false
+        readOnlyRootFilesystem: true
+        capabilities:
+          drop: [ALL]
+      resources:
+        requests: { cpu: 10m, memory: 16Mi }
+        limits: { memory: 32Mi }

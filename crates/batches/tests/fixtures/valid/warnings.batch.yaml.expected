@@ -1,0 +1,3 @@
+warning 10:9 step 1 sets the environment variable "TOKEN" more than once; the last entry wins
+warning 14:7 step 2 redefines output "result" of step 1; outputs.result has this step's value from here on
+warning 20:19 changeset 7 of repository gitlab.example.com/a/b is imported more than once

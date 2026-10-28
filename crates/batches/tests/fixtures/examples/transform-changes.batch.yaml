@@ -1,0 +1,28 @@
+version: 2
+name: update-maven-dependency
+description: Bumps a Maven dependency, with one changeset per module directory.
+
+on:
+  - repositoriesMatchingQuery: file:pom.xml <artifactId>commons-text</artifactId>
+
+steps:
+  - run: >
+      find . -name pom.xml -print0
+      | xargs -0 sed -i 's#<commons-text.version>1.9</commons-text.version>#<commons-text.version>1.12.0</commons-text.version>#'
+    container: alpine:3
+
+transformChanges:
+  group:
+    - directory: services/billing
+      branch: batch/commons-text-billing
+    - directory: services/orders
+      branch: batch/commons-text-orders
+      repository: gitlab.example.com/acme/shop
+
+changesetTemplate:
+  title: Update commons-text to 1.12.0
+  body: Updates the commons-text dependency.
+  branch: batch/commons-text
+  commit:
+    message: Update commons-text to 1.12.0
+  published: false

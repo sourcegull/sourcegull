@@ -1,0 +1,36 @@
+name: dynamic-changeset-template
+description: Uses step outputs in the changeset template.
+
+on:
+  - repository: gitlab.example.com/acme/release-tools
+
+steps:
+  - run: echo "Hello there!" >> message.txt && cat message.txt
+    container: alpine:3
+    outputs:
+      friendlyMessage:
+        value: "${{ step.stdout }}"
+  - run: cat .release.yml >&2
+    container: alpine:3
+    outputs:
+      releaseConfig:
+        value: "${{ step.stderr }}"
+        format: yaml
+      releaseConfigExists:
+        value: "exists: ${{ gt (len step.stderr) 0 }}"
+        format: yaml
+
+changesetTemplate:
+  title: "The friendly message is: `${{ outputs.friendlyMessage }}`"
+  body: |
+    This repository has a release config: ${{ outputs.releaseConfigExists.exists }}.
+
+    It defines these hooks:
+
+    ${{ range $index, $hook := outputs.releaseConfig.hooks }}
+    - `${{ $hook }}`
+    ${{ end }}
+  branch: batch/variables-${{ outputs.releaseConfig.dist }}
+  published: draft
+  commit:
+    message: "The friendly message is: `${{ outputs.friendlyMessage }}`"

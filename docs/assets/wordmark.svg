@@ -1,0 +1,12 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="360" height="64" viewBox="0 0 360 64">
+  <style>
+    text { font: 600 52px -apple-system, BlinkMacSystemFont, "Segoe UI", Helvetica, Arial, sans-serif; letter-spacing: -1px; }
+    .source { fill: #1b1f27; }
+    .gull { fill: #214780; }
+    @media (prefers-color-scheme: dark) {
+      .source { fill: #e6e9ef; }
+      .gull { fill: #7fa3e0; }
+    }
+  </style>
+  <text x="180" y="50" text-anchor="middle"><tspan class="source">Source</tspan><tspan class="gull">Gull</tspan></text>
+</svg>

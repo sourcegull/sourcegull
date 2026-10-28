@@ -1,0 +1,151 @@
+{{- /* Bundled single-instance PostgreSQL 18 (postgresql.mode=bundled). */ -}}
+{{- if eq .Values.postgresql.mode "bundled" }}
+{{- $fullname := include "sourcegull.postgresql.fullname" . }}
+{{- $pg := .Values.postgresql }}
+{{- $ctx := dict "root" . "component" "postgresql" "values" $pg }}
+{{- if not $pg.auth.existingSecret }}
+apiVersion: v1
+kind: Secret
+metadata:
+  name: {{ $fullname }}
+  labels:
+    {{- include "sourcegull.componentLabels" $ctx | nindent 4 }}
+  {{- /* The data volume outlives the release, and its password must keep matching. */}}
+  {{- with (include "sourcegull.annotations" (dict "root" . "extra" (dict "helm.sh/resource-policy" "keep")) | trim) }}{{ . | nindent 2 }}{{ end }}
+type: Opaque
+data:
+  password: {{ include "sourcegull.secretValue" (dict "root" . "name" $fullname "key" "password" "generate" (randAlphaNum 32)) }}
+---
+{{- end }}
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ $fullname }}
+  labels:
+    {{- include "sourcegull.componentLabels" $ctx | nindent 4 }}
+  {{- with (include "sourcegull.annotations" (dict "root" .) | trim) }}{{ . | nindent 2 }}{{ end }}
+spec:
+  type: ClusterIP
+  selector:
+    {{- include "sourcegull.selectorLabels" $ctx | nindent 4 }}
+  ports:
+    - name: postgresql
+      port: 5432
+      targetPort: postgresql
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ $fullname }}-hl
+  labels:
+    {{- include "sourcegull.componentLabels" $ctx | nindent 4 }}
+  {{- with (include "sourcegull.annotations" (dict "root" .) | trim) }}{{ . | nindent 2 }}{{ end }}
+spec:
+  clusterIP: None
+  publishNotReadyAddresses: true
+  selector:
+    {{- include "sourcegull.selectorLabels" $ctx | nindent 4 }}
+  ports:
+    - name: postgresql
+      port: 5432
+      targetPort: postgresql
+---
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: {{ $fullname }}
+  labels:
+    {{- include "sourcegull.componentLabels" $ctx | nindent 4 }}
+  {{- with (include "sourcegull.annotations" (dict "root" .) | trim) }}{{ . | nindent 2 }}{{ end }}
+spec:
+  replicas: 1
+  serviceName: {{ $fullname }}-hl
+  {{- with (include "sourcegull.pvcRetentionPolicy" $pg | trim) }}{{ . | nindent 2 }}{{ end }}
+  selector:
+    matchLabels:
+      {{- include "sourcegull.selectorLabels" $ctx | nindent 6 }}
+  template:
+    metadata:
+      labels:
+        {{- include "sourcegull.podLabels" $ctx | nindent 8 }}
+      {{- with (include "sourcegull.annotations" (dict "root" . "extra" $pg.podAnnotations) | trim) }}{{ . | nindent 6 }}{{ end }}
+    spec:
+      automountServiceAccountToken: false
+      {{- with (include "sourcegull.imagePullSecrets" (dict "root" . "images" (list $pg.image)) | trim) }}{{ . | nindent 6 }}{{ end }}
+      {{- with (include "sourcegull.podSecurityContext" $ctx | trim) }}{{ . | nindent 6 }}{{ end }}
+      terminationGracePeriodSeconds: {{ $pg.terminationGracePeriodSeconds }}
+      {{- with (include "sourcegull.podScheduling" $ctx | trim) }}{{ . | nindent 6 }}{{ end }}
+      containers:
+        - name: postgresql
+          image: {{ include "sourcegull.image" (dict "root" . "image" $pg.image "defaultTag" "18") }}
+          imagePullPolicy: {{ $pg.image.pullPolicy }}
+          args:
+            - postgres
+            {{- range $key, $value := $pg.config }}
+            - -c
+            - {{ printf "%s=%v" $key $value | quote }}
+            {{- end }}
+          env:
+            - name: POSTGRES_USER
+              value: {{ $pg.auth.username | quote }}
+            - name: POSTGRES_DB
+              value: {{ $pg.auth.database | quote }}
+            - name: POSTGRES_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: {{ include "sourcegull.postgresql.secretName" . }}
+                  key: {{ include "sourcegull.postgresql.secretKey" . }}
+            - name: POSTGRES_INITDB_ARGS
+              value: --encoding=UTF8 --locale=C.UTF-8
+            - name: PGDATA
+              value: /var/lib/postgresql/pgdata
+            {{- with (include "sourcegull.extraEnv" $ctx | trim) }}{{ . | nindent 12 }}{{ end }}
+          ports:
+            - name: postgresql
+              containerPort: 5432
+          startupProbe:
+            exec:
+              command: ["sh", "-c", "pg_isready -q -h 127.0.0.1 -U \"$POSTGRES_USER\" -d \"$POSTGRES_DB\""]
+            periodSeconds: 5
+            failureThreshold: 60
+          readinessProbe:
+            exec:
+              command: ["sh", "-c", "pg_isready -q -h 127.0.0.1 -U \"$POSTGRES_USER\" -d \"$POSTGRES_DB\""]
+            periodSeconds: 5
+            timeoutSeconds: 3
+          livenessProbe:
+            exec:
+              command: ["sh", "-c", "pg_isready -q -h 127.0.0.1 -U \"$POSTGRES_USER\" -d \"$POSTGRES_DB\""]
+            periodSeconds: 15
+            timeoutSeconds: 5
+            failureThreshold: 6
+          resources:
+            {{- toYaml $pg.resources | nindent 12 }}
+          {{- with (include "sourcegull.containerSecurityContext" $ctx | trim) }}{{ . | nindent 10 }}{{ end }}
+          volumeMounts:
+            - name: data
+              mountPath: /var/lib/postgresql
+            - name: run
+              mountPath: /var/run/postgresql
+            - name: tmp
+              mountPath: /tmp
+            - name: dshm
+              mountPath: /dev/shm
+            {{- with $pg.extraVolumeMounts }}
+            {{- include "sourcegull.tplvalues.render" (dict "value" . "context" $) | nindent 12 }}
+            {{- end }}
+      volumes:
+        - name: run
+          emptyDir: {}
+        - name: tmp
+          emptyDir: {}
+        - name: dshm
+          emptyDir:
+            medium: Memory
+            sizeLimit: 256Mi
+        {{- with $pg.extraVolumes }}
+        {{- include "sourcegull.tplvalues.render" (dict "value" . "context" $) | nindent 8 }}
+        {{- end }}
+  volumeClaimTemplates:
+    {{- include "sourcegull.volumeClaimTemplate" (dict "root" . "component" "postgresql" "persistence" $pg.persistence) | nindent 4 }}
+{{- end }}

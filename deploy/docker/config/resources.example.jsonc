@@ -1,0 +1,31 @@
+// An example resources file (SOURCEGULL_RESOURCES_FILE). Copy it to resources.jsonc, edit it and
+// set SOURCEGULL_RESOURCES_FILE=/etc/sourcegull/config/resources.jsonc in .env. The leader worker applies
+// it every 30 seconds; what it declares is read-only in the UI. `sourcegull config check
+// --resources <file>` validates it offline. Every section is optional; see
+// docs/configuration.md#resources-file.
+{
+  // Verified email addresses of site admins. While set, the first user to sign up is not made
+  // site admin.
+  "siteAdmins": ["admin@example.com"],
+
+  "connections": [
+    {
+      // Stable id: renaming it recreates the connection.
+      "key": "gitlab-main",
+      "kind": "gitlab",
+      "displayName": "GitLab",
+      "config": {
+        "url": "https://gitlab.example.com",
+        // From config/secrets.env (GITLAB_TOKEN=glpat-...).
+        "token": "${env:GITLAB_TOKEN}",
+        "projectQuery": ["groups/acme/projects"]
+      }
+    }
+  ],
+
+  "searchContexts": [
+    { "name": "acme", "description": "Everything in acme", "query": "repo:^gitlab\\.example\\.com/acme/" }
+  ],
+
+  "featureFlags": [{ "name": "example-flag", "value": false }]
+}

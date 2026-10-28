@@ -1,0 +1,21 @@
+[package]
+name = "sourcegull-feature"
+description = "Feature registration: the trait each feature crate implements to contribute HTTP routes, queue workers and leader-elected singletons to the server roles."
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+publish = false
+
+[lints]
+workspace = true
+
+[dependencies]
+sourcegull-blobstore = { workspace = true }
+sourcegull-config = { workspace = true }
+sourcegull-crypto = { workspace = true }
+sourcegull-db = { workspace = true }
+sourcegull-rpc = { workspace = true }
+anyhow = { workspace = true }
+axum = { workspace = true }
+tokio-util = { workspace = true }

@@ -1,0 +1,4 @@
+2:14 description: must be of type string, not integer
+3:5 on: must be of type array or null, not string
+5:10 steps.0.run: must be of type string, not array
+7:9 steps.0.if: must be of type boolean, null or string, not integer

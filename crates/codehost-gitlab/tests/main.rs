@@ -1,0 +1,10 @@
+//! The integration tests: one module per file, linked into a single test binary.
+//! A new file under `tests/` must be declared here.
+
+mod changesets;
+mod discovery;
+mod hooks;
+mod live;
+mod oauth_refresh;
+mod outbound_log;
+mod webhooks;

@@ -1,0 +1,25 @@
+[package]
+name = "sourcegull-batches-template"
+description = "Evaluator for ${{ … }} template expressions in bulk change specs, with Go text/template syntax."
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+publish = false
+autotests = false
+
+[lints]
+workspace = true
+
+[[test]]
+name = "integration"
+path = "tests/main.rs"
+
+[dependencies]
+regex = { workspace = true }
+serde_json = { workspace = true }
+thiserror = { workspace = true }
+
+[dev-dependencies]
+proptest = "1"
+serde = { workspace = true }

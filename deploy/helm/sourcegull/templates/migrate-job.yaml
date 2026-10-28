@@ -1,0 +1,58 @@
+{{- /*
+Migration hook Job for an external database. With a database in the release the migration runs
+as an init container of the Sourcegull pods instead (see `migrate` in values.yaml).
+The Job uses the namespace's default ServiceAccount (with no token mounted), because the chart's
+own ServiceAccount does not exist yet when a pre-install hook runs.
+*/ -}}
+{{- if and .Values.migrate.enabled (not (include "sourcegull.postgresql.inRelease" .)) }}
+{{- $component := "migrate" -}}
+{{- $m := .Values.migrate -}}
+{{- $ctx := dict "root" . "component" $component "values" $m -}}
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: {{ include "sourcegull.componentName" $ctx }}
+  labels:
+    {{- include "sourcegull.componentLabels" $ctx | nindent 4 }}
+  {{- /* Delete the previous run's Job before creating the new one; keep a finished Job (and its logs) until ttlSecondsAfterFinished. */}}
+  {{- with (include "sourcegull.annotations" (dict "root" . "extra" (dict "helm.sh/hook" "pre-install,pre-upgrade" "helm.sh/hook-weight" "-5" "helm.sh/hook-delete-policy" "before-hook-creation")) | trim) }}{{ . | nindent 2 }}{{ end }}
+spec:
+  backoffLimit: {{ $m.backoffLimit }}
+  activeDeadlineSeconds: {{ $m.activeDeadlineSeconds }}
+  ttlSecondsAfterFinished: {{ $m.ttlSecondsAfterFinished }}
+  template:
+    metadata:
+      labels:
+        {{- include "sourcegull.podLabels" (merge (dict "dbClient" true) $ctx) | nindent 8 }}
+      {{- with (include "sourcegull.annotations" (dict "root" . "extra" $m.podAnnotations) | trim) }}{{ . | nindent 6 }}{{ end }}
+    spec:
+      restartPolicy: Never
+      automountServiceAccountToken: false
+      {{- with (include "sourcegull.imagePullSecrets" (dict "root" . "images" (list .Values.image)) | trim) }}{{ . | nindent 6 }}{{ end }}
+      {{- with (include "sourcegull.podSecurityContext" $ctx | trim) }}{{ . | nindent 6 }}{{ end }}
+      {{- with (include "sourcegull.podScheduling" $ctx | trim) }}{{ . | nindent 6 }}{{ end }}
+      containers:
+        - name: migrate
+          image: {{ include "sourcegull.sourcegullImage" . }}
+          imagePullPolicy: {{ .Values.image.pullPolicy }}
+          {{- with (include "sourcegull.commandArgs" (merge (dict "defaultArgs" (list "migrate" "up")) $ctx) | trim) }}{{ . | nindent 10 }}{{ end }}
+          env:
+            {{- include "sourcegull.env" . | trim | nindent 12 }}
+            {{- with (include "sourcegull.extraEnv" (merge (dict "global" true) $ctx) | trim) }}{{ . | nindent 12 }}{{ end }}
+          {{- with (include "sourcegull.envFrom" (merge (dict "global" true) $ctx) | trim) }}{{ . | nindent 10 }}{{ end }}
+          resources:
+            {{- toYaml $m.resources | nindent 12 }}
+          {{- with (include "sourcegull.containerSecurityContext" $ctx | trim) }}{{ . | nindent 10 }}{{ end }}
+          volumeMounts:
+            - name: tmp
+              mountPath: /tmp
+            {{- with $m.extraVolumeMounts }}
+            {{- include "sourcegull.tplvalues.render" (dict "value" . "context" $) | nindent 12 }}
+            {{- end }}
+      volumes:
+        - name: tmp
+          emptyDir: {}
+        {{- with $m.extraVolumes }}
+        {{- include "sourcegull.tplvalues.render" (dict "value" . "context" $) | nindent 8 }}
+        {{- end }}
+{{- end }}

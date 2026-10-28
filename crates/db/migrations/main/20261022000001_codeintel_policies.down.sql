@@ -1,0 +1,3 @@
+DROP INDEX codeintel_uploads_retention_idx;
+DROP TABLE codeintel_retention_scans;
+DROP TABLE codeintel_configuration_policies;

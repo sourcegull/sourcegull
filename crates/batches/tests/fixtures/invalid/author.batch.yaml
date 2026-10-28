@@ -1,0 +1,12 @@
+name: author
+steps:
+  - run: echo
+    container: alpine:3
+changesetTemplate:
+  title: t
+  branch: b
+  commit:
+    message: m
+    author:
+      name: Batch Bot
+      email: not-an-email

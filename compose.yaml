@@ -1,0 +1,289 @@
+# Development environment (README, "Development"): everything runs in containers, so the only
+# thing the machine needs is Docker. Production Compose is deploy/docker/compose.yaml.
+#
+#   docker compose up              # postgres + sourcegull (built from this checkout) + UI dev server
+#   open http://localhost:5173     # UI with hot reload; API and the embedded UI on :7080
+#   scripts/dev help               # tests, shell, psql, e2e, the production image, ...
+#
+# Services:
+#   postgres  PostgreSQL 18 (databases `sourcegull`, `sourcegull_app`; tests create their own)
+#   sourcegull    `cargo build -p sourcegull`, then `sourcegull supervise` (keys, migrations, all roles).
+#             After changing Rust code: `docker compose restart sourcegull` (or `scripts/dev restart`).
+#   ui        npm deps, the query parser WASM, then `vite dev` proxying /.api to sourcegull
+#   dev       idle toolbox for `docker compose exec`/VS Code Dev Containers (.devcontainer/)
+# Profiles:
+#   app       the production image (deploy/docker/Dockerfile) on :7081, database `sourcegull_app`
+#   e2e       the browser checks (scripts/test/e2e-ui.sh) with Playwright and Chromium
+#   gitea     a Gitea for the Gitea browser check (`CHECKS=gitea scripts/dev e2e`)
+#   s3        MinIO for the S3 blob store tests (`scripts/dev test-s3`) or SOURCEGULL_BLOB_STORE=s3://…
+#   executors an executor on the host Docker for auto-indexing (`docker compose --profile executors up -d executor`)
+#
+# Cargo's cache, target/ and ui/node_modules live in volumes (fast on Docker Desktop, and kept
+# apart from a toolchain on the host). `docker compose down -v` deletes them and the database.
+
+name: sourcegull-dev
+
+x-dev-image: &dev-image
+  image: sourcegull-dev:latest
+  build:
+    context: deploy/docker/dev
+    target: dev
+  init: true
+  working_dir: /src
+
+x-dev-volumes: &dev-volumes
+  - .:/src
+  - cargo:/cargo
+  - target:/src/target
+  - node-modules:/src/ui/node_modules
+
+x-dev-env: &dev-env
+  SOURCEGULL_DATABASE_URL: postgres://sourcegull:sourcegull@postgres:5432/sourcegull
+  SOURCEGULL_TEST_DATABASE_URL: postgres://sourcegull:sourcegull@postgres:5432/sourcegull
+  SOURCEGULL_LOG_FORMAT: pretty
+  RUST_LOG: ${RUST_LOG:-info}
+  RUST_BACKTRACE: ${RUST_BACKTRACE:-1}
+
+services:
+  postgres:
+    image: postgres:18-bookworm
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: sourcegull
+      POSTGRES_PASSWORD: sourcegull
+      POSTGRES_DB: sourcegull
+      POSTGRES_INITDB_ARGS: --encoding=UTF8 --locale=C.UTF-8
+    command: ["postgres", "-c", "max_connections=300", "-c", "fsync=off", "-c", "synchronous_commit=off"]
+    volumes:
+      - postgres-data:/var/lib/postgresql
+      - ./deploy/docker/dev/initdb.sql:/docker-entrypoint-initdb.d/10-sourcegull-dev.sql:ro
+    ports:
+      - "127.0.0.1:${SOURCEGULL_PG_PORT:-55432}:5432"
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U sourcegull -d sourcegull -h 127.0.0.1"]
+      interval: 2s
+      timeout: 5s
+      retries: 30
+
+  sourcegull:
+    <<: *dev-image
+    command: ["sh", "-c", "cargo build -p sourcegull && exec target/debug/sourcegull supervise"]
+    environment:
+      <<: *dev-env
+      SOURCEGULL_DATA_DIR: /data
+      SOURCEGULL_EXTERNAL_URL: http://localhost:${SOURCEGULL_HTTP_PORT:-7080}
+    volumes:
+      - .:/src
+      - cargo:/cargo
+      - target:/src/target
+      - node-modules:/src/ui/node_modules
+      - sourcegull-data:/data
+    ports:
+      - "${SOURCEGULL_HTTP_PORT:-7080}:7080"
+      - "127.0.0.1:${SOURCEGULL_INTERNAL_PORT:-6060}:6060"
+    depends_on:
+      postgres:
+        condition: service_healthy
+    # The first start compiles the workspace, hence the long start period.
+    healthcheck:
+      test: ["CMD", "curl", "-fsS", "-o", "/dev/null", "http://127.0.0.1:6060/readyz"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+      start_period: 30m
+      start_interval: 5s
+
+  ui:
+    <<: *dev-image
+    command:
+      - sh
+      - -c
+      - >-
+        deploy/docker/dev/ui-deps.sh &&
+        (cd ui && npm run wasm) &&
+        cd ui && exec npx vite dev --host 0.0.0.0 --port 5173 --strictPort
+    environment:
+      SOURCEGULL_DEV_BACKEND: http://sourcegull:7080
+    volumes: *dev-volumes
+    ports:
+      - "${SOURCEGULL_UI_PORT:-5173}:5173"
+
+  dev:
+    <<: *dev-image
+    command: ["sleep", "infinity"]
+    environment: *dev-env
+    volumes: *dev-volumes
+    depends_on:
+      postgres:
+        condition: service_healthy
+
+  # The production image, built from this checkout, against the dev Postgres.
+  app:
+    profiles: ["app"]
+    image: sourcegull/sourcegull:dev
+    build:
+      context: .
+      dockerfile: deploy/docker/Dockerfile
+    command: ["supervise"]
+    environment:
+      SOURCEGULL_DATABASE_URL: postgres://sourcegull:sourcegull@postgres:5432/sourcegull_app
+      SOURCEGULL_EXTERNAL_URL: http://localhost:${SOURCEGULL_APP_PORT:-7081}
+      SOURCEGULL_LOG_FORMAT: pretty
+      RUST_LOG: ${RUST_LOG:-info}
+    volumes:
+      - app-data:/var/opt/sourcegull
+    ports:
+      - "${SOURCEGULL_APP_PORT:-7081}:7080"
+    depends_on:
+      postgres:
+        condition: service_healthy
+
+  # Browser checks: builds the UI and the binary, then runs ui/e2e/search.cjs and admin.cjs.
+  e2e:
+    profiles: ["e2e"]
+    <<: *dev-image
+    image: sourcegull-dev-e2e:latest
+    build:
+      context: deploy/docker/dev
+      target: e2e
+    command: ["sh", "-c", "deploy/docker/dev/ui-deps.sh && exec scripts/test/e2e-ui.sh"]
+    environment:
+      SOURCEGULL_E2E_DATABASE_URL: postgres://sourcegull:sourcegull@postgres:5432/sourcegull
+      OUT: /src/.e2e-out
+      CHECKS: ${CHECKS:-}
+      GITEA_URL: http://gitea:3000
+    volumes: *dev-volumes
+    depends_on:
+      postgres:
+        condition: service_healthy
+
+  # Executor for auto-indexing and server-side bulk changes, on the host's Docker daemon (job
+  # steps run there as sibling containers). Uses the binary the `sourcegull` service builds. Set
+  # SOURCEGULL_EXECUTOR_TOKEN to the site config's `executors.accessToken` and DOCKER_GID to the
+  # group owning the socket (`stat -c %g /var/run/docker.sock`), e.g. in .env, then:
+  #   docker compose --profile executors up -d executor
+  executor:
+    profiles: ["executors"]
+    <<: *dev-image
+    command: ["target/debug/sourcegull", "executor"]
+    user: "${SOURCEGULL_UID:-1000}:${DOCKER_GID:-999}"
+    environment:
+      HOME: /tmp
+      SOURCEGULL_EXECUTOR_FRONTEND_URL: http://sourcegull:7080
+      SOURCEGULL_EXECUTOR_TOKEN: ${SOURCEGULL_EXECUTOR_TOKEN:-}
+      SOURCEGULL_EXECUTOR_NAME: dev-executor
+      SOURCEGULL_EXECUTOR_QUEUES: ${SOURCEGULL_EXECUTOR_QUEUES:-codeintel,batches}
+      SOURCEGULL_EXECUTOR_MAX_JOBS: ${SOURCEGULL_EXECUTOR_MAX_JOBS:-2}
+      SOURCEGULL_EXECUTOR_DOCKER_MEMORY: ${SOURCEGULL_EXECUTOR_DOCKER_MEMORY:-4g}
+      SOURCEGULL_LOG_FORMAT: pretty
+      RUST_LOG: ${RUST_LOG:-info}
+    volumes:
+      - .:/src
+      - target:/src/target
+      - /var/run/docker.sock:/var/run/docker.sock
+    tmpfs:
+      - /tmp:size=4g,mode=1777
+    depends_on:
+      sourcegull:
+        condition: service_healthy
+
+  # A real GitLab CE for development (`scripts/dev gitlab up`; not used by CI, which uses the
+  # mock in sourcegull-codehost-gitlab). Seeded by deploy/docker/dev/gitlab-seed.rb. Reachable as
+  # http://gitlab.localhost:8929 (browsers resolve *.localhost; host tools need
+  # `127.0.0.1 gitlab.localhost` in /etc/hosts, since GitLab's links use that name). The port
+  # is fixed because it is part of external_url. Needs about 3 GB of memory.
+  gitlab:
+    profiles: ["gitlab"]
+    image: gitlab/gitlab-ce:19.4.2-ce.0
+    restart: unless-stopped
+    hostname: gitlab.localhost
+    shm_size: 256m
+    environment:
+      GITLAB_OMNIBUS_CONFIG: |
+        external_url 'http://gitlab.localhost:8929'
+        gitlab_rails['initial_root_password'] = 'Xq7v-Lm2k-Pz9w'
+        gitlab_rails['usage_ping_enabled'] = false
+        gitlab_rails['gitlab_default_projects_features_container_registry'] = false
+        puma['worker_processes'] = 0
+        # Gitaly's hooks call back into Rails during every push and commit: with Puma's default
+        # 4 threads, 4 concurrent pushes deadlock until Gitaly's deadline (the batch changes scale
+        # test pushes and creates merge requests in parallel).
+        puma['min_threads'] = 4
+        puma['max_threads'] = 16
+        sidekiq['concurrency'] = 10
+        prometheus_monitoring['enable'] = false
+        gitlab_kas['enable'] = false
+        registry['enable'] = false
+        gitlab_pages['enable'] = false
+    volumes:
+      - gitlab-config:/etc/gitlab
+      - gitlab-logs:/var/log/gitlab
+      - gitlab-data:/var/opt/gitlab
+      - ./deploy/docker/dev:/seed:ro
+    ports:
+      - "127.0.0.1:8929:8929"
+    networks:
+      default:
+        aliases: [gitlab.localhost]
+
+  # A real Gitea for the Gitea browser check (`CHECKS=gitea scripts/dev e2e`) and for trying
+  # Sourcegull against Gitea (`scripts/dev gitea up`). SQLite, no install page; `scripts/dev gitea up`
+  # recreates it empty and adds the site administrator `root`. Reachable as http://gitea:3000
+  # from the other services (ROOT_URL, so clone and OAuth URLs use that name) and on
+  # 127.0.0.1:3000 from the host.
+  gitea:
+    profiles: ["gitea"]
+    image: gitea/gitea:1.24.6
+    environment:
+      USER_UID: "1000"
+      USER_GID: "1000"
+      GITEA__database__DB_TYPE: sqlite3
+      GITEA__security__INSTALL_LOCK: "true"
+      GITEA__server__DOMAIN: gitea
+      GITEA__server__HTTP_PORT: "3000"
+      GITEA__server__ROOT_URL: http://gitea:3000/
+      GITEA__server__DISABLE_SSH: "true"
+      GITEA__service__DISABLE_REGISTRATION: "true"
+      GITEA__webhook__ALLOWED_HOST_LIST: "*"
+      GITEA__log__LEVEL: Warn
+    ports:
+      - "127.0.0.1:${SOURCEGULL_GITEA_PORT:-3000}:3000"
+    healthcheck:
+      test: ["CMD", "curl", "-fsS", "-o", "/dev/null", "http://127.0.0.1:3000/api/healthz"]
+      interval: 2s
+      timeout: 5s
+      retries: 60
+
+  # S3-compatible object storage for the S3 blob store: `scripts/dev test-s3` runs the
+  # sourcegull-blobstore tests against it. The upstream MinIO images are no longer published; this
+  # is the community build of the same server. API on :9000 (`minioadmin`/`minioadmin`),
+  # console on :9001; reachable from the other services as http://minio:9000.
+  minio:
+    profiles: ["s3"]
+    image: pgsty/minio:RELEASE.2026-08-04T00-00-00Z
+    command: ["server", "/data", "--console-address", ":9001"]
+    environment:
+      MINIO_ROOT_USER: minioadmin
+      MINIO_ROOT_PASSWORD: minioadmin
+    volumes:
+      - minio-data:/data
+    ports:
+      - "127.0.0.1:${SOURCEGULL_MINIO_PORT:-9000}:9000"
+      - "127.0.0.1:${SOURCEGULL_MINIO_CONSOLE_PORT:-9001}:9001"
+    healthcheck:
+      test: ["CMD", "curl", "-fsS", "-o", "/dev/null", "http://127.0.0.1:9000/minio/health/ready"]
+      interval: 2s
+      timeout: 5s
+      retries: 30
+
+volumes:
+  postgres-data:
+  cargo:
+  target:
+  node-modules:
+  sourcegull-data:
+  app-data:
+  gitlab-config:
+  gitlab-logs:
+  gitlab-data:
+  minio-data:

@@ -1,0 +1,73 @@
+// Sourcegull site configuration.
+//
+// This document is JSONC: comments and trailing commas are allowed. Every key is optional;
+// see /.api/site-config-schema (or the editor's completion) for all keys and defaults.
+{
+  // The URL users reach this instance at. Set it before configuring OAuth sign-in,
+  // because it is used to build callback URLs.
+  // "externalURL": "https://sourcegull.example.com",
+
+  // Sign-in methods. The first account created becomes the site admin.
+  "auth.providers": [
+    { "type": "builtin", "allowSignup": false },
+    // GitLab sign-in (gitlab.com or self-managed):
+    // {
+    //   "type": "gitlab",
+    //   "url": "https://gitlab.com/",
+    //   "clientID": "<application id>",
+    //   "clientSecret": "<secret>",
+    //   "allowSignup": true,
+    //   "allowGroups": ["my-group"],
+    // },
+  ],
+
+  // How long a session lasts after sign-in.
+  "auth.sessionExpiry": "30d",
+
+  // Allow signed-out visitors to search.
+  "auth.public": false,
+
+  "auth.passwordPolicy": {
+    "enabled": false,
+    "minimumLength": 12,
+  },
+
+  // Lock an account for 30 minutes after 5 failed sign-ins within an hour.
+  "auth.lockout": {
+    "consecutivePeriod": 3600,
+    "failedAttemptThreshold": 5,
+    "lockoutPeriod": 1800,
+  },
+
+  // "all", "site-admin-create" or "none".
+  "auth.accessTokens": { "allow": "all", "maxTokenExpiresInDays": 365 },
+
+  // Repository permissions. Private repos of connections with an "authorization" block are
+  // readable only by the users granted them. Explicit permissions restrict every private
+  // repo and let admins grant access through the API, naming users by "email" or "username".
+  // "permissions.userMapping": { "enabled": true, "bindID": "email" },
+  // Apply permissions to site admins too.
+  // "authz.enforceForSiteAdmins": true,
+  // The permissions sync refreshes the oldest users and repositories every 15 s, at most once
+  // a minute each, and keeps 5 finished jobs per user and repository:
+  // "permissions.syncOldestUsers": 10, "permissions.syncOldestRepos": 10,
+  // "permissions.syncUsersBackoffSeconds": 60, "permissions.syncJobsHistorySize": 5,
+
+  "log": { "securityEventLog": { "location": "database" } },
+
+  // Send traces to an OpenTelemetry collector:
+  // "observability.tracing": { "sampling": "selective", "otlpEndpoint": "http://otel-collector:4317" },
+
+  "search.limits": {
+    "defaultTimeoutSeconds": 20,
+    "maxTimeoutSeconds": 60,
+  },
+
+  // Branches to index besides the default branch, per repository:
+  // "search.index.branches": { "gitlab.com/acme/api": ["release"] },
+
+  // Pin repositories to repo nodes (e.g. very large monorepos); the rebalancer moves them
+  // there, and back to their hash assignment when unpinned:
+  // "experimentalFeatures": { "gitServerPinnedRepos": { "gitlab.com/acme/big": "http://sourcegull-repo-2.sourcegull-repo:3178" } },
+  "experimentalFeatures": {},
+}

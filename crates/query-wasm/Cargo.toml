@@ -1,0 +1,17 @@
+[package]
+name = "sourcegull-query-wasm"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+publish = false
+description = "The query parser compiled to WebAssembly for the web UI's query box"
+
+[lib]
+crate-type = ["cdylib", "rlib"]
+
+[lints]
+workspace = true
+
+[dependencies]
+sourcegull-query = { workspace = true }

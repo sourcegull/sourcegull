@@ -1,0 +1,7 @@
+DROP TABLE IF EXISTS sessions;
+DROP TABLE IF EXISTS access_tokens;
+DROP TABLE IF EXISTS org_invitations;
+DROP TABLE IF EXISTS org_members;
+DROP TABLE IF EXISTS orgs;
+DROP TABLE IF EXISTS user_emails;
+DROP TABLE IF EXISTS users;

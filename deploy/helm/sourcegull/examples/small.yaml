@@ -1,0 +1,37 @@
+# Sizing preset "small" (SIZING.md): up to ~1,000 repositories, ~20 GB of mirrored repositories
+# (~5 GB of indexed source), up to ~25 concurrent searchers. One repo node, the bundled database.
+# Every number is an estimate from the sizing rules in SIZING.md, not a measurement.
+#
+#   helm install sourcegull deploy/helm/sourcegull -f deploy/helm/sourcegull/examples/small.yaml \
+#     --set externalURL=https://sourcegull.example.com
+# The chart generates the encryption keys (back the Secret up, see NOTES).
+web:
+  autoscaling:
+    hpa: { enabled: true, minReplicas: 2, maxReplicas: 3 }
+  resources:
+    requests: { cpu: 500m, memory: 512Mi }
+    limits: { memory: 1Gi }
+worker:
+  replicaCount: 1
+  resources:
+    requests: { cpu: 250m, memory: 256Mi }
+    limits: { memory: 1Gi }
+repo:
+  replicaCount: 1
+  # ~1.5x the mirrored repositories, with headroom.
+  persistence: { size: 50Gi }
+  resources:
+    # RAM ~ 0.5 x indexed source + 2 GiB.
+    requests: { cpu: "2", memory: 5Gi }
+    limits: { memory: 6Gi }
+blobstore:
+  persistence: { size: 20Gi }
+postgresql:
+  mode: bundled
+  persistence: { size: 20Gi }
+  config:
+    shared_buffers: 512MB
+    effective_cache_size: 1536MB
+  resources:
+    requests: { cpu: "1", memory: 2Gi }
+    limits: { memory: 2Gi }

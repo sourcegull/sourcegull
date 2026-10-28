@@ -1,0 +1,48 @@
+[package]
+name = "sourcegull-codehost-github"
+description = "GitHub code host: connection config, API client, repository discovery and webhooks."
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+publish = false
+autotests = false
+
+[lints]
+workspace = true
+
+[features]
+## A mock GitHub API server for tests of this and dependent crates.
+testing = ["dep:axum"]
+
+[[test]]
+name = "integration"
+path = "tests/main.rs"
+
+[dependencies]
+sourcegull-codehost = { workspace = true }
+sourcegull-config = { workspace = true }
+sourcegull-crypto = { workspace = true }
+sourcegull-types = { workspace = true }
+async-trait = { workspace = true }
+chrono = { workspace = true }
+futures = { workspace = true }
+hex = { workspace = true }
+hmac = { workspace = true }
+http = { workspace = true }
+jsonschema = { workspace = true }
+jsonwebtoken = { workspace = true }
+regex = { workspace = true }
+reqwest = { workspace = true, features = ["gzip", "http2"] }
+schemars = { workspace = true }
+serde = { workspace = true }
+serde_json = { workspace = true }
+sha2 = { workspace = true }
+tokio = { workspace = true }
+tracing = { workspace = true }
+url = { workspace = true }
+axum = { workspace = true, optional = true }
+
+[dev-dependencies]
+sourcegull-codehost-github = { workspace = true, features = ["testing"] }
+tokio = { workspace = true, features = ["test-util"] }

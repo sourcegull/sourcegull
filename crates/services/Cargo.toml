@@ -1,0 +1,48 @@
+[package]
+name = "sourcegull-services"
+description = "Services shared by the web role's features: application state, the git reader, email, relay IDs, search backends, compute and server-side bulk change execution."
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+publish = false
+
+[lints]
+workspace = true
+
+[dependencies]
+sourcegull-authn = { workspace = true }
+sourcegull-authz = { workspace = true }
+sourcegull-batches = { workspace = true, features = ["store"] }
+sourcegull-batches-steps = { workspace = true }
+sourcegull-blobstore = { workspace = true }
+sourcegull-codehost = { workspace = true }
+sourcegull-codeintel-scip = { workspace = true }
+sourcegull-compute = { workspace = true }
+sourcegull-config = { workspace = true }
+sourcegull-crypto = { workspace = true }
+sourcegull-db = { workspace = true }
+sourcegull-executor-api = { workspace = true }
+sourcegull-observability = { workspace = true }
+sourcegull-own = { workspace = true, features = ["store"] }
+sourcegull-pgqueue = { workspace = true }
+sourcegull-query = { workspace = true }
+sourcegull-ratelimit = { workspace = true }
+sourcegull-repos = { workspace = true }
+sourcegull-rpc = { workspace = true }
+sourcegull-search = { workspace = true }
+sourcegull-search-client = { workspace = true }
+sourcegull-search-web = { workspace = true }
+sourcegull-types = { workspace = true }
+async-trait = { workspace = true }
+base64 = { workspace = true }
+bytes = "1"
+chrono = { workspace = true }
+futures = { workspace = true }
+lettre = { workspace = true }
+moka = { workspace = true }
+percent-encoding = "2"
+serde_json = { workspace = true }
+thiserror = { workspace = true }
+tokio = { workspace = true }
+tracing = { workspace = true }

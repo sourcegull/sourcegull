@@ -1,0 +1,16 @@
+[package]
+name = "sourcegull-web-assets"
+description = "The web UI (ui/build) embedded into the binary, with SPA fallback."
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+publish = false
+
+[lints]
+workspace = true
+
+[dependencies]
+rust-embed = { workspace = true, features = ["interpolate-folder-path"] }
+mime_guess = { workspace = true }
+hex = { workspace = true }

@@ -1,0 +1,11 @@
+name: unknown
+labels: [a]
+steps:
+  - run: echo
+    container: alpine:3
+    image: alpine:3
+changesetTemplate:
+  title: t
+  branch: b
+  commit:
+    message: m

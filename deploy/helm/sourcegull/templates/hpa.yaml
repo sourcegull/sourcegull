@@ -1,0 +1,8 @@
+{{- /* CPU autoscaling of web, and of worker when KEDA is not used (worker-autoscaling.yaml). */ -}}
+{{- if .Values.web.autoscaling.hpa.enabled }}
+{{ include "sourcegull.hpa" (dict "root" . "component" "web" "values" .Values.web) }}
+{{- end }}
+{{- if and .Values.worker.autoscaling.hpa.enabled (not .Values.worker.autoscaling.keda.enabled) }}
+---
+{{ include "sourcegull.hpa" (dict "root" . "component" "worker" "values" .Values.worker) }}
+{{- end }}

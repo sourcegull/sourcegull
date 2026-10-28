@@ -1,0 +1,1247 @@
+// Repo node service.
+//
+// A repo node owns a hash partition of repositories (rendezvous hashing over the
+// configured node list) and serves git reads for them in-process. The service
+// has control RPCs (clone, fetch, status, janitor), the read APIs used by the
+// file tree, file view, blame, commit and compare pages, the writes batch
+// changes need (commit from a patch, push), and search over the repo node's
+// index and commit history.
+//
+// Conventions:
+// - Object ids are lowercase hex strings (40 chars for SHA-1).
+// - Paths are repo-relative, `/`-separated, without a leading slash; "" is the root.
+// - Errors use gRPC status codes plus the `sourcegull-error-kind` metadata key
+//   (see sourcegull_rpc::ErrorKind) so callers can tell "repo not cloned" from
+//   "revision not found".
+// - Server-streaming RPCs send batches; a closed stream means "done".
+
+syntax = "proto3";
+
+package sourcegull.repo.v1;
+
+// Identifies a repository. The node stores repos by id; the name is used for
+// logs, update-interval rules and resolving the remote.
+message RepoRef {
+  int32 id = 1;
+  string name = 2;
+}
+
+service RepoService {
+  // --- control ---
+
+  // Clones the repo if it is not on disk yet. With `fetch_if_cloned`, fetches
+  // an existing clone instead of returning immediately.
+  rpc EnsureRepo(EnsureRepoRequest) returns (EnsureRepoResponse);
+  // Fetches an existing clone (clones it if missing) and reports ref changes.
+  rpc FetchRepo(FetchRepoRequest) returns (FetchRepoResponse);
+  // Clones from scratch into a temp dir and swaps it in (forced re-clone).
+  rpc CloneRepo(CloneRepoRequest) returns (CloneRepoResponse);
+  // Removes the repo from disk.
+  rpc DeleteRepo(DeleteRepoRequest) returns (DeleteRepoResponse);
+  // On-disk status: cloned or not, size, HEAD, fragmentation.
+  rpc RepoStatus(RepoStatusRequest) returns (RepoStatusResponse);
+  // Runs one janitor task (gc, repack, prune, commit-graph, fsck, maintenance).
+  rpc RunJanitor(RunJanitorRequest) returns (RunJanitorResponse);
+  // Disk usage of the node's data volume, for the site admin.
+  rpc DiskInfo(DiskInfoRequest) returns (DiskInfoResponse);
+
+  // --- reads ---
+
+  rpc ResolveRevision(ResolveRevisionRequest) returns (ResolveRevisionResponse);
+  rpc ListRefs(ListRefsRequest) returns (ListRefsResponse);
+  // Metadata of one path at a commit.
+  rpc Stat(StatRequest) returns (StatResponse);
+  rpc ReadFile(ReadFileRequest) returns (ReadFileResponse);
+  rpc ListTree(ListTreeRequest) returns (stream ListTreeResponse);
+  rpc GetCommit(GetCommitRequest) returns (GetCommitResponse);
+  rpc CommitLog(CommitLogRequest) returns (stream CommitLogResponse);
+  // Commits reachable from HEAD authored since a time, each with the files it
+  // changed (merges left out): the recent contributors signal of Code
+  // Ownership, read from the commit metadata log and its
+  // changes file.
+  rpc RecentContributions(RecentContributionsRequest) returns (stream RecentContributionsResponse);
+  // Changes between two commits, one message per file.
+  rpc Diff(DiffRequest) returns (stream DiffResponse);
+  // Commits in base..head plus the file list of merge-base..head.
+  rpc Compare(CompareRequest) returns (CompareResponse);
+  rpc MergeBase(MergeBaseRequest) returns (MergeBaseResponse);
+  rpc IsAncestor(IsAncestorRequest) returns (IsAncestorResponse);
+  rpc Blame(BlameRequest) returns (stream BlameResponse);
+  rpc Archive(ArchiveRequest) returns (stream ArchiveResponse);
+  // One exchange of git's smart HTTP protocol (git upload-pack --stateless-rpc), for
+  // executor checkouts.
+  rpc UploadPack(UploadPackRequest) returns (stream UploadPackResponse);
+  // Copies the repo to the repo node that takes it over (rebalancing): a header with
+  // the refs, then a pack of the objects reachable from them that the caller lacks, then a
+  // trailer with the pack's checksum. Repo nodes call it on each other; nothing else should.
+  rpc CopyRepo(CopyRepoRequest) returns (stream CopyRepoResponse);
+
+  // --- writes (batch changes) ---
+
+  // Applies a git-format patch on top of a commit in a temporary index (no
+  // working copy), commits the result and points `target_ref` at it in the
+  // node's copy. With `push` set, also pushes the commit to `target_ref` on
+  // the remote in the same call. Fails with PATCH_FAILED (git apply's stderr
+  // in the message) when the patch does not apply. Calls on the same repo may
+  // run concurrently; each uses its own index.
+  rpc CreateCommitFromPatch(CreateCommitFromPatchRequest) returns (CreateCommitFromPatchResponse);
+  // Applies a patch like CreateCommitFromPatch but commits nothing and
+  // touches no ref: returns the files the patch changes with their new
+  // contents (rename detection on), for code hosts that create the commit
+  // themselves (batch changes' commit-via-API mode). Fails with PATCH_FAILED
+  // like CreateCommitFromPatch, and with TOO_LARGE when the changed files
+  // exceed the request's limits.
+  rpc ApplyPatch(ApplyPatchRequest) returns (ApplyPatchResponse);
+  // Pushes a local ref or commit to a ref on a remote with credentials from
+  // the request. Rejections map to UNAUTHENTICATED (bad or missing
+  // credentials), PERMISSION_DENIED (no write access, protected branch,
+  // archived or missing project) and NON_FAST_FORWARD.
+  rpc Push(PushRequest) returns (PushResponse);
+}
+
+// ---------------------------------------------------------------- control
+
+message RefUpdate {
+  // Full ref name, e.g. "refs/heads/main".
+  string name = 1;
+  // Empty when the ref was created.
+  string old_oid = 2;
+  // Empty when the ref was deleted.
+  string new_oid = 3;
+}
+
+message SyncResult {
+  // Ref changes; on a first clone every ref is reported as created.
+  repeated RefUpdate ref_updates = 1;
+  // Symbolic target of HEAD, e.g. "refs/heads/main" (empty if unborn/unknown).
+  string head_ref = 2;
+  // Commit HEAD points to (empty if unborn).
+  string head_oid = 3;
+  uint64 size_bytes = 4;
+  uint64 duration_ms = 5;
+  // Last lines of git's progress output, with credentials redacted.
+  string progress_tail = 6;
+  // True if this call cloned the repo (as opposed to fetching).
+  bool cloned = 7;
+}
+
+message EnsureRepoRequest {
+  RepoRef repo = 1;
+  bool fetch_if_cloned = 2;
+}
+
+message EnsureRepoResponse {
+  // Unset when the repo was already cloned and no fetch was requested.
+  SyncResult result = 1;
+  bool already_cloned = 2;
+}
+
+message FetchRepoRequest {
+  RepoRef repo = 1;
+}
+
+message FetchRepoResponse {
+  SyncResult result = 1;
+}
+
+message CloneRepoRequest {
+  RepoRef repo = 1;
+}
+
+message CloneRepoResponse {
+  SyncResult result = 1;
+}
+
+message DeleteRepoRequest {
+  RepoRef repo = 1;
+}
+
+message DeleteRepoResponse {
+  bool existed = 1;
+}
+
+message RepoStatusRequest {
+  RepoRef repo = 1;
+  // Computing the size walks the repo directory; skip it for cheap checks.
+  bool include_size = 2;
+}
+
+message RepoStatusResponse {
+  bool cloned = 1;
+  bool clone_in_progress = 2;
+  string head_ref = 3;
+  string head_oid = 4;
+  uint64 size_bytes = 5;
+  uint32 pack_count = 6;
+  uint64 loose_object_count = 7;
+  // Directory on the node (for admin/debug views).
+  string path = 8;
+}
+
+enum JanitorTask {
+  JANITOR_TASK_UNSPECIFIED = 0;
+  // `git maintenance run` with gc, commit-graph, loose-objects, incremental-repack.
+  JANITOR_TASK_MAINTENANCE = 1;
+  JANITOR_TASK_GC = 2;
+  JANITOR_TASK_REPACK = 3;
+  JANITOR_TASK_PRUNE = 4;
+  JANITOR_TASK_COMMIT_GRAPH = 5;
+  // Connectivity check; `corrupt` is set in the response if it fails.
+  JANITOR_TASK_FSCK = 6;
+}
+
+message RunJanitorRequest {
+  RepoRef repo = 1;
+  JanitorTask task = 2;
+}
+
+message RunJanitorResponse {
+  bool corrupt = 1;
+  string output = 2;
+  uint64 duration_ms = 3;
+  uint64 size_bytes_after = 4;
+}
+
+message DiskInfoRequest {}
+
+message DiskInfoResponse {
+  // Filesystem holding the data directory (statvfs).
+  uint64 total_bytes = 1;
+  // Bytes available to the node (not counting root-reserved blocks).
+  uint64 free_bytes = 2;
+  // Bare repositories in the data directory.
+  uint64 repos_on_disk = 3;
+  // Bytes of the search index directory (shards).
+  uint64 index_bytes = 4;
+  // The data directory (for admin views).
+  string path = 5;
+  // Free bytes below which the node pauses new clones (its effective threshold).
+  uint64 pause_clones_below_bytes = 6;
+  // Whether free space is below that threshold now (clones paused at the next disk check).
+  bool clones_paused = 7;
+}
+
+// ------------------------------------------------------------------ reads
+
+message ResolveRevisionRequest {
+  RepoRef repo = 1;
+  // Any rev-spec git understands for a single commit ("main", "v1.0", "HEAD~2",
+  // an oid prefix). Empty means HEAD.
+  string rev = 2;
+}
+
+message ResolveRevisionResponse {
+  string commit_oid = 1;
+}
+
+enum RefKind {
+  REF_KIND_UNSPECIFIED = 0;
+  REF_KIND_BRANCH = 1;
+  REF_KIND_TAG = 2;
+  REF_KIND_OTHER = 3;
+}
+
+message ListRefsRequest {
+  RepoRef repo = 1;
+  bool branches = 2;
+  bool tags = 3;
+  // Ref name prefix filter on the short name (e.g. "release/").
+  string prefix = 4;
+}
+
+message RefInfo {
+  string name = 1;
+  string short_name = 2;
+  RefKind kind = 3;
+  // Direct target (a tag object for annotated tags).
+  string target_oid = 4;
+  // The commit the ref peels to (empty if it does not point to a commit).
+  string commit_oid = 5;
+  // Committer time of the peeled commit, seconds since the epoch.
+  int64 commit_time = 6;
+  bool annotated = 7;
+}
+
+message ListRefsResponse {
+  repeated RefInfo refs = 1;
+  // Symbolic target of HEAD.
+  string head_ref = 2;
+}
+
+enum EntryKind {
+  ENTRY_KIND_UNSPECIFIED = 0;
+  ENTRY_KIND_FILE = 1;
+  ENTRY_KIND_EXECUTABLE = 2;
+  ENTRY_KIND_SYMLINK = 3;
+  ENTRY_KIND_DIRECTORY = 4;
+  ENTRY_KIND_SUBMODULE = 5;
+}
+
+message TreeEntry {
+  string path = 1;
+  string name = 2;
+  EntryKind kind = 3;
+  uint32 mode = 4;
+  string oid = 5;
+  // Blob size in bytes; unset for directories, submodules or when not requested.
+  optional uint64 size = 6;
+}
+
+message StatRequest {
+  RepoRef repo = 1;
+  string commit_oid = 2;
+  string path = 3;
+}
+
+message StatResponse {
+  TreeEntry entry = 1;
+}
+
+message ReadFileRequest {
+  RepoRef repo = 1;
+  string commit_oid = 2;
+  string path = 3;
+  // 0 means the server default.
+  uint64 max_bytes = 4;
+}
+
+message ReadFileResponse {
+  bytes content = 1;
+  string oid = 2;
+  uint64 size = 3;
+  bool binary = 4;
+  // Content was cut at max_bytes.
+  bool truncated = 5;
+}
+
+message ListTreeRequest {
+  RepoRef repo = 1;
+  string commit_oid = 2;
+  string path = 3;
+  bool recursive = 4;
+  bool include_sizes = 5;
+  // 0 means the server default.
+  uint32 limit = 6;
+}
+
+message ListTreeResponse {
+  repeated TreeEntry entries = 1;
+  // Set on the last message if the limit cut the listing short.
+  bool truncated = 2;
+}
+
+message Signature {
+  string name = 1;
+  string email = 2;
+  // Seconds since the epoch.
+  int64 time = 3;
+  // Offset from UTC in seconds.
+  int32 tz_offset_seconds = 4;
+}
+
+message Commit {
+  string oid = 1;
+  repeated string parents = 2;
+  Signature author = 3;
+  Signature committer = 4;
+  string message = 5;
+  string tree_oid = 6;
+}
+
+message GetCommitRequest {
+  RepoRef repo = 1;
+  string commit_oid = 2;
+}
+
+message GetCommitResponse {
+  Commit commit = 1;
+}
+
+message CommitLogRequest {
+  RepoRef repo = 1;
+  string commit_oid = 2;
+  // Only commits that changed this path (file or directory). Empty for all.
+  string path = 3;
+  uint32 skip = 4;
+  // 0 means the server default.
+  uint32 limit = 5;
+  bool first_parent = 6;
+  // Leave out these commits and their ancestors (`commit ^hide…`).
+  repeated string hide_oids = 7;
+  // Only commits committed at or before this time (seconds since the epoch), as
+  // `git log --before`. With `first_parent` and `limit` 1 this is the commit a branch
+  // was at then (`rev:at.time()`).
+  optional int64 before = 8;
+  // Only commits committed at or after this time (seconds since the epoch), as
+  // `git log --after`. The walk is newest first by committer time and stops at the first
+  // older commit, so on a repository with no recent commits it costs one step
+  // (`repo:has.commit.after()`).
+  optional int64 after = 9;
+}
+
+message CommitLogResponse {
+  repeated Commit commits = 1;
+  // Set on the last message if more commits exist after this page.
+  bool has_more = 2;
+}
+
+message RecentContributionsRequest {
+  RepoRef repo = 1;
+  // Commits authored at or after this time (seconds since the epoch).
+  int64 since = 2;
+}
+
+message RecentContribution {
+  string oid = 1;
+  string author_name = 2;
+  string author_email = 3;
+  // Seconds since the epoch.
+  int64 author_time = 4;
+  // Files the commit changed against its first parent.
+  repeated string paths = 5;
+}
+
+message RecentContributionsResponse {
+  repeated RecentContribution commits = 1;
+}
+
+enum ChangeStatus {
+  CHANGE_STATUS_UNSPECIFIED = 0;
+  CHANGE_STATUS_ADDED = 1;
+  CHANGE_STATUS_DELETED = 2;
+  CHANGE_STATUS_MODIFIED = 3;
+  CHANGE_STATUS_RENAMED = 4;
+  CHANGE_STATUS_COPIED = 5;
+  CHANGE_STATUS_TYPE_CHANGED = 6;
+}
+
+message Hunk {
+  uint32 old_start = 1;
+  uint32 old_lines = 2;
+  uint32 new_start = 3;
+  uint32 new_lines = 4;
+  // Unified-diff body: lines prefixed with ' ', '+' or '-', newline-terminated.
+  string body = 5;
+  // The text after the `@@` header (git's function-context heading).
+  string section = 6;
+}
+
+message FileDiff {
+  ChangeStatus status = 1;
+  string old_path = 2;
+  string new_path = 3;
+  string old_oid = 4;
+  string new_oid = 5;
+  uint32 old_mode = 6;
+  uint32 new_mode = 7;
+  uint32 additions = 8;
+  uint32 deletions = 9;
+  bool binary = 10;
+  // The patch was skipped because a side exceeded the size limit.
+  bool too_large = 11;
+  repeated Hunk hunks = 12;
+}
+
+message DiffRequest {
+  RepoRef repo = 1;
+  // Empty means the first parent of new_commit_oid (or the empty tree for a root commit).
+  string old_commit_oid = 2;
+  string new_commit_oid = 3;
+  // Restrict to these paths (prefix match on directories).
+  repeated string paths = 4;
+  // Only the file list and stats, no hunks.
+  bool stats_only = 5;
+  uint32 context_lines = 6;
+  bool detect_renames = 7;
+}
+
+message DiffResponse {
+  repeated FileDiff files = 1;
+}
+
+message CompareRequest {
+  RepoRef repo = 1;
+  string base_commit_oid = 2;
+  string head_commit_oid = 3;
+  // 0 means the server default.
+  uint32 max_commits = 4;
+}
+
+message CompareResponse {
+  string merge_base_oid = 1;
+  repeated Commit commits = 2;
+  bool commits_truncated = 3;
+  // File list merge-base..head, stats only.
+  repeated FileDiff files = 4;
+}
+
+message MergeBaseRequest {
+  RepoRef repo = 1;
+  string a = 2;
+  string b = 3;
+}
+
+message MergeBaseResponse {
+  // Empty if the commits have no common ancestor.
+  string oid = 1;
+}
+
+message IsAncestorRequest {
+  RepoRef repo = 1;
+  string ancestor = 2;
+  string descendant = 3;
+}
+
+message IsAncestorResponse {
+  bool is_ancestor = 1;
+}
+
+message BlameRequest {
+  RepoRef repo = 1;
+  string commit_oid = 2;
+  string path = 3;
+  // 1-based inclusive line range; 0 means unbounded.
+  uint32 start_line = 4;
+  uint32 end_line = 5;
+  bool ignore_whitespace = 6;
+}
+
+message BlameHunk {
+  string commit_oid = 1;
+  // 1-based line in the blamed file.
+  uint32 start_line = 2;
+  uint32 line_count = 3;
+  // 1-based line in the commit that introduced the lines.
+  uint32 orig_start_line = 4;
+  // Path in the commit that introduced the lines (differs after renames).
+  string orig_path = 5;
+  Signature author = 6;
+  string summary = 7;
+}
+
+message BlameResponse {
+  repeated BlameHunk hunks = 1;
+}
+
+enum ArchiveFormat {
+  ARCHIVE_FORMAT_UNSPECIFIED = 0;
+  ARCHIVE_FORMAT_TAR = 1;
+  ARCHIVE_FORMAT_ZIP = 2;
+}
+
+message ArchiveRequest {
+  RepoRef repo = 1;
+  string commit_oid = 2;
+  ArchiveFormat format = 3;
+  // Only these paths (pathspecs); empty for the whole tree.
+  repeated string paths = 4;
+}
+
+message ArchiveResponse {
+  bytes chunk = 1;
+}
+
+message UploadPackRequest {
+  RepoRef repo = 1;
+  // Answer info/refs (the ref advertisement) instead of a negotiation.
+  bool advertise_refs = 2;
+  // The client's request body (pkt-lines); empty with advertise_refs.
+  bytes body = 3;
+  // The client's Git-Protocol header, e.g. "version=2"; empty for protocol v0.
+  string git_protocol = 4;
+}
+
+message UploadPackResponse {
+  bytes chunk = 1;
+}
+
+message CopyRepoRequest {
+  RepoRef repo = 1;
+  // Object ids the caller already has (its ref tips); objects reachable from them are left
+  // out of the pack. Empty for a first copy.
+  repeated string have = 2;
+}
+
+message CopyRef {
+  string name = 1;
+  string oid = 2;
+}
+
+message CopyRepoHeader {
+  // Every direct ref, read at one point in time; the caller ends up with exactly these.
+  repeated CopyRef refs = 1;
+  // HEAD's symbolic target; empty when unknown.
+  string head_ref = 2;
+  // The credential-free origin URL; empty when unknown.
+  string origin_url = 3;
+  // Whether pack chunks follow (false when the caller has every object).
+  bool has_pack = 4;
+}
+
+message CopyRepoTrailer {
+  // SHA-256 of the pack bytes sent, and their count.
+  bytes sha256 = 1;
+  uint64 pack_bytes = 2;
+}
+
+// The header, then pack chunks, then the trailer.
+message CopyRepoResponse {
+  oneof part {
+    CopyRepoHeader header = 1;
+    bytes chunk = 2;
+    CopyRepoTrailer trailer = 3;
+  }
+}
+
+// ----------------------------------------------------------------- writes
+
+// The equivalent of `git apply` options (instead of raw arguments).
+message PatchApplyOptions {
+  // `-p<n>`: leading path components to strip. Unset means 1 (`a/`, `b/`
+  // prefixes as `git diff` writes them); 0 for `git diff --no-prefix`.
+  optional uint32 strip = 1;
+  // `--ignore-whitespace`.
+  bool ignore_whitespace = 2;
+  // `--recount`: ignore the line counts in hunk headers.
+  bool recount = 3;
+  // `--unidiff-zero`: accept diffs without context lines.
+  bool unidiff_zero = 4;
+  // `--directory=<dir>`: prepend this repo-relative directory to every path.
+  string directory = 5;
+  // An empty patch yields a commit with the base tree instead of an error.
+  bool allow_empty = 6;
+}
+
+message CommitIdentity {
+  string name = 1;
+  string email = 2;
+}
+
+// Credentials for one push. Never logged: the generated Debug prints
+// `[redacted]`, and git gets them through its askpass helper, not argv.
+message PushCredentials {
+  // Empty means "oauth2" (GitLab OAuth and personal access tokens).
+  string username = 1;
+  string token = 2;
+}
+
+message PushTarget {
+  // http(s) URL of the remote. Empty means the repo's own remote (the URL the
+  // node fetches from). Userinfo in the URL is used as credentials when
+  // `credentials` is unset. Pushes go only to the code host the repo comes
+  // from (same host as its remote).
+  string remote_url = 1;
+  // Unset pushes anonymously.
+  PushCredentials credentials = 2;
+  // Overwrite the remote ref even if the push is not a fast-forward (batch
+  // changes force-push their branches).
+  bool force = 3;
+}
+
+message CreateCommitFromPatchRequest {
+  RepoRef repo = 1;
+  // The commit the patch applies to (full oid).
+  string base_commit_oid = 2;
+  // Full ref name, e.g. "refs/heads/batch-changes/foo"; a name without the
+  // "refs/" prefix is taken as a branch.
+  string target_ref = 3;
+  // Output of `git diff` (use `--binary` for binary files).
+  bytes patch = 4;
+  string message = 5;
+  CommitIdentity author = 6;
+  // Unset means the author.
+  CommitIdentity committer = 7;
+  // Author and committer time in seconds since the epoch (UTC); unset means now.
+  optional int64 date = 8;
+  PatchApplyOptions apply = 9;
+  // Also push the commit to `target_ref` on this remote. A failed push fails
+  // the call; the commit and local ref stay, so a retry may use Push alone.
+  PushTarget push = 10;
+}
+
+message CreateCommitFromPatchResponse {
+  string commit_oid = 1;
+  string tree_oid = 2;
+  // Whether `push` was requested and succeeded.
+  bool pushed = 3;
+}
+
+message ApplyPatchRequest {
+  RepoRef repo = 1;
+  // The commit the patch applies to (full oid).
+  string base_commit_oid = 2;
+  // Output of `git diff` (use `--binary` for binary files).
+  bytes patch = 3;
+  PatchApplyOptions apply = 4;
+  // Fail with TOO_LARGE when the new contents of the changed files add up to
+  // more than this many bytes (0: the node's limit, also the maximum).
+  uint64 max_content_bytes = 5;
+  // Fail with TOO_LARGE when more than this many files change (0: no limit).
+  uint32 max_files = 6;
+}
+
+// One file changed by a patch, as the code host commit APIs model it.
+message ChangedFile {
+  enum Action {
+    ACTION_UNSPECIFIED = 0;
+    // A new file.
+    CREATE = 1;
+    // The content or mode of an existing file changed.
+    UPDATE = 2;
+    DELETE = 3;
+    // Renamed from `previous_path` (the content may have changed too).
+    MOVE = 4;
+  }
+  enum Kind {
+    KIND_UNSPECIFIED = 0;
+    // A regular file (mode 100644).
+    REGULAR = 1;
+    // A regular executable file (mode 100755).
+    EXECUTABLE = 2;
+    // A symbolic link; the content is the link target.
+    SYMLINK = 3;
+    // A submodule (gitlink); there is no content.
+    SUBMODULE = 4;
+  }
+  Action action = 1;
+  string path = 2;
+  // MOVE: the old path.
+  string previous_path = 3;
+  // The kind after the change (before it, for DELETE).
+  Kind kind = 4;
+  // The kind before the change (unset for CREATE).
+  Kind previous_kind = 5;
+  // The new content (CREATE, UPDATE and MOVE with `content_changed`).
+  bytes content = 6;
+  // UPDATE and MOVE: whether the content differs from the old file (else
+  // only the mode or the path changed).
+  bool content_changed = 7;
+}
+
+message ApplyPatchResponse {
+  // The tree the patch produces.
+  string tree_oid = 1;
+  // Ordered as git diff-tree prints them (by path).
+  repeated ChangedFile files = 2;
+}
+
+message PushRequest {
+  RepoRef repo = 1;
+  // A local ref name or commit oid.
+  string source = 2;
+  // Ref on the remote; a name without "refs/" is taken as a branch.
+  string destination_ref = 3;
+  PushTarget target = 4;
+}
+
+message PushResponse {
+  // The commit that was pushed.
+  string commit_oid = 1;
+}
+
+// --- search ---
+//
+// Node-side search executors. Served by the repo role next to RepoService; the
+// implementation lives in `sourcegull-search-exec`.
+service SearchService {
+  // Unindexed content or path search over one commit's tree. Streams matching
+  // files in batches; the last message carries the stats.
+  rpc SearchCommit(SearchCommitRequest) returns (stream SearchCommitResponse);
+  // Commit and diff search (`type:commit`, `type:diff`): history from a
+  // commit, newest first.
+  rpc SearchCommits(SearchCommitsRequest) returns (stream SearchCommitsResponse);
+  // Indexed content or path search over branches of many repos on
+  // this node. The first message names the requested branches the index
+  // does not hold, for the caller to search unindexed; the last carries the
+  // stats. Fails with UNIMPLEMENTED when the node has no index.
+  rpc SearchIndexed(SearchIndexedRequest) returns (stream SearchIndexedResponse);
+  // Code Insights: counts a series query at points of one
+  // repository's history. The commit counted for each point is the newest
+  // first-parent ancestor of `rev` committed at or before the point's time;
+  // the oldest point is counted in full and each later one from the
+  // previous point through a tree diff (or a commit range). Fails with the
+  // `timeout` error kind at the call's deadline.
+  rpc CountSeries(CountSeriesRequest) returns (CountSeriesResponse);
+  // Code Insights language statistics: lines and bytes per language
+  // of one revision's text files. Read from the index's per-doc metadata
+  // when the revision is an indexed branch head, else counted from the tree
+  // with per-blob counts cached by blob OID. Fails with the `timeout` error
+  // kind at the call's deadline.
+  rpc LanguageStats(LanguageStatsRequest) returns (LanguageStatsResponse);
+  // Site admin: what the index holds for one repository, its shards
+  // and whether a build is queued. `indexed` is false when the node has no
+  // index or the repository is not in it.
+  rpc IndexStatus(IndexStatusRequest) returns (IndexStatusResponse);
+  // Site admin: queues a full rebuild of one repository's index. Fails with
+  // FAILED_PRECONDITION when the node does not run an indexer.
+  rpc Reindex(ReindexRequest) returns (ReindexResponse);
+}
+
+// A content pattern: a boolean tree of regexps.
+message PatternNode {
+  message Atom {
+    // Regexp source (literal patterns arrive escaped).
+    string regex = 1;
+    bool negated = 2;
+  }
+  message List {
+    repeated PatternNode children = 1;
+  }
+  // A structural search template and its `rule:`.
+  message Structural {
+    string template = 1;
+    string rule = 2;
+  }
+  oneof node {
+    Atom atom = 1;
+    List and = 2;
+    List or = 3;
+    Structural structural = 4;
+  }
+}
+
+message PathFilter {
+  // Regexps on the path: all includes must match, no exclude may.
+  repeated string include = 1;
+  repeated string exclude = 2;
+  // Language names as in `lang:`.
+  repeated string langs = 3;
+  repeated string exclude_langs = 4;
+}
+
+// Code Ownership: `file:has.owner()` terms evaluated on candidate paths against the
+// CODEOWNERS file at the searched commit (or an ingested one) and assigned owners, and the
+// owners `select:file.owners` reports.
+message OwnerTerm {
+  bool negated = 1;
+  // `has.owner()` without an argument: any owner.
+  bool any = 2;
+  // Owner keys naming one user or team: lower case, without a leading `@`
+  // (usernames, GitLab usernames, verified emails, team names).
+  repeated string keys = 3;
+}
+
+message AssignedOwnerEntry {
+  // Repository-relative; "" for the whole repository. Covers everything below.
+  string path = 1;
+  // `@username` or `@team-name`.
+  string owner = 2;
+}
+
+message RepoOwnership {
+  int32 repo_id = 1;
+  // A CODEOWNERS file ingested by a site admin; it replaces the repository's.
+  optional string codeowners = 2;
+  repeated AssignedOwnerEntry assigned = 3;
+  // The repository's lower-case service type (`github`, `gitea`), which picks the
+  // locations the CODEOWNERS file is looked up in; empty for GitLab.
+  string service_type = 4;
+}
+
+// `file:has.contributor(pattern)`: a file passes when an author of a commit
+// that changed it (its whole history in the node's commit log) has a name or
+// email the pattern matches (a regular expression, case-insensitive).
+message ContributorTerm {
+  bool negated = 1;
+  string pattern = 2;
+}
+
+message OwnerFilter {
+  // All must hold.
+  repeated OwnerTerm terms = 1;
+  // Repositories with an ingested file or assignments (others have neither).
+  repeated RepoOwnership repos = 2;
+  // Fill `SearchFileMatch.owners`.
+  bool report_owners = 3;
+  // All must hold, like `terms`.
+  repeated ContributorTerm contributors = 4;
+}
+
+message SearchCommitRequest {
+  RepoRef repo = 1;
+  string commit_oid = 2;
+  // Unset lists the files that pass the path filter.
+  PatternNode pattern = 3;
+  bool case_sensitive = 4;
+  PathFilter paths = 5;
+  // 0 means the server default.
+  uint64 max_file_size = 6;
+  uint32 max_line_len = 7;
+  uint32 file_limit = 8;
+  // Path search: the path must match this pattern too.
+  PatternNode path_pattern = 9;
+  // Symbol search: `pattern` matches the names of the symbols
+  // defined in files with a symbol grammar; matches carry `symbols`.
+  bool symbols = 10;
+  // Score with BM25 (keyword queries) instead of match quality.
+  bool bm25 = 11;
+  // Keeps only files passing the owner filter.
+  OwnerFilter owners = 12;
+}
+
+message SearchLocation {
+  uint32 offset = 1;
+  uint32 line = 2;
+  uint32 column = 3;
+}
+
+message SearchRange {
+  SearchLocation start = 1;
+  SearchLocation end = 2;
+}
+
+message SearchChunk {
+  string content = 1;
+  SearchLocation content_start = 2;
+  repeated SearchRange ranges = 3;
+}
+
+message SearchFileMatch {
+  string path = 1;
+  string blob_oid = 2;
+  repeated SearchChunk chunks = 3;
+  // Ranges in the path matched by `path_pattern` (line 0, column = offset).
+  repeated SearchRange path_ranges = 4;
+  // Symbol search: the matching symbols.
+  repeated SearchSymbol symbols = 5;
+  // Ranking score; higher is better, comparable within one search.
+  double score = 6;
+  // With `OwnerFilter.report_owners`: the file's owners as written (`@alice`,
+  // `alice@example.com`), CODEOWNERS owners first, then assigned ones.
+  repeated string owners = 7;
+}
+
+message SearchSymbol {
+  string name = 1;
+  // Empty when the symbol has no container.
+  string container = 2;
+  // LSP symbol kind number.
+  uint32 kind = 3;
+  // The name's position in the file.
+  SearchRange range = 4;
+}
+
+message SearchStats {
+  uint32 files_considered = 1;
+  uint32 files_searched = 2;
+  uint32 files_skipped_large = 3;
+  uint32 files_skipped_binary = 4;
+  bool limit_hit = 5;
+  // Binary or too large, from a backend that does not tell them apart.
+  uint32 files_skipped = 6;
+  // The search stopped at the call's deadline or was canceled (`limit_hit` is
+  // set too).
+  bool canceled = 7;
+}
+
+message SearchCommitResponse {
+  repeated SearchFileMatch files = 1;
+  // Set on the last message only.
+  SearchStats stats = 2;
+}
+
+message CommitFilters {
+  // Regexps on "name <email>" or the message: all includes must match, no
+  // exclude may.
+  repeated string authors = 1;
+  repeated string exclude_authors = 2;
+  repeated string committers = 3;
+  repeated string exclude_committers = 4;
+  repeated string messages = 5;
+  repeated string exclude_messages = 6;
+  // Committer time bounds in seconds since the epoch.
+  optional int64 before = 7;
+  optional int64 after = 8;
+}
+
+message SearchCommitsRequest {
+  RepoRef repo = 1;
+  string commit_oid = 2;
+  // Matched against the message; unset keeps every commit passing the filters.
+  PatternNode pattern = 3;
+  bool case_sensitive = 4;
+  CommitFilters filters = 5;
+  // 0 means no limit.
+  uint32 limit = 6;
+  // Diff search: `pattern` matches added and removed lines instead of the
+  // message, and matches carry the matching hunks. Merge commits are skipped.
+  bool diff = 7;
+  // Keeps commits that change a file passing this filter; for diffs, only
+  // those files are searched and returned.
+  PathFilter paths = 8;
+  // Leaves out these commits and their ancestors (`commit_oid ^hide...`), e.g.
+  // the commits a push added (code monitors). Unknown commits are ignored.
+  repeated string hide_oids = 9;
+}
+
+message SearchDiffHunk {
+  uint32 old_start = 1;
+  uint32 old_lines = 2;
+  uint32 new_start = 3;
+  uint32 new_lines = 4;
+  // Lines prefixed with ` `, `+`, `-` or `\`, each newline-terminated.
+  string body = 5;
+  // Pattern matches (line and column within `body`).
+  repeated SearchRange ranges = 6;
+  // The text after the `@@` header: git's function-context heading, then
+  // `... +N` when N more matches were cut from the hunk.
+  string section = 7;
+}
+
+message SearchDiffFile {
+  // Empty for an added (old) or deleted (new) file.
+  string old_path = 1;
+  string new_path = 2;
+  repeated SearchDiffHunk hunks = 3;
+}
+
+message SearchCommitMatch {
+  Commit commit = 1;
+  // Ranges in the message (line and column within the message).
+  repeated SearchRange message_ranges = 2;
+  // Diff search: the changed files with matching hunks (all hunks when the
+  // search has no pattern).
+  repeated SearchDiffFile diff = 3;
+}
+
+message SearchCommitsResponse {
+  repeated SearchCommitMatch commits = 1;
+  // Set on the last message if the limit stopped the walk.
+  bool limit_hit = 2;
+  // Set on the last message if the walk stopped at the call's deadline or was
+  // canceled (`limit_hit` is set too).
+  bool canceled = 3;
+}
+
+message IndexedRepoBranches {
+  RepoRef repo = 1;
+  // Branch names; "HEAD" is the default branch.
+  repeated string branches = 2;
+}
+
+message SearchIndexedRequest {
+  repeated IndexedRepoBranches repos = 1;
+  // Unset lists the files that pass the path filter.
+  PatternNode pattern = 2;
+  bool case_sensitive = 3;
+  PathFilter paths = 4;
+  uint32 max_line_len = 5;
+  // 0 means no limit.
+  uint32 file_limit = 6;
+  // Path search: the path must match this pattern too.
+  PatternNode path_pattern = 7;
+  // Symbol search, as in SearchCommitRequest.
+  bool symbols = 8;
+  // As in SearchCommitRequest. Ranked results come best first per repo
+  // (see SearchIndex::search).
+  bool bm25 = 9;
+  // As in SearchCommitRequest; evaluated per branch on the index's candidates.
+  OwnerFilter owners = 10;
+  // Repository predicate sub-search (`repo:has.file()`): report each requested
+  // branch at most once, with the first file that matches on it (no chunks, unranked),
+  // and stop searching a repository once all its requested branches matched.
+  bool repos_only = 11;
+  // Ranked searches: how long to hold matches before sending the best so far, in
+  // milliseconds (0: the node's default). `web` sets it so every node's first page
+  // arrives by the same time after the search started.
+  uint32 flush_ms = 12;
+}
+
+message IndexedBranch {
+  string name = 1;
+  // Empty in `missing`.
+  string commit_oid = 2;
+}
+
+message IndexedFileMatch {
+  int32 repo_id = 1;
+  // The requested branches holding this version of the file.
+  repeated IndexedBranch branches = 2;
+  SearchFileMatch file = 3;
+}
+
+message SearchIndexedResponse {
+  repeated IndexedFileMatch files = 1;
+  // First message only: requested branches not in the index.
+  repeated IndexedRepoBranches missing = 2;
+  // Set on the last message only.
+  SearchStats stats = 3;
+}
+
+// --- insights ---
+
+// One part of a series query: what it counts in each file (or commit).
+message SeriesLeaf {
+  enum Kind {
+    // Matches of `pattern` in file contents; a file matched only through
+    // negations counts 1.
+    CONTENT = 0;
+    // 1 per file whose path passes `paths` (and matches `pattern`, if set).
+    PATH = 1;
+    // Symbol definitions whose names match `pattern`.
+    SYMBOL = 2;
+    // 1 per commit matching `pattern` (message) and `commit_filters`.
+    COMMIT = 3;
+    // 1 per non-merge commit whose diff matches `pattern`.
+    DIFF = 4;
+  }
+  Kind kind = 1;
+  // Unset matches everything.
+  PatternNode pattern = 2;
+  bool case_sensitive = 3;
+  PathFilter paths = 4;
+  // `file:has.content(...)`: regexps a file's contents must (or, negated,
+  // must not) match.
+  repeated PatternNode.Atom file_contents = 5;
+  CommitFilters commit_filters = 6;
+}
+
+// A `repo:has.file(path:… content:…)` predicate (`has.path` and
+// `has.content` are its one-sided forms). Its truth depends on every file
+// of the commit, so series with one are counted in full at each point.
+message SeriesRepoPredicate {
+  bool negated = 1;
+  // Empty: any path.
+  string path = 2;
+  // Empty: any content.
+  string content = 3;
+}
+
+message SeriesSpec {
+  enum Group {
+    // One value, the empty string: the match count.
+    NONE = 0;
+    // The first capture group of `capture` in each match (mapping-compute).
+    CAPTURE = 1;
+    // search-compute: the repository name, file language, file path,
+    // commit author or commit date (committer date, YYYY-MM-DD in UTC) of
+    // each match.
+    REPO = 2;
+    LANG = 3;
+    PATH = 4;
+    AUTHOR = 5;
+    DATE = 6;
+  }
+  repeated SeriesLeaf leaves = 1;
+  Group group = 2;
+  string capture = 3;
+  bool capture_case_sensitive = 4;
+  repeated SeriesRepoPredicate repo_predicates = 5;
+}
+
+message ValueCount {
+  string value = 1;
+  uint64 count = 2;
+}
+
+// A point counted before: counting continues from it.
+message SeriesBase {
+  string commit_oid = 1;
+  repeated ValueCount counts = 2;
+}
+
+message CountSeriesRequest {
+  RepoRef repo = 1;
+  // Empty: the default branch.
+  string rev = 2;
+  SeriesSpec spec = 3;
+  // Point times in seconds since the epoch, ascending.
+  repeated int64 times = 4;
+  // Recording: one point per time, all at the current head of `rev`.
+  bool at_head = 5;
+  // The previous point; without one the first point is counted in full.
+  SeriesBase base = 6;
+  // Count every point in full (tests and benchmarks).
+  bool full = 7;
+}
+
+message SeriesPoint {
+  int64 time = 1;
+  // Empty when `rev` has no commit that old (the counts are empty).
+  string commit_oid = 2;
+  repeated ValueCount counts = 3;
+}
+
+message CountSeriesStats {
+  // Points counted in full, from a tree diff, or carried over unchanged.
+  uint32 full_points = 1;
+  uint32 delta_points = 2;
+  uint32 same_points = 3;
+  // File versions counted, and how many of them the blob cache answered.
+  uint64 files_counted = 4;
+  uint64 cache_hits = 5;
+  uint64 elapsed_ms = 6;
+}
+
+message CountSeriesResponse {
+  repeated SeriesPoint points = 1;
+  CountSeriesStats stats = 2;
+}
+
+message LanguageStatsRequest {
+  RepoRef repo = 1;
+  // Empty: the default branch.
+  string rev = 2;
+}
+
+message LanguageStat {
+  // The language's display name (as `lang:` matches it).
+  string name = 1;
+  uint64 total_lines = 2;
+  uint64 total_bytes = 3;
+}
+
+message LanguageStatsResponse {
+  // Most lines first. Empty for an empty repository.
+  repeated LanguageStat languages = 1;
+  // The commit counted; empty when `rev` has no commit.
+  string commit_oid = 2;
+  // Whether the counts came from the search index.
+  bool indexed = 3;
+}
+
+// --- index status (site admin) ---
+
+message IndexStatusRequest {
+  RepoRef repo = 1;
+}
+
+message IndexShard {
+  // "base", "compound" or "delta".
+  string kind = 1;
+  // File name in the index directory.
+  string file = 2;
+  // Bytes on disk; for a compound shard, the whole file.
+  uint64 size_bytes = 3;
+  // Docs of this repository in the shard.
+  uint64 docs = 4;
+  // Repositories in the shard (1 except for compound shards).
+  uint32 repos = 5;
+}
+
+message IndexStatusResponse {
+  bool indexed = 1;
+  // The branches indexed and their commits ("HEAD" is the default branch).
+  repeated IndexedBranch branches = 2;
+  repeated IndexShard shards = 3;
+  // Docs and text bytes searchable.
+  uint64 docs = 4;
+  uint64 content_bytes = 5;
+  // Bytes on disk (a compound shard's share by doc count).
+  uint64 index_bytes = 6;
+  // Lines of the docs searchable, and of those on the default branch.
+  uint64 lines = 7;
+  uint64 default_branch_lines = 8;
+  // When the newest shard file was written (Unix seconds; 0 if unknown).
+  int64 updated_at = 9;
+  // A build of the repository is queued on the node.
+  bool queued = 10;
+  // The generation of the static ranks indexed (0: none).
+  uint64 ranks_generation = 11;
+}
+
+message ReindexRequest {
+  RepoRef repo = 1;
+}
+
+message ReindexResponse {}

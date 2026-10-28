@@ -1,0 +1,21 @@
+name: mount-script
+description: Runs a script from the local directory in each repository.
+
+on:
+  - repositoriesMatchingQuery: file:config.yaml
+
+steps:
+  - run: python /tmp/update_config.py config.yaml
+    container: python:3.12-slim
+    mount:
+      - path: ./update_config.py
+        mountpoint: /tmp/update_config.py
+      - path: ./lib
+        mountpoint: /tmp/lib
+
+changesetTemplate:
+  title: Update config.yaml
+  body: Sets the new defaults in config.yaml.
+  branch: batch/update-config
+  commit:
+    message: Update config.yaml

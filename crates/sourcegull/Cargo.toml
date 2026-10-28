@@ -1,0 +1,102 @@
+[package]
+name = "sourcegull"
+description = "The Sourcegull server binary: one executable with roles (web, repo, worker, blob)."
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+publish = false
+autotests = false
+
+[lints]
+workspace = true
+
+[[bin]]
+name = "sourcegull"
+path = "src/main.rs"
+
+# Without the test harness: the environment is changed before any other thread starts.
+[[test]]
+name = "inline_keys"
+harness = false
+
+[[test]]
+name = "integration"
+path = "tests/main.rs"
+
+[dependencies]
+sourcegull-analytics = { workspace = true }
+sourcegull-pubsub = { workspace = true }
+sourcegull-authn = { workspace = true }
+sourcegull-authz = { workspace = true }
+sourcegull-autoindex = { workspace = true }
+sourcegull-batches-resolver = { workspace = true }
+sourcegull-batches-reconciler = { workspace = true }
+sourcegull-outbound-webhooks = { workspace = true }
+sourcegull-monitors = { workspace = true }
+sourcegull-insights = { workspace = true }
+sourcegull-own = { workspace = true, features = ["jobs"] }
+sourcegull-codehost = { workspace = true }
+sourcegull-config = { workspace = true }
+sourcegull-crypto = { workspace = true }
+sourcegull-db = { workspace = true }
+sourcegull-declarative = { workspace = true }
+sourcegull-executor = { workspace = true }
+sourcegull-feature = { workspace = true }
+sourcegull-gitstore = { workspace = true }
+sourcegull-repo-node = { workspace = true }
+sourcegull-graphql = { workspace = true }
+sourcegull-graphql-core = { workspace = true }
+sourcegull-batches-graphql = { workspace = true }
+sourcegull-codeintel-graphql = { workspace = true }
+sourcegull-executors-graphql = { workspace = true }
+sourcegull-insights-graphql = { workspace = true }
+sourcegull-monitors-graphql = { workspace = true }
+sourcegull-notebooks-graphql = { workspace = true }
+sourcegull-outbound-webhooks-graphql = { workspace = true }
+sourcegull-own-graphql = { workspace = true }
+sourcegull-saved-searches-graphql = { workspace = true }
+sourcegull-searchjobs-graphql = { workspace = true }
+sourcegull-mcp = { workspace = true }
+sourcegull-oauth-server = { workspace = true }
+sourcegull-http-api = { workspace = true }
+axum = { workspace = true }
+sourcegull-services = { workspace = true }
+sourcegull-blobstore = { workspace = true }
+sourcegull-codeintel-policies = { workspace = true }
+sourcegull-codeintel-scip = { workspace = true }
+sourcegull-leader = { workspace = true }
+sourcegull-observability = { workspace = true }
+sourcegull-pgqueue = { workspace = true }
+sourcegull-ranking = { workspace = true }
+sourcegull-ratelimit = { workspace = true }
+sourcegull-repos = { workspace = true }
+sourcegull-rpc = { workspace = true }
+sourcegull-search-exec = { workspace = true }
+sourcegull-searchjobs = { workspace = true }
+sourcegull-oobmigration = { workspace = true }
+sourcegull-monitoring = { workspace = true }
+sourcegull-types = { workspace = true }
+sourcegull-web-assets = { workspace = true }
+anyhow = { workspace = true }
+async-trait = { workspace = true }
+base64 = { workspace = true }
+chrono = { workspace = true }
+clap = { workspace = true }
+url = { workspace = true }
+metrics = { workspace = true }
+mimalloc = { workspace = true }
+rand = { workspace = true }
+serde_json = { workspace = true }
+sha2 = { workspace = true }
+sqlx = { workspace = true }
+tempfile = "3"
+thiserror = { workspace = true }
+tokio = { workspace = true }
+tokio-util = { workspace = true }
+tracing = { workspace = true }
+sourcegull-batches = { workspace = true, features = ["store"] }
+
+[dev-dependencies]
+sourcegull-codehost-gitlab = { workspace = true, features = ["testing"] }
+sourcegull-testutil = { workspace = true }

@@ -1,0 +1,30 @@
+name: templated-files
+description: Writes files whose content comes from templates.
+
+on:
+  - repositoriesMatchingQuery: file:Dockerfile
+
+steps:
+  - run: |
+      cat /tmp/files.txt
+      cat /tmp/repo.txt
+    container: alpine:3
+    files:
+      /tmp/files.txt: ${{ join repository.search_result_paths "\n" }}
+      /tmp/repo.txt: |
+        Repository: ${{ repository.name }}
+        Branch: ${{ repository.branch }}
+  - run: echo "${{ previous_step.stdout }}" > INVENTORY.md
+    container: alpine:3
+    env:
+      LANG: C.UTF-8
+      OWNER: ${{ repository.name }}
+
+changesetTemplate:
+  title: Add an inventory of Dockerfiles
+  body: |
+    ${{ index steps.added_files 0 }} lists the matching files.
+  branch: batch/inventory
+  commit:
+    message: Add INVENTORY.md
+  published: draft

@@ -1,0 +1,23 @@
+[package]
+name = "sourcegull-outbound-webhooks-graphql"
+description = "The GraphQL API of outbound webhooks: webhooks, their event types and delivery logs, merged into the schema by sourcegull-graphql."
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+publish = false
+
+[lints]
+workspace = true
+
+[dependencies]
+sourcegull-db = { workspace = true }
+sourcegull-graphql-core = { workspace = true }
+sourcegull-monitors = { workspace = true }
+sourcegull-outbound-webhooks = { workspace = true }
+sourcegull-services = { workspace = true }
+sourcegull-types = { workspace = true }
+async-graphql = { workspace = true }
+chrono = { workspace = true }
+serde_json = { workspace = true }
+url = { workspace = true }

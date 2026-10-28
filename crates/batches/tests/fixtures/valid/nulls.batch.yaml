@@ -1,0 +1,20 @@
+name: nulls
+on: ~
+workspaces: null
+steps:
+  - run: "true"
+    container: alpine:3
+    env: ~
+    files: ~
+    outputs: ~
+    mount: ~
+    if: ~
+transformChanges:
+  group: ~
+importChangesets: ~
+changesetTemplate:
+  title: t
+  branch: b
+  commit:
+    message: m
+  published: null

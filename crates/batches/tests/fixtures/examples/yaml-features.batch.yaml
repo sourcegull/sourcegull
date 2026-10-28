@@ -1,0 +1,18 @@
+# Anchors, merge keys, flow collections and block scalar styles.
+name: pin-base-images
+description: >-
+  Pins container base images to a digest
+  in every Dockerfile.
+
+on: [{repositoriesMatchingQuery: "file:Dockerfile FROM"}]
+
+steps:
+  - &step
+    container: alpine:3
+    run: |-
+      for f in $(find . -name Dockerfile); do
+        sed -i 's#^FROM alpine:3$#FROM alpine:3@sha256:0000#' "$f"
+      done
+  - {<<: *step, run: 'echo "pinned"'}
+
+changesetTemplate: {title: Pin base images, body: Pins base images to a digest., branch: batch/pin-base-images, commit: {message: Pin base images}, published: false}

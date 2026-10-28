@@ -1,0 +1,253 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "https://sourcegull.dev/schemas/batch_spec.schema.json",
+  "title": "BatchSpec",
+  "description": "Sourcegull bulk change spec. Alternatives are expressed with type lists and if/then instead of oneOf so that validation errors point at the offending field.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["name"],
+  "properties": {
+    "version": {
+      "description": "Bulk change spec format version; 1 when omitted. Version 2 runs steps only in matched workspaces and skips repositories without changes.",
+      "type": "number",
+      "enum": [1, 2]
+    },
+    "name": {
+      "description": "Name of the bulk change, unique in its namespace: word characters, dots and dashes.",
+      "type": "string",
+      "pattern": "^[\\w.-]+$"
+    },
+    "description": {
+      "description": "Free-form description of the bulk change.",
+      "type": "string"
+    },
+    "on": {
+      "description": "Repositories (and branches) the steps run in: search queries and/or named repositories.",
+      "type": ["array", "null"],
+      "items": { "$ref": "#/definitions/on" }
+    },
+    "workspaces": {
+      "description": "Per-repository workspace discovery (for monorepos).",
+      "type": ["array", "null"],
+      "items": { "$ref": "#/definitions/workspace" }
+    },
+    "steps": {
+      "description": "Commands that produce the changes, run in order in each workspace.",
+      "type": ["array", "null"],
+      "items": { "$ref": "#/definitions/step" }
+    },
+    "transformChanges": {
+      "description": "Splits the changes of a repository into additional changesets.",
+      "type": ["object", "null"],
+      "additionalProperties": false,
+      "properties": {
+        "group": {
+          "type": ["array", "null"],
+          "items": { "$ref": "#/definitions/group" }
+        }
+      }
+    },
+    "importChangesets": {
+      "description": "Existing merge requests to track in the bulk change.",
+      "type": ["array", "null"],
+      "items": { "$ref": "#/definitions/importChangeset" }
+    },
+    "changesetTemplate": { "$ref": "#/definitions/changesetTemplate" }
+  },
+  "definitions": {
+    "on": {
+      "type": "object",
+      "if": { "required": ["repositoriesMatchingQuery"] },
+      "then": {
+        "additionalProperties": false,
+        "properties": {
+          "repositoriesMatchingQuery": {
+            "description": "Search query; the repository of every result is included.",
+            "type": "string"
+          }
+        }
+      },
+      "else": {
+        "additionalProperties": false,
+        "required": ["repository"],
+        "properties": {
+          "repository": {
+            "description": "Repository name as known to Sourcegull.",
+            "type": "string"
+          },
+          "branch": {
+            "description": "Branch to change instead of the default branch.",
+            "type": "string"
+          },
+          "branches": {
+            "description": "Branches to change instead of the default branch.",
+            "type": "array",
+            "items": { "type": "string" }
+          }
+        },
+        "not": { "required": ["branch", "branches"] }
+      }
+    },
+    "workspace": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["rootAtLocationOf"],
+      "properties": {
+        "rootAtLocationOf": {
+          "description": "File name whose directories become workspaces, e.g. package.json.",
+          "type": "string"
+        },
+        "in": {
+          "description": "Glob of the repository names this configuration applies to.",
+          "type": "string"
+        },
+        "onlyFetchWorkspace": {
+          "description": "Fetch only the workspace's files instead of the whole repository.",
+          "type": "boolean"
+        }
+      }
+    },
+    "step": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["run", "container"],
+      "properties": {
+        "run": {
+          "description": "Shell script run in the container (template string).",
+          "type": "string"
+        },
+        "container": {
+          "description": "Container image the script runs in.",
+          "type": "string"
+        },
+        "env": {
+          "description": "Step environment: a map of names to values, or a list of NAME (passed through from the executor's secrets or the local environment) and {NAME: value} entries.",
+          "type": ["object", "array", "null"],
+          "additionalProperties": { "type": "string" },
+          "items": {
+            "type": ["string", "object"],
+            "additionalProperties": { "type": "string" },
+            "minProperties": 1,
+            "maxProperties": 1
+          }
+        },
+        "files": {
+          "description": "Files created in the container: path to content (template string).",
+          "type": ["object", "null"],
+          "additionalProperties": { "type": "string" }
+        },
+        "outputs": {
+          "description": "Named outputs available to later steps and the changeset template as outputs.<name>.",
+          "type": ["object", "null"],
+          "additionalProperties": {
+            "type": "object",
+            "required": ["value"],
+            "properties": {
+              "value": { "type": "string" },
+              "format": { "type": "string", "enum": ["text", "json", "yaml"] }
+            }
+          }
+        },
+        "if": {
+          "description": "Condition (boolean or template string); the step is skipped unless it evaluates to true.",
+          "type": ["boolean", "string", "null"]
+        },
+        "mount": {
+          "description": "Local files or directories (relative to the bulk change spec) mounted into the container.",
+          "type": ["array", "null"],
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": ["path", "mountpoint"],
+            "properties": {
+              "path": { "type": "string" },
+              "mountpoint": { "type": "string" }
+            }
+          }
+        }
+      }
+    },
+    "group": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["directory", "branch"],
+      "properties": {
+        "directory": {
+          "description": "Directory (relative to the repository root) whose changes form this group.",
+          "type": "string",
+          "minLength": 1
+        },
+        "branch": {
+          "description": "Branch of the group's changeset.",
+          "type": "string",
+          "minLength": 1
+        },
+        "repository": {
+          "description": "Apply the group only in this repository.",
+          "type": "string"
+        }
+      }
+    },
+    "importChangeset": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["repository", "externalIDs"],
+      "properties": {
+        "repository": { "type": "string" },
+        "externalIDs": {
+          "description": "Merge request numbers (IIDs) on the code host.",
+          "type": ["array", "null"],
+          "uniqueItems": true,
+          "items": { "type": ["string", "integer"] }
+        }
+      }
+    },
+    "publishedFlag": {
+      "type": ["boolean", "string"],
+      "pattern": "^draft$"
+    },
+    "changesetTemplate": {
+      "description": "How changesets are created from the changes of each workspace. All strings are template strings.",
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["title", "branch", "commit"],
+      "properties": {
+        "title": { "type": "string" },
+        "body": { "type": "string" },
+        "branch": { "type": "string" },
+        "fork": {
+          "description": "Push to a fork of the repository; overrides the site's enforceForks setting.",
+          "type": "boolean"
+        },
+        "commit": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["message"],
+          "properties": {
+            "message": { "type": "string" },
+            "author": {
+              "type": "object",
+              "additionalProperties": false,
+              "required": ["name", "email"],
+              "properties": {
+                "name": { "type": "string" },
+                "email": { "type": "string", "format": "email" }
+              }
+            }
+          }
+        },
+        "published": {
+          "description": "true, false, \"draft\", or a list of {repository glob: flag} where the last match wins. Omitted: publication is controlled from the UI.",
+          "type": ["boolean", "string", "array", "null"],
+          "pattern": "^draft$",
+          "items": {
+            "type": "object",
+            "minProperties": 1,
+            "maxProperties": 1,
+            "additionalProperties": { "$ref": "#/definitions/publishedFlag" }
+          }
+        }
+      }
+    }
+  }
+}

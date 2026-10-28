@@ -1,0 +1,33 @@
+[package]
+name = "sourcegull-blobstore"
+description = "Blob storage (the `blob` role): a filesystem store, the blob role's HTTP API and its client."
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+publish = false
+
+[lints]
+workspace = true
+
+[dependencies]
+sourcegull-types = { workspace = true }
+async-trait = { workspace = true }
+axum = { workspace = true }
+bytes = "1"
+futures = { workspace = true }
+metrics = { workspace = true }
+http = { workspace = true }
+object_store = { version = "0.12", default-features = false, features = ["aws"] }
+reqwest = { workspace = true, features = ["stream"] }
+serde = { workspace = true }
+serde_json = { workspace = true }
+thiserror = { workspace = true }
+tokio = { workspace = true }
+tokio-util = { workspace = true, features = ["io"] }
+tracing = { workspace = true }
+url = { workspace = true }
+uuid = { workspace = true }
+
+[dev-dependencies]
+tempfile = "3"

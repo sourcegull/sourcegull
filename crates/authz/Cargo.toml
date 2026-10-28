@@ -1,0 +1,46 @@
+[package]
+name = "sourcegull-authz"
+description = "Repository permissions enforcement: the Checker every read path asks."
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+publish = false
+autotests = false
+
+[lints]
+workspace = true
+
+[[test]]
+name = "integration"
+path = "tests/main.rs"
+
+[dependencies]
+sourcegull-feature = { workspace = true }
+anyhow = { workspace = true }
+sourcegull-pubsub = { workspace = true }
+sourcegull-authn = { workspace = true }
+sourcegull-codehost = { workspace = true }
+sourcegull-config = { workspace = true }
+sourcegull-crypto = { workspace = true }
+sourcegull-db = { workspace = true }
+sourcegull-pgqueue = { workspace = true }
+sourcegull-repos = { workspace = true }
+sourcegull-types = { workspace = true }
+async-trait = { workspace = true }
+chrono = { workspace = true }
+serde_json = { workspace = true }
+thiserror = { workspace = true }
+moka = { workspace = true }
+roaring = { workspace = true }
+sqlx = { workspace = true }
+tokio = { workspace = true }
+tokio-util = { workspace = true }
+tracing = { workspace = true }
+
+[dev-dependencies]
+url = { workspace = true }
+sourcegull-codehost-github = { workspace = true, features = ["testing"] }
+sourcegull-codehost-gitea = { workspace = true, features = ["testing"] }
+sourcegull-codehost-gitlab = { workspace = true, features = ["testing"] }
+sourcegull-testutil = { workspace = true }

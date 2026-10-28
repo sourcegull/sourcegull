@@ -1,0 +1,11 @@
+# Sourcegull's dashboards (generated from crates/monitoring into ../../dashboards), in folder "Sourcegull".
+apiVersion: 1
+providers:
+  - name: sourcegull
+    folder: Sourcegull
+    type: file
+    disableDeletion: true
+    allowUiUpdates: false
+    updateIntervalSeconds: 60
+    options:
+      path: /var/lib/grafana/dashboards/sourcegull

@@ -1,0 +1,11 @@
+# chart-testing (ct) configuration; used by scripts/test/helm-ct.sh and the Helm workflow.
+target-branch: main
+remote: origin
+chart-dirs:
+  - deploy/helm
+# Chart.yaml has no maintainers list to validate against GitHub users.
+validate-maintainers: false
+# Every chart change bumps `version` (see deploy/helm/sourcegull/README.md#versions).
+check-version-increment: true
+helm-extra-args: --timeout 900s
+lint-conf: deploy/helm/ct/lintconf.yaml

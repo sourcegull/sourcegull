@@ -1,0 +1,4 @@
+6:3 changesetTemplate: property "branch" is required
+6:3 changesetTemplate: property "commit" is required
+6:3 changesetTemplate: property "title" is required
+7:9 changesetTemplate.fork: must be of type boolean, not string

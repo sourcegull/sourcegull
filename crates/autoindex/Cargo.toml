@@ -1,0 +1,45 @@
+[package]
+name = "sourcegull-autoindex"
+description = "Auto-indexing: sandboxed Lua inference of index jobs, index configuration, and the scheduler that queues jobs for executors."
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+publish = false
+autotests = false
+
+[lints]
+workspace = true
+
+[[test]]
+name = "integration"
+path = "tests/main.rs"
+
+[dependencies]
+sourcegull-feature = { workspace = true }
+anyhow = { workspace = true }
+sourcegull-pubsub = { workspace = true }
+sourcegull-codeintel-policies = { workspace = true }
+sourcegull-config = { workspace = true }
+sourcegull-db = { workspace = true }
+sourcegull-services = { workspace = true }
+sourcegull-rpc = { workspace = true }
+sourcegull-types = { workspace = true }
+async-trait = { workspace = true }
+chrono = { workspace = true }
+metrics = { workspace = true }
+mlua = { version = "0.12", features = ["lua54", "vendored"] }
+serde = { workspace = true }
+serde_json = { workspace = true }
+serde_yaml_ng = "0.10"
+sha2 = { workspace = true }
+hex = { workspace = true }
+thiserror = { workspace = true }
+tokio = { workspace = true }
+tokio-util = { workspace = true }
+tracing = { workspace = true }
+sqlx = { workspace = true }
+sourcegull-codeintel-scip = { workspace = true }
+
+[dev-dependencies]
+sourcegull-testutil = { workspace = true, features = ["git"] }

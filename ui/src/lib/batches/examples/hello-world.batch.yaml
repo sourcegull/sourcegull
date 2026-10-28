@@ -1,0 +1,17 @@
+name: hello-world
+description: Append a greeting to every README.md.
+
+on:
+  - repositoriesMatchingQuery: file:README.md
+
+steps:
+  - run: echo "Hello from a batch change" | tee -a $(find . -name README.md -not -path "./.git/*")
+    container: alpine:3
+
+changesetTemplate:
+  title: Say hello in the README
+  body: A first batch change that appends a line to README.md.
+  branch: batch/hello-world
+  commit:
+    message: Append a greeting to README.md
+  published: false

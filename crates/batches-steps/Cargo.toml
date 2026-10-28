@@ -1,0 +1,37 @@
+[package]
+name = "sourcegull-batches-steps"
+description = "The batch step runner: runs batch spec steps in containers, computes diffs and outputs, caches step results and builds changeset specs."
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+publish = false
+autotests = false
+
+[lints]
+workspace = true
+
+[[test]]
+name = "integration"
+path = "tests/main.rs"
+
+[dependencies]
+sourcegull-batches = { workspace = true }
+sourcegull-batches-template = { workspace = true }
+async-trait = { workspace = true }
+base64 = { workspace = true }
+bollard = "0.19"
+futures = { workspace = true }
+hex = { workspace = true }
+serde = { workspace = true }
+serde_json = { workspace = true }
+sha2 = { workspace = true }
+tar = "0.4"
+thiserror = { workspace = true }
+tokio = { workspace = true }
+tokio-util = { workspace = true, features = ["io"] }
+tracing = { workspace = true }
+uuid = { workspace = true }
+
+[dev-dependencies]
+tempfile = "3"

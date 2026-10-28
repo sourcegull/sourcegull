@@ -1,0 +1,10 @@
+name: import-with-template
+importChangesets:
+  - repository: gitlab.example.com/a/b
+    externalIDs: [7]
+changesetTemplate:
+  title: t
+  branch: b
+  commit:
+    message: m
+  published: true

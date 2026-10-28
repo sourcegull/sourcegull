@@ -1,0 +1,182 @@
+{{- /*
+Ingress-only policies: egress stays open because Sourcegull must reach code hosts, LLM endpoints and
+other services that vary per install.
+*/ -}}
+{{- if .Values.networkPolicy.enabled }}
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: {{ include "sourcegull.componentName" (dict "root" . "component" "web") }}
+  labels:
+    {{- include "sourcegull.componentLabels" (dict "root" . "component" "web") | nindent 4 }}
+  {{- with (include "sourcegull.annotations" (dict "root" $) | trim) }}{{ . | nindent 2 }}{{ end }}
+spec:
+  podSelector:
+    matchLabels:
+      {{- include "sourcegull.selectorLabels" (dict "root" . "component" "web") | nindent 6 }}
+  policyTypes: [Ingress]
+  ingress:
+    - ports:
+        - port: http
+          protocol: TCP
+      {{- with .Values.networkPolicy.webIngressFrom }}
+      from:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+    - ports:
+        - port: internal
+          protocol: TCP
+      {{- with .Values.networkPolicy.metricsFrom }}
+      from:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+    {{- with .Values.networkPolicy.extraIngress }}
+    {{- include "sourcegull.tplvalues.render" (dict "value" . "context" $) | nindent 4 }}
+    {{- end }}
+---
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: {{ include "sourcegull.componentName" (dict "root" . "component" "worker") }}
+  labels:
+    {{- include "sourcegull.componentLabels" (dict "root" . "component" "worker") | nindent 4 }}
+  {{- with (include "sourcegull.annotations" (dict "root" $) | trim) }}{{ . | nindent 2 }}{{ end }}
+spec:
+  podSelector:
+    matchLabels:
+      {{- include "sourcegull.selectorLabels" (dict "root" . "component" "worker") | nindent 6 }}
+  policyTypes: [Ingress]
+  ingress:
+    - ports:
+        - port: internal
+          protocol: TCP
+      {{- with .Values.networkPolicy.metricsFrom }}
+      from:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+{{- if .Values.repo.enabled }}
+---
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: {{ include "sourcegull.componentName" (dict "root" . "component" "repo") }}
+  labels:
+    {{- include "sourcegull.componentLabels" (dict "root" . "component" "repo") | nindent 4 }}
+  {{- with (include "sourcegull.annotations" (dict "root" $) | trim) }}{{ . | nindent 2 }}{{ end }}
+spec:
+  podSelector:
+    matchLabels:
+      {{- include "sourcegull.selectorLabels" (dict "root" . "component" "repo") | nindent 6 }}
+  policyTypes: [Ingress]
+  ingress:
+    # The repo node gRPC API is unauthenticated: only Sourcegull pods of this release (web, worker,
+    # other repo nodes).
+    - from:
+        - podSelector:
+            matchLabels:
+              app.kubernetes.io/instance: {{ .Release.Name }}
+              {{- include "sourcegull.dbClientLabel" . | nindent 14 }}
+      ports:
+        - port: grpc
+          protocol: TCP
+    - ports:
+        - port: internal
+          protocol: TCP
+      {{- with .Values.networkPolicy.metricsFrom }}
+      from:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+{{- end }}
+{{- if eq .Values.blobstore.mode "builtin" }}
+---
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: {{ include "sourcegull.componentName" (dict "root" . "component" "blob") }}
+  labels:
+    {{- include "sourcegull.componentLabels" (dict "root" . "component" "blob") | nindent 4 }}
+  {{- with (include "sourcegull.annotations" (dict "root" $) | trim) }}{{ . | nindent 2 }}{{ end }}
+spec:
+  podSelector:
+    matchLabels:
+      {{- include "sourcegull.selectorLabels" (dict "root" . "component" "blob") | nindent 6 }}
+  policyTypes: [Ingress]
+  ingress:
+    - from:
+        - podSelector:
+            matchLabels:
+              {{- include "sourcegull.selectorLabels" (dict "root" . "component" "web") | nindent 14 }}
+        - podSelector:
+            matchLabels:
+              {{- include "sourcegull.selectorLabels" (dict "root" . "component" "worker") | nindent 14 }}
+      ports:
+        - port: internal
+          protocol: TCP
+{{- end }}
+{{- if .Values.executor.enabled }}
+---
+# Executors listen on nothing; their job pods get no ingress either (egress stays open: indexers
+# fetch dependencies).
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: {{ include "sourcegull.componentName" (dict "root" . "component" "executor") }}
+  labels:
+    {{- include "sourcegull.componentLabels" (dict "root" . "component" "executor") | nindent 4 }}
+  {{- with (include "sourcegull.annotations" (dict "root" $) | trim) }}{{ . | nindent 2 }}{{ end }}
+spec:
+  podSelector:
+    matchLabels:
+      {{- include "sourcegull.selectorLabels" (dict "root" . "component" "executor") | nindent 6 }}
+  policyTypes: [Ingress]
+{{- if .Values.executor.jobs.networkPolicy }}
+---
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: {{ include "sourcegull.componentName" (dict "root" . "component" "executor-jobs") }}
+  namespace: {{ include "sourcegull.executor.namespace" . }}
+  labels:
+    {{- include "sourcegull.componentLabels" (dict "root" . "component" "executor") | nindent 4 }}
+  {{- with (include "sourcegull.annotations" (dict "root" $) | trim) }}{{ . | nindent 2 }}{{ end }}
+spec:
+  podSelector:
+    matchLabels:
+      app.kubernetes.io/managed-by: sourcegull-executor
+  policyTypes: [Ingress]
+{{- end }}
+{{- end }}
+{{- if eq .Values.postgresql.mode "bundled" }}
+---
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: {{ include "sourcegull.postgresql.fullname" . }}
+  labels:
+    {{- include "sourcegull.componentLabels" (dict "root" . "component" "postgresql") | nindent 4 }}
+  {{- with (include "sourcegull.annotations" (dict "root" $) | trim) }}{{ . | nindent 2 }}{{ end }}
+spec:
+  podSelector:
+    matchLabels:
+      {{- include "sourcegull.selectorLabels" (dict "root" . "component" "postgresql") | nindent 6 }}
+  policyTypes: [Ingress]
+  ingress:
+    # Only Sourcegull pods of this release (web, worker, repo and their init containers).
+    - from:
+        - podSelector:
+            matchLabels:
+              app.kubernetes.io/instance: {{ .Release.Name }}
+              {{- include "sourcegull.dbClientLabel" . | nindent 14 }}
+      ports:
+        - port: postgresql
+          protocol: TCP
+    {{- if and .Values.worker.autoscaling.keda.enabled (eq .Values.worker.autoscaling.keda.trigger "postgresql") .Values.worker.autoscaling.keda.operatorFrom }}
+    # The KEDA operator runs the worker's queue depth query.
+    - from:
+        {{- toYaml .Values.worker.autoscaling.keda.operatorFrom | nindent 8 }}
+      ports:
+        - port: postgresql
+          protocol: TCP
+    {{- end }}
+{{- end }}
+{{- end }}

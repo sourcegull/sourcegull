@@ -1,0 +1,44 @@
+[package]
+name = "sourcegull-search-exec"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+publish = false
+
+[lints]
+workspace = true
+
+[dependencies]
+sourcegull-compute = { workspace = true }
+sourcegull-query = { workspace = true }
+sourcegull-search = { workspace = true }
+sourcegull-search-client = { workspace = true }
+regex = { workspace = true }
+regex-syntax = { workspace = true }
+sourcegull-gitstore = { workspace = true }
+sourcegull-index-format = { workspace = true }
+sourcegull-indexer = { workspace = true }
+sourcegull-languages = { workspace = true }
+sourcegull-symbols = { workspace = true }
+sourcegull-structural = { workspace = true }
+memchr = "2"
+sourcegull-rpc = { workspace = true }
+sourcegull-own = { workspace = true }
+sourcegull-types = { workspace = true }
+moka = { workspace = true, features = ["sync"] }
+tokio = { workspace = true }
+tokio-stream = "0.1"
+futures = { workspace = true }
+chrono = { workspace = true }
+tonic = "0.14"
+gix = { version = "0.89", default-features = false, features = ["sha1"] }
+thiserror = { workspace = true }
+tracing = { workspace = true }
+arc-swap = { workspace = true }
+roaring = "0.11"
+tempfile = "3"
+
+[dev-dependencies]
+proptest = "1"
+serde_json = { workspace = true }

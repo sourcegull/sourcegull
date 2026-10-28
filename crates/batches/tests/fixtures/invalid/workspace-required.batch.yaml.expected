@@ -1,0 +1,2 @@
+3:5 workspaces.0: property "rootAtLocationOf" is required
+4:25 workspaces.0.onlyFetchWorkspace: must be of type boolean, not string

@@ -1,0 +1,57 @@
+Sourcegull {{ .Chart.AppVersion }} is being deployed as release "{{ .Release.Name }}" in namespace "{{ .Release.Namespace }}".
+
+{{- $pgMode := .Values.postgresql.mode }}
+{{- if eq $pgMode "cnpg" }}
+
+Database: CloudNativePG Cluster "{{ include "sourcegull.cnpg.clusterName" . }}" ({{ .Values.postgresql.cnpg.instances }} instances), URL from the
+  operator's Secret "{{ include "sourcegull.cnpg.appSecretName" . }}". Sourcegull pods wait for it to come up.
+  Migrations run in the init containers of the web, worker and repo pods.
+{{- else if eq $pgMode "bundled" }}
+
+Database: bundled single-instance PostgreSQL ({{ include "sourcegull.postgresql.fullname" . }}).
+  Fine for evaluation and small installs; use an external PostgreSQL 18 for production.
+  Migrations run in the init containers of the web, worker and repo pods.
+{{- else }}
+
+Database: external, URL from Secret "{{ include "sourcegull.externalDatabase.secretName" . }}" (key "{{ .Values.externalDatabase.existingSecretUrlKey }}").
+  Migrations run in the pre-install/pre-upgrade hook Job "{{ include "sourcegull.componentName" (dict "root" . "component" "migrate") }}".
+{{- end }}
+{{- if eq .Values.blobstore.mode "s3" }}
+
+Blob store: S3 bucket "{{ .Values.blobstore.s3.bucket }}" at {{ default "Amazon S3" .Values.blobstore.s3.endpoint }}, credentials from Secret "{{ .Values.blobstore.s3.existingSecret }}".
+  Add a lifecycle rule that aborts incomplete multipart uploads after a day.
+{{- end }}
+{{- if not .Values.existingSecret }}
+
+Encryption keys were generated into Secret "{{ include "sourcegull.appSecretName" . }}" (kept on uninstall).
+Back it up now; without it encrypted data cannot be read:
+  kubectl -n {{ .Release.Namespace }} get secret {{ include "sourcegull.appSecretName" . }} -o yaml > sourcegull-keys-backup.yaml
+{{- end }}
+{{- if .Values.executor.enabled }}
+
+Executors: set site config "executors.accessToken" to the shared token, which is in
+{{- if .Values.executor.existingSecret }} Secret "{{ .Values.executor.existingSecret }}"
+{{- else }} Secret "{{ include "sourcegull.appSecretName" . }}"
+{{- end }} (key "{{ .Values.executor.existingSecretTokenKey }}"):
+  kubectl -n {{ .Release.Namespace }} get secret {{ default (include "sourcegull.appSecretName" .) .Values.executor.existingSecret }} -o jsonpath='{.data.{{ .Values.executor.existingSecretTokenKey }}}' | base64 -d
+{{- end }}
+
+Open Sourcegull:
+{{- if .Values.ingress.enabled }}
+  {{ .Values.externalURL }}
+{{- else }}
+  kubectl -n {{ .Release.Namespace }} port-forward svc/{{ include "sourcegull.componentName" (dict "root" . "component" "web") }} 7080:{{ .Values.web.service.ports.http }}
+  then browse to http://localhost:7080
+{{- end }}
+
+The first user to sign up becomes the site admin. Sign up right away.
+
+{{- if .Values.worker.autoscaling.keda.enabled }}
+
+Workers: autoscaled by KEDA on queue depth ({{ .Values.worker.autoscaling.keda.minReplicas }}-{{ .Values.worker.autoscaling.keda.maxReplicas }} replicas):
+  kubectl -n {{ .Release.Namespace }} get scaledobject {{ include "sourcegull.componentName" (dict "root" . "component" "worker") }}
+{{- end }}
+
+Check the rollout and run the smoke test:
+  kubectl -n {{ .Release.Namespace }} rollout status deploy/{{ include "sourcegull.componentName" (dict "root" . "component" "web") }}
+  helm test {{ .Release.Name }} -n {{ .Release.Namespace }}

@@ -1,0 +1,129 @@
+Sourcegull
+Copyright (c) 2026 altoing and the Sourcegull contributors
+
+Sourcegull is licensed under the Apache License, Version 2.0 (LICENSE-APACHE). The parts listed
+below are derived from third-party projects. Those parts remain under their original licences,
+with the attribution below: the Apache License, Version 2.0 (LICENSE-APACHE) for Sourcegraph,
+src-cli and Zoekt, the BSD 3-Clause licence reproduced at the end of this file for Go, the
+MIT licence reproduced after it for Primer Octicons, and the CC0 1.0 public domain dedication
+(https://creativecommons.org/publicdomain/zero/1.0/) for Simple Icons.
+Changes were made: the code was rewritten in Rust and adapted to Sourcegull.
+
+-------------------------------------------------------------------------------
+Sourcegraph (Apache-2.0 code, before commit 1cd36d2)
+Copyright Sourcegraph, Inc.
+https://github.com/sourcegraph/sourcegraph-public-snapshot
+-------------------------------------------------------------------------------
+
+Query language
+- crates/query/src/{lib,parser}.rs: query hoisting, the balanced-pattern and delimited-pattern
+  scanners, the order of parse attempts and several error messages, after
+  internal/search/query (parser.go, transformer.go). Test cases in crates/query come from
+  TestParse, TestParseAndOrLiteral and TestHoist.
+
+Batch spec templates (lib/batches)
+- crates/batches-template/src/partial.rs: after lib/batches/template/partial_eval.go.
+- crates/batches-template/src/{validate,context}.rs: template validation and the step and
+  changeset template contexts, after lib/batches/template/templating.go.
+- crates/batches-template/tests/templates.rs: test cases and fixtures from templating_test.go
+  and partial_eval_test.go.
+
+Batch specs and changesets (lib/batches)
+- crates/batches/src/spec/{published,env,checks}.rs, crates/batches/src/changeset_spec.rs:
+  error messages and method names after lib/batches/overridable, lib/batches/env,
+  batch_spec.go and changeset_spec.go.
+- crates/batches-steps/src/changeset.rs: after lib/batches/changeset_specs.go
+  (BuildChangesetSpecs).
+- crates/batches/tests/batch_spec.rs: the if-condition table from batch_spec_test.go.
+
+-------------------------------------------------------------------------------
+src-cli
+Copyright Sourcegraph, Inc.
+https://github.com/sourcegraph/src-cli
+-------------------------------------------------------------------------------
+
+- crates/batches-steps/src/git.rs: git status parsing and the diff command, after
+  internal/batches/git/changes.go and internal/batches/workspace/bind_workspace.go
+  (release 3.30.0).
+- crates/cli/src/batch/client.rs: GraphQL operation texts after
+  internal/batches/service/service.go.
+- crates/graphql/tests/{batches,batches_apply,batches_local}.rs: GraphQL operation texts from
+  internal/batches/service (service.go, remote.go), used as compatibility tests.
+
+-------------------------------------------------------------------------------
+Zoekt
+Copyright Google Inc. and the Zoekt authors
+https://github.com/sourcegraph/zoekt
+-------------------------------------------------------------------------------
+
+- crates/search/src/ranking.rs: the file scoring model (best match; symbol definition over
+  whole word over partial match; atom and file-name shares) and its scoring weights, after
+  index/contentprovider.go.
+
+-------------------------------------------------------------------------------
+Primer Octicons
+Copyright (c) 2023 GitHub Inc.
+https://github.com/primer/octicons
+-------------------------------------------------------------------------------
+
+- ui/src/lib/components/GitHubLogo.svelte: the path of the mark-github icon.
+
+-------------------------------------------------------------------------------
+Simple Icons
+https://github.com/simple-icons/simple-icons
+-------------------------------------------------------------------------------
+
+- ui/src/lib/components/GiteaLogo.svelte: the path of the Gitea icon (CC0 1.0).
+
+-------------------------------------------------------------------------------
+Go
+Copyright 2009 The Go Authors
+https://go.dev
+-------------------------------------------------------------------------------
+
+- crates/batches-template/src/{lex,parse}.rs: the lexer and parser structure and error
+  messages of text/template/parse.
+
+Copyright 2009 The Go Authors.
+
+Redistribution and use in source and binary forms, with or without modification, are
+permitted provided that the following conditions are met:
+
+   * Redistributions of source code must retain the above copyright notice, this list of
+     conditions and the following disclaimer.
+   * Redistributions in binary form must reproduce the above copyright notice, this list of
+     conditions and the following disclaimer in the documentation and/or other materials
+     provided with the distribution.
+   * Neither the name of Google LLC nor the names of its contributors may be used to
+     endorse or promote products derived from this software without specific prior written
+     permission.
+
+THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND ANY EXPRESS
+OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED WARRANTIES OF
+MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE
+COPYRIGHT OWNER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL,
+EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE
+GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND
+ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING
+NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED
+OF THE POSSIBILITY OF SUCH DAMAGE.
+
+-------------------------------------------------------------------------------
+MIT License (Primer Octicons)
+
+Copyright (c) 2023 GitHub Inc.
+
+Permission is hereby granted, free of charge, to any person obtaining a copy of this software
+and associated documentation files (the "Software"), to deal in the Software without
+restriction, including without limitation the rights to use, copy, modify, merge, publish,
+distribute, sublicense, and/or sell copies of the Software, and to permit persons to whom the
+Software is furnished to do so, subject to the following conditions:
+
+The above copyright notice and this permission notice shall be included in all copies or
+substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING
+BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND
+NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM,
+DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.

@@ -1,0 +1,7 @@
+name: types
+description: 12
+on: file:README.md
+steps:
+  - run: [echo]
+    container: alpine:3
+    if: 1

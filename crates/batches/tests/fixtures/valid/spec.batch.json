@@ -1,0 +1,12 @@
+{
+  "name": "json-spec",
+  "on": [{"repository": "gitlab.example.com/a/b", "branches": ["main"]}],
+  "steps": [{"run": "echo hi > hi.txt", "container": "alpine:3", "env": ["TOKEN", {"A": "1"}]}],
+  "changesetTemplate": {
+    "title": "Hi",
+    "body": "",
+    "branch": "hi",
+    "commit": {"message": "Hi"},
+    "published": [{"*": true}]
+  }
+}

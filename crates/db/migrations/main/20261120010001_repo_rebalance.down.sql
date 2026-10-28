@@ -1,0 +1,2 @@
+DROP TABLE IF EXISTS repo_moves;
+DROP TABLE IF EXISTS repo_nodes;

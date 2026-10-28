@@ -1,0 +1,44 @@
+# Helm values of the code intelligence test (scripts/test/codeintel.sh): the chart with the bundled
+# Postgres, the blob StatefulSet and the Kubernetes executor on the codeintel queue, sized for
+# one k3s node. The image tag and the external URL are set on the command line.
+image:
+  repository: sourcegull/sourcegull
+  pullPolicy: IfNotPresent
+logFormat: pretty
+logLevel: info
+web:
+  replicaCount: 1
+  autoscaling: { hpa: { enabled: false } }
+  pdb: { create: false }
+  resources:
+    requests: { cpu: 100m, memory: 256Mi }
+  service:
+    type: NodePort
+    nodePorts: { http: 30080 }
+worker:
+  replicaCount: 1
+  resources:
+    requests: { cpu: 100m, memory: 128Mi }
+repo:
+  replicaCount: 1
+  pdb: { create: false }
+  persistence: { size: 5Gi }
+  resources:
+    requests: { cpu: 100m, memory: 256Mi }
+blobstore:
+  persistence: { size: 5Gi }
+postgresql:
+  mode: bundled
+  persistence: { size: 5Gi }
+  config:
+    shared_buffers: 128MB
+    effective_cache_size: 512MB
+  resources:
+    requests: { cpu: 100m, memory: 256Mi }
+executor:
+  enabled: true
+  queues: [codeintel]
+  maxConcurrentJobs: 4
+  jobs:
+    namespace: sourcegull-codeintel-jobs
+    startTimeoutSeconds: 900

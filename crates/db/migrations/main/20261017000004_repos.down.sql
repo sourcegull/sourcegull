@@ -1,0 +1,9 @@
+DROP TABLE IF EXISTS webhook_logs;
+DROP TABLE IF EXISTS repo_ref_events;
+DROP TABLE IF EXISTS repo_update_jobs;
+DROP TABLE IF EXISTS gitserver_repos;
+DROP TABLE IF EXISTS repo_kvps;
+DROP TABLE IF EXISTS external_service_repos;
+DROP TABLE IF EXISTS repo;
+DROP TABLE IF EXISTS external_service_sync_jobs;
+DROP TABLE IF EXISTS external_services;

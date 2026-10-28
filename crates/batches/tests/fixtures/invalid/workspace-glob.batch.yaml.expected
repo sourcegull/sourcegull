@@ -1,0 +1,1 @@
+4:9 workspaces.0.in: invalid glob "gitlab.example.com/{a,b": unclosed '{'

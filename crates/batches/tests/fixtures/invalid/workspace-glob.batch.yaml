@@ -1,0 +1,4 @@
+name: workspaces
+workspaces:
+  - rootAtLocationOf: go.mod
+    in: "gitlab.example.com/{a,b"

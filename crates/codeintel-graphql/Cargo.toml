@@ -1,0 +1,30 @@
+[package]
+name = "sourcegull-codeintel-graphql"
+description = "The GraphQL API of code intelligence: code navigation, precise indexes and their coverage, configuration policies, auto-indexing and ranking, merged into the schema by sourcegull-graphql."
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+publish = false
+
+[lints]
+workspace = true
+
+[dependencies]
+sourcegull-analytics = { workspace = true }
+sourcegull-autoindex = { workspace = true }
+sourcegull-codeintel-policies = { workspace = true }
+sourcegull-codeintel-scip = { workspace = true }
+sourcegull-codenav = { workspace = true }
+sourcegull-db = { workspace = true }
+sourcegull-graphql-core = { workspace = true }
+sourcegull-languages = { workspace = true }
+sourcegull-pgqueue = { workspace = true }
+sourcegull-ranking = { workspace = true }
+sourcegull-services = { workspace = true }
+sourcegull-types = { workspace = true }
+async-graphql = { workspace = true }
+chrono = { workspace = true }
+serde_json = { workspace = true }
+tokio = { workspace = true }
+tracing = { workspace = true }

@@ -1,0 +1,89 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "https://sourcegull.dev/schemas/changeset_spec.schema.json",
+  "title": "ChangesetSpec",
+  "description": "Sourcegull changeset spec: one changeset to create from a branch, or an existing changeset to import. The two shapes are told apart by the presence of externalID.",
+  "type": "object",
+  "if": { "required": ["externalID"] },
+  "then": {
+    "title": "ExistingChangesetSpec",
+    "additionalProperties": false,
+    "required": ["baseRepository", "externalID"],
+    "properties": {
+      "version": { "type": "integer" },
+      "baseRepository": {
+        "description": "GraphQL ID of the repository the changeset belongs to.",
+        "type": "string"
+      },
+      "externalID": {
+        "description": "ID of the changeset on the code host (the merge request IID on GitLab).",
+        "type": "string"
+      }
+    }
+  },
+  "else": {
+    "title": "BranchChangesetSpec",
+    "additionalProperties": false,
+    "required": ["baseRepository", "baseRef", "baseRev", "headRepository", "headRef", "title", "body", "commits"],
+    "properties": {
+      "version": { "type": "integer" },
+      "baseRepository": {
+        "description": "GraphQL ID of the repository the changeset proposes to change.",
+        "type": "string"
+      },
+      "baseRef": {
+        "description": "Full ref the changeset targets, e.g. refs/heads/main.",
+        "type": "string",
+        "pattern": "^refs\\/heads\\/\\S+$"
+      },
+      "baseRev": {
+        "description": "Commit of baseRef the changes were computed against.",
+        "type": "string"
+      },
+      "headRepository": {
+        "description": "GraphQL ID of the repository holding the head ref; must equal baseRepository (forks are chosen with fork).",
+        "type": "string"
+      },
+      "headRef": {
+        "description": "Full ref the commits are pushed to, e.g. refs/heads/my-change.",
+        "type": "string",
+        "pattern": "^refs\\/heads\\/\\S+$"
+      },
+      "fork": {
+        "description": "Push to a fork; overrides the site's enforceForks setting.",
+        "type": "boolean"
+      },
+      "title": { "type": "string" },
+      "body": { "type": "string" },
+      "commits": {
+        "description": "The commit pushed to headRef (exactly one).",
+        "type": "array",
+        "minItems": 1,
+        "maxItems": 1,
+        "items": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["message", "diff", "authorName", "authorEmail"],
+          "properties": {
+            "version": {
+              "description": "2: diff is base64 (binary diffs allowed); otherwise diff is text.",
+              "type": "integer"
+            },
+            "message": { "type": "string" },
+            "diff": {
+              "description": "Unified diff of the changes.",
+              "type": "string"
+            },
+            "authorName": { "type": "string" },
+            "authorEmail": { "type": "string", "format": "email" }
+          }
+        }
+      },
+      "published": {
+        "description": "true, false or \"draft\"; null or omitted leaves publication to the UI.",
+        "type": ["boolean", "string", "null"],
+        "pattern": "^draft$"
+      }
+    }
+  }
+}

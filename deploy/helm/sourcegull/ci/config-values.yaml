@@ -1,0 +1,21 @@
+# ct install case: configuration as code with the keys passed as SOURCEGULL_KEYS. The bundled
+# database; the smoke test signs up its own account (no siteAdmins, so the first user is still
+# made site admin). deploy/helm/ct/kind-values.yaml is layered on top.
+postgresql:
+  mode: bundled
+encryptionKeys:
+  source: env
+extraEnvVars:
+  - name: CI_FLAG_NAME
+    value: ci-declared-flag
+config:
+  globalSettings:
+    search.defaultPatternType: regexp
+  resources:
+    featureFlags:
+      - name: "${env:CI_FLAG_NAME}"
+        value: true
+tests:
+  smoke:
+    enabled: true
+    signUp: true

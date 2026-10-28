@@ -1,0 +1,67 @@
+{{- /*
+CloudNativePG `Cluster` (postgresql.mode=cnpg). The CloudNativePG operator must be installed
+in the cluster. It creates the database `postgresql.auth.database` owned by
+`postgresql.auth.username`, the read-write Service `<cluster>-rw` and the Secret `<cluster>-app`
+whose `uri` key becomes the app's SOURCEGULL_DATABASE_URL. Migrations run in the init containers of
+the web, worker and repo pods (like the bundled database). Settings from postgresql.config are
+passed as parameters, except shared_preload_libraries, which the operator manages (it preloads
+pg_stat_statements when pg_stat_statements.* parameters are set).
+*/ -}}
+{{- if eq .Values.postgresql.mode "cnpg" }}
+{{- $pg := .Values.postgresql }}
+{{- $cnpg := $pg.cnpg }}
+apiVersion: postgresql.cnpg.io/v1
+kind: Cluster
+metadata:
+  name: {{ include "sourcegull.cnpg.clusterName" . }}
+  labels:
+    {{- include "sourcegull.componentLabels" (dict "root" . "component" "postgresql") | nindent 4 }}
+  {{- with (include "sourcegull.annotations" (dict "root" .) | trim) }}{{ . | nindent 2 }}{{ end }}
+spec:
+  instances: {{ $cnpg.instances }}
+  {{- with $cnpg.imageName }}
+  imageName: {{ . | quote }}
+  {{- end }}
+  {{- with (include "sourcegull.imagePullSecrets" (dict "root" . "images" (list $pg.image)) | trim) }}{{ . | nindent 2 }}{{ end }}
+  primaryUpdateStrategy: {{ $cnpg.primaryUpdateStrategy }}
+  postgresql:
+    parameters:
+      {{- range $key, $value := $pg.config }}
+      {{- if ne $key "shared_preload_libraries" }}
+      {{ $key }}: {{ printf "%v" $value | quote }}
+      {{- end }}
+      {{- end }}
+  bootstrap:
+    initdb:
+      database: {{ $pg.auth.database }}
+      owner: {{ $pg.auth.username }}
+      encoding: UTF8
+      localeCollate: C.UTF-8
+      localeCType: C.UTF-8
+  storage:
+    size: {{ $pg.persistence.size }}
+    {{- with (default .Values.global.defaultStorageClass $pg.persistence.storageClass) }}
+    storageClass: {{ . | quote }}
+    {{- end }}
+  {{- with $cnpg.walStorage }}
+  walStorage:
+    {{- toYaml . | nindent 4 }}
+  {{- end }}
+  resources:
+    {{- toYaml $pg.resources | nindent 4 }}
+  {{- /* CNPG's own affinity type: postgresql.nodeSelector and tolerations fill it in. */}}
+  {{- $affinity := deepCopy $cnpg.affinity }}
+  {{- if $pg.nodeSelector }}{{ $_ := set $affinity "nodeSelector" $pg.nodeSelector }}{{ end }}
+  {{- if $pg.tolerations }}{{ $_ := set $affinity "tolerations" $pg.tolerations }}{{ end }}
+  {{- with $affinity }}
+  affinity:
+    {{- toYaml . | nindent 4 }}
+  {{- end }}
+  {{- with $cnpg.backup }}
+  backup:
+    {{- toYaml . | nindent 4 }}
+  {{- end }}
+  {{- with $cnpg.extraSpec }}
+  {{- toYaml . | nindent 2 }}
+  {{- end }}
+{{- end }}

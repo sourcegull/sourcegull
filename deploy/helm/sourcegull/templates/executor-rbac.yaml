@@ -1,0 +1,61 @@
+{{- /*
+Executors: the executor's ServiceAccount, and a Role in the job namespace to run each job
+(and each batch step) as a Kubernetes Job (with Secrets for the job token, step
+environments and registry credentials), follow its pod's logs, copy the index or the working
+copy out of it (exec) and stream a batch step's input and output (attach).
+*/ -}}
+{{- if .Values.executor.enabled }}
+{{- $name := include "sourcegull.componentName" (dict "root" . "component" "executor") }}
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: {{ $name }}
+  labels:
+    {{- include "sourcegull.componentLabels" (dict "root" . "component" "executor") | nindent 4 }}
+  {{- with (include "sourcegull.annotations" (dict "root" $) | trim) }}{{ . | nindent 2 }}{{ end }}
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  name: {{ $name }}
+  namespace: {{ include "sourcegull.executor.namespace" . }}
+  labels:
+    {{- include "sourcegull.componentLabels" (dict "root" . "component" "executor") | nindent 4 }}
+  {{- with (include "sourcegull.annotations" (dict "root" $) | trim) }}{{ . | nindent 2 }}{{ end }}
+rules:
+  - apiGroups: [batch]
+    resources: [jobs]
+    verbs: [create, get, list, watch, delete]
+  - apiGroups: [""]
+    resources: [pods]
+    verbs: [get, list, watch]
+  - apiGroups: [""]
+    resources: [pods/log]
+    verbs: [get]
+  - apiGroups: [""]
+    resources: [pods/exec]
+    verbs: [create, get]
+  - apiGroups: [""]
+    resources: [pods/attach]
+    verbs: [create, get]
+  - apiGroups: [""]
+    resources: [secrets]
+    verbs: [create, get, patch, delete]
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: {{ $name }}
+  namespace: {{ include "sourcegull.executor.namespace" . }}
+  labels:
+    {{- include "sourcegull.componentLabels" (dict "root" . "component" "executor") | nindent 4 }}
+  {{- with (include "sourcegull.annotations" (dict "root" $) | trim) }}{{ . | nindent 2 }}{{ end }}
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: Role
+  name: {{ $name }}
+subjects:
+  - kind: ServiceAccount
+    name: {{ $name }}
+    namespace: {{ .Release.Namespace }}
+{{- end }}

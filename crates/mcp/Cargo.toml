@@ -1,0 +1,51 @@
+[package]
+name = "sourcegull-mcp"
+description = "Model Context Protocol server: code search, file reading, navigation and history tools for AI agents."
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+publish = false
+autotests = false
+
+[lints]
+workspace = true
+
+[[test]]
+name = "integration"
+path = "tests/main.rs"
+
+[dependencies]
+sourcegull-feature = { workspace = true }
+sourcegull-authn = { workspace = true }
+sourcegull-codenav = { workspace = true }
+sourcegull-db = { workspace = true }
+sourcegull-rpc = { workspace = true }
+axum = { workspace = true }
+sourcegull-http-extract = { workspace = true }
+sourcegull-search-web = { workspace = true }
+sourcegull-services = { workspace = true }
+sourcegull-oauth-server = { workspace = true }
+sourcegull-search = { workspace = true }
+sourcegull-types = { workspace = true }
+chrono = { workspace = true }
+futures = { workspace = true }
+regex = { workspace = true }
+serde = { workspace = true }
+serde_json = { workspace = true }
+tracing = { workspace = true }
+
+[dev-dependencies]
+sourcegull-http-api = { workspace = true }
+prost = "0.14"
+reqwest = { workspace = true }
+sourcegull-blobstore = { workspace = true }
+sourcegull-codeintel-scip = { workspace = true }
+sourcegull-config = { workspace = true }
+sourcegull-crypto = { workspace = true }
+sourcegull-observability = { workspace = true }
+sourcegull-testutil = { workspace = true, features = ["git"] }
+tokio = { workspace = true }
+tokio-util = { workspace = true }
+tempfile = "3"
+url = { workspace = true }

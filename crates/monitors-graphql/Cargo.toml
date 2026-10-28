@@ -1,0 +1,24 @@
+[package]
+name = "sourcegull-monitors-graphql"
+description = "The GraphQL API of watches (code monitors): watches, their trigger query, actions and event logs, merged into the schema by sourcegull-graphql."
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+publish = false
+
+[lints]
+workspace = true
+
+[dependencies]
+sourcegull-analytics = { workspace = true }
+sourcegull-authn = { workspace = true }
+sourcegull-db = { workspace = true }
+sourcegull-graphql-core = { workspace = true }
+sourcegull-monitors = { workspace = true }
+sourcegull-services = { workspace = true }
+sourcegull-types = { workspace = true }
+async-graphql = { workspace = true }
+chrono = { workspace = true }
+serde_json = { workspace = true }
+url = { workspace = true }

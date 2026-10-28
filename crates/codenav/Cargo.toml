@@ -1,0 +1,31 @@
+[package]
+name = "sourcegull-codenav"
+description = "Code navigation: hover, definitions and usages from the precise, syntactic and search-based tiers."
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+publish = false
+
+[lints]
+workspace = true
+
+[dependencies]
+sourcegull-authn = { workspace = true }
+sourcegull-codeintel-scip = { workspace = true }
+sourcegull-codeintel-syntactic = { workspace = true }
+sourcegull-db = { workspace = true }
+sourcegull-highlight = { workspace = true }
+sourcegull-rpc = { workspace = true }
+sourcegull-search-web = { workspace = true }
+sourcegull-services = { workspace = true }
+sourcegull-languages = { workspace = true }
+sourcegull-search = { workspace = true }
+sourcegull-types = { workspace = true }
+async-trait = { workspace = true }
+futures = { workspace = true }
+moka = { workspace = true }
+regex = { workspace = true }
+thiserror = { workspace = true }
+tokio = { workspace = true }
+tracing = { workspace = true }

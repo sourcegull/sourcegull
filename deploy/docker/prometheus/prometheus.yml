@@ -1,0 +1,43 @@
+# Prometheus config for the `monitoring` Compose profile: scrapes /metrics on the internal
+# listener (:6060) of every Sourcegull service. Add a target per extra repo node (repo-1, …).
+global:
+  scrape_interval: 15s
+  evaluation_interval: 15s
+
+# Sourcegull's alerting rules, generated from crates/monitoring (docs/observability/alerts.md).
+# Point `alerting.alertmanagers` at an Alertmanager to get notified.
+rule_files:
+  - /etc/prometheus/sourcegull-alerts.yml
+
+scrape_configs:
+  - job_name: sourcegull-web
+    metrics_path: /metrics
+    static_configs:
+      - targets: ["web:6060"]
+        labels:
+          role: web
+
+  - job_name: sourcegull-worker
+    metrics_path: /metrics
+    static_configs:
+      - targets: ["worker:6060"]
+        labels:
+          role: worker
+
+  - job_name: sourcegull-blob
+    metrics_path: /metrics
+    static_configs:
+      - targets: ["blob:6060"]
+        labels:
+          role: blob
+
+  - job_name: sourcegull-repo
+    metrics_path: /metrics
+    static_configs:
+      - targets: ["repo-0:6060"]
+        labels:
+          role: repo
+
+  - job_name: prometheus
+    static_configs:
+      - targets: ["localhost:9090"]

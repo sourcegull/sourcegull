@@ -1,0 +1,31 @@
+name: sprintf-to-itoa
+description: |
+  Replaces fmt.Sprintf("%d", x) with strconv.Itoa(x) in one repository and records a ticket link.
+on:
+  - repository: gitlab.example.com/acme/tiny-go
+
+steps:
+  - run: >
+      find . -name '*.go' -print0
+      | xargs -0 sed -i -E 's/fmt\.Sprintf\("%d", ([a-z]+)\)/strconv.Itoa(\1)/g'
+    container: alpine:3
+  - run: >
+      python /opt/tickets.py
+      --summary 'Update ${{repository.name}}'
+      --description 'Modified ${{ previous_step.modified_files }}'
+      --token $TICKETS_TOKEN
+    container: python:3.12-slim
+    env:
+      - TICKETS_TOKEN
+    outputs:
+      issueLink:
+        value: ${{step.stdout}}
+
+changesetTemplate:
+  title: Replace fmt.Sprintf with strconv.Itoa
+  body: |
+    Linked issue: ${{outputs.issueLink}}
+  branch: batch/sprintf-to-itoa
+  commit:
+    message: Replace fmt.Sprintf with strconv.Itoa
+  published: false

@@ -1,0 +1,22 @@
+[package]
+name = "sourcegull-compute"
+description = "Compute: commands over search results (match, replace, output) and value counts for insights."
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+publish = false
+
+[lints]
+workspace = true
+
+[dependencies]
+sourcegull-languages = { workspace = true }
+sourcegull-query = { workspace = true }
+sourcegull-search = { workspace = true }
+sourcegull-structural = { workspace = true }
+chrono = { workspace = true }
+regex = { workspace = true }
+serde = { workspace = true }
+serde_json = { workspace = true }
+thiserror = { workspace = true }

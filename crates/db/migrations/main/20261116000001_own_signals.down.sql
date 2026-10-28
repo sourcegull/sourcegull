@@ -1,0 +1,10 @@
+DROP TABLE IF EXISTS own_background_jobs;
+DROP TABLE IF EXISTS own_ref_events_cursor;
+DROP TABLE IF EXISTS own_repo_index_state;
+DROP TABLE IF EXISTS ownership_path_stats;
+DROP TABLE IF EXISTS own_recent_view_state;
+DROP TABLE IF EXISTS own_aggregate_recent_view;
+DROP TABLE IF EXISTS own_aggregate_recent_contribution;
+DROP TABLE IF EXISTS own_signal_recent_contribution;
+DROP TABLE IF EXISTS commit_authors;
+DROP TABLE IF EXISTS own_signal_configurations;

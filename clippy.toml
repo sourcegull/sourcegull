@@ -1,0 +1,9 @@
+# Repository permissions: reads of `repo` rows must apply the viewer's `RepoAccess`. Callers that
+# are internal (repo nodes, workers) or site-admin only allow the lint at the call site, with a
+# comment saying why.
+disallowed-methods = [
+    { path = "sourcegull_db::RepoStore::get", reason = "use get_authorized with the viewer's RepoAccess", allow-invalid = true },
+    { path = "sourcegull_db::RepoStore::get_by_name", reason = "use get_by_name_authorized with the viewer's RepoAccess", allow-invalid = true },
+    { path = "sourcegull_db::RepoStore::list", reason = "set ListReposOptions::access to the viewer's RepoAccess and allow at the call site", allow-invalid = true },
+    { path = "sourcegull_db::RepoStore::count", reason = "set ListReposOptions::access to the viewer's RepoAccess and allow at the call site", allow-invalid = true },
+]

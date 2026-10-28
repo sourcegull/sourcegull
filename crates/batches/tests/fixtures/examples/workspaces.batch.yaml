@@ -1,0 +1,26 @@
+name: update-typescript
+description: Updates TypeScript in every package of a monorepo.
+
+on:
+  - repositoriesMatchingQuery: repo:^gitlab\.example\.com/acme/ file:package.json typescript
+
+workspaces:
+  - rootAtLocationOf: package.json
+    in: gitlab.example.com/acme/*
+    onlyFetchWorkspace: true
+  - rootAtLocationOf: yarn.lock
+    in: gitlab.example.com/acme/web
+
+steps:
+  - run: npm install --save-dev typescript@5
+    container: node:20
+  - run: echo "updated ${{ steps.path }}"
+    container: alpine:3
+
+changesetTemplate:
+  title: Update TypeScript in ${{ steps.path }}
+  body: Updates TypeScript to version 5.
+  branch: batch/update-typescript-${{ replace steps.path "/" "-" }}
+  commit:
+    message: Update TypeScript
+  published: false

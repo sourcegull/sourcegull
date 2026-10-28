@@ -1,0 +1,69 @@
+{
+  "_comment": [
+    "Reference events of the streaming search API (GET /.api/search/stream) as clients expect them:",
+    "field names, order and optional fields, with representative values.",
+    "`full` has every field set, `minimal` every optional field empty, so it shows what is always sent.",
+    "crates/search/tests/stream_schema.rs checks Sourcegull's events against them."
+  ],
+  "matches": {
+    "content": {
+      "full": {"type": "content", "path": "cmd/api/main.go", "pathMatches": [{"start": {"offset": 4, "line": 0, "column": 4}, "end": {"offset": 7, "line": 0, "column": 7}}], "repositoryID": 7, "repository": "gitlab.com/acme/api", "repoStars": 12, "repoLastFetched": "2023-06-01T10:00:00Z", "branches": ["main"], "commit": "4a3d4f6c6b0e0f6f0a8f9b6b3b1b4c3e2d1f0a9b", "hunks": null, "chunkMatches": [{"content": "func main() {\n\tlog.Println(\"start\")", "contentStart": {"offset": 41, "line": 4, "column": 0}, "ranges": [{"start": {"offset": 47, "line": 5, "column": 1}, "end": {"offset": 58, "line": 5, "column": 12}}], "contentTruncated": true}], "language": "Go", "debug": "score: 12"},
+      "minimal": {"type": "content", "path": "a.go", "repositoryID": 1, "repository": "gitlab.com/a/b", "hunks": null}
+    },
+    "content-line-matches": {
+      "full": {"type": "content", "path": "cmd/api/main.go", "pathMatches": [{"start": {"offset": 4, "line": 0, "column": 4}, "end": {"offset": 7, "line": 0, "column": 7}}], "repositoryID": 7, "repository": "gitlab.com/acme/api", "repoStars": 12, "repoLastFetched": "2023-06-01T10:00:00Z", "branches": ["main"], "commit": "4a3d4f6c6b0e0f6f0a8f9b6b3b1b4c3e2d1f0a9b", "hunks": null, "lineMatches": [{"line": "\tlog.Println(\"start\")", "lineNumber": 5, "offsetAndLengths": [[1, 11]]}], "language": "Go", "debug": "score: 12"},
+      "minimal": {"type": "content", "path": "a.go", "repositoryID": 1, "repository": "gitlab.com/a/b", "hunks": null}
+    },
+    "path": {
+      "full": {"type": "path", "path": "cmd/api/main.go", "pathMatches": [{"start": {"offset": 8, "line": 0, "column": 8}, "end": {"offset": 15, "line": 0, "column": 15}}], "repositoryID": 7, "repository": "gitlab.com/acme/api", "repoStars": 12, "repoLastFetched": "2023-06-01T10:00:00Z", "branches": ["main"], "commit": "4a3d4f6c6b0e0f6f0a8f9b6b3b1b4c3e2d1f0a9b", "language": "Go", "debug": "score: 3"},
+      "minimal": {"type": "path", "path": "a.go", "repositoryID": 1, "repository": "gitlab.com/a/b"}
+    },
+    "symbol": {
+      "full": {"type": "symbol", "path": "cmd/api/main.go", "repositoryID": 7, "repository": "gitlab.com/acme/api", "repoStars": 12, "repoLastFetched": "2023-06-01T10:00:00Z", "branches": ["main"], "commit": "4a3d4f6c6b0e0f6f0a8f9b6b3b1b4c3e2d1f0a9b", "language": "Go", "symbols": [{"url": "/gitlab.com/acme/api/-/blob/cmd/api/main.go#L5:6-5:10", "name": "main", "containerName": "main", "kind": "FUNCTION", "line": 5}]},
+      "minimal": {"type": "symbol", "path": "a.go", "repositoryID": 1, "repository": "gitlab.com/a/b", "symbols": []}
+    },
+    "repo": {
+      "full": {"type": "repo", "repositoryID": 7, "repository": "gitlab.com/acme/api", "repositoryMatches": [{"start": {"offset": 16, "line": 0, "column": 16}, "end": {"offset": 19, "line": 0, "column": 19}}], "branches": ["main"], "repoStars": 12, "repoLastFetched": "2023-06-01T10:00:00Z", "description": "The API", "descriptionMatches": [{"start": {"offset": 4, "line": 0, "column": 4}, "end": {"offset": 7, "line": 0, "column": 7}}], "fork": true, "archived": true, "private": true, "metadata": {"team": "core", "flag": null}, "topics": ["go"]},
+      "minimal": {"type": "repo", "repositoryID": 1, "repository": "gitlab.com/a/b"}
+    },
+    "commit": {
+      "full": {"type": "commit", "label": "[gitlab.com/acme/api](/gitlab.com/acme/api) › [Ann](/gitlab.com/acme/api/-/commit/4a3d4f6c6b0e0f6f0a8f9b6b3b1b4c3e2d1f0a9b): [Fix start](/gitlab.com/acme/api/-/commit/4a3d4f6c6b0e0f6f0a8f9b6b3b1b4c3e2d1f0a9b)", "url": "/gitlab.com/acme/api/-/commit/4a3d4f6c6b0e0f6f0a8f9b6b3b1b4c3e2d1f0a9b", "detail": "[`4a3d4f6` 2023-06-01](/gitlab.com/acme/api/-/commit/4a3d4f6c6b0e0f6f0a8f9b6b3b1b4c3e2d1f0a9b)", "repositoryID": 7, "repository": "gitlab.com/acme/api", "oid": "4a3d4f6c6b0e0f6f0a8f9b6b3b1b4c3e2d1f0a9b", "message": "Fix start\n", "authorName": "Ann", "authorDate": "2023-06-01T10:00:00Z", "committerName": "Ann", "committerDate": "2023-06-01T10:00:00Z", "repoStars": 12, "repoLastFetched": "2023-06-01T10:00:00Z", "content": "```COMMIT_EDITMSG\nFix start\n```", "ranges": [[1, 0, 3]]},
+      "minimal": {"type": "commit", "label": "", "url": "", "detail": "", "repositoryID": 1, "repository": "gitlab.com/a/b", "oid": "", "message": "", "authorName": "", "authorDate": "0001-01-01T00:00:00Z", "committerName": "", "committerDate": "0001-01-01T00:00:00Z", "content": "", "ranges": null}
+    },
+    "diff": {
+      "full": {"type": "commit", "label": "[gitlab.com/acme/api](/gitlab.com/acme/api) › [Ann](/gitlab.com/acme/api/-/commit/4a3d4f6c6b0e0f6f0a8f9b6b3b1b4c3e2d1f0a9b): [Fix start](/gitlab.com/acme/api/-/commit/4a3d4f6c6b0e0f6f0a8f9b6b3b1b4c3e2d1f0a9b)", "url": "/gitlab.com/acme/api/-/commit/4a3d4f6c6b0e0f6f0a8f9b6b3b1b4c3e2d1f0a9b", "detail": "[`4a3d4f6` 2023-06-01](/gitlab.com/acme/api/-/commit/4a3d4f6c6b0e0f6f0a8f9b6b3b1b4c3e2d1f0a9b)", "repositoryID": 7, "repository": "gitlab.com/acme/api", "oid": "4a3d4f6c6b0e0f6f0a8f9b6b3b1b4c3e2d1f0a9b", "message": "Fix start\n", "authorName": "Ann", "authorDate": "2023-06-01T10:00:00Z", "committerName": "Ann", "committerDate": "2023-06-01T10:00:00Z", "repoStars": 12, "repoLastFetched": "2023-06-01T10:00:00Z", "content": "```diff\nmain.go main.go\n@@ -1,1 +1,1 @@ \n-old\n+start\n```", "ranges": [[4, 1, 5]]},
+      "minimal": {"type": "commit", "label": "", "url": "", "detail": "", "repositoryID": 1, "repository": "gitlab.com/a/b", "oid": "", "message": "", "authorName": "", "authorDate": "0001-01-01T00:00:00Z", "committerName": "", "committerDate": "0001-01-01T00:00:00Z", "content": "", "ranges": null}
+    },
+    "person": {
+      "full": {"type": "person", "handle": "ann", "email": "ann@example.com", "user": {"username": "ann", "displayName": "Ann", "avatarURL": "https://example.com/ann.png"}},
+      "minimal": {"type": "person", "handle": "", "email": ""}
+    },
+    "team": {
+      "full": {"type": "team", "handle": "core", "email": "core@example.com", "name": "core", "displayName": "Core"},
+      "minimal": {"type": "team", "handle": "", "email": "", "name": "", "displayName": ""}
+    }
+  },
+  "progress": {
+    "full": {"done": true, "repositoriesCount": 3, "matchCount": 42, "durationMs": 120, "skipped": [{"reason": "excluded-archive", "title": "1 archived", "message": "By default we exclude archived repositories. Include them with `archived:yes` in your query.", "severity": "info", "suggested": {"title": "include archived", "queryExpression": "archived:yes"}}], "trace": "https://example.com/trace/1"},
+    "minimal": {"done": false, "matchCount": 0, "durationMs": 0, "skipped": []}
+  },
+  "skipped-reasons": ["document-match-limit", "shard-match-limit", "display", "repository-limit", "shard-timeout", "repository-cloning", "repository-missing", "backend-missing", "repository-fork", "excluded-archive"],
+  "client-skipped-reasons": ["error"],
+  "severities": ["info", "warn"],
+  "filters": {
+    "full": [{"value": "lang:go", "label": "Go", "count": 12, "exhaustive": true, "kind": "lang"}],
+    "minimal": [{"value": "", "label": "", "count": 0, "exhaustive": false, "kind": ""}]
+  },
+  "alert": {
+    "full": {"title": "No repositories found", "description": "Check your repo: filter.", "kind": "smart-search-additional-results", "proposedQueries": [{"description": "include forks", "query": "repo:acme fork:yes", "annotations": [{"name": "ResultCount", "value": "12"}]}]},
+    "minimal": {"title": "", "proposedQueries": null}
+  },
+  "error": {
+    "full": {"message": "invalid query"},
+    "minimal": {"message": ""}
+  },
+  "done": {
+    "full": {},
+    "minimal": {}
+  }
+}

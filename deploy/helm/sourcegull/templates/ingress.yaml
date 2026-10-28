@@ -1,0 +1,51 @@
+{{- if .Values.ingress.enabled }}
+{{- $ing := .Values.ingress }}
+{{- $ctx := dict "root" . "component" "web" }}
+{{- $backend := dict "service" (dict "name" (include "sourcegull.componentName" $ctx) "port" (dict "number" (int .Values.web.service.ports.http))) }}
+{{- $hostname := default (urlParse .Values.externalURL).hostname $ing.hostname }}
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: {{ include "sourcegull.componentName" $ctx }}
+  labels:
+    {{- include "sourcegull.componentLabels" $ctx | nindent 4 }}
+  {{- with (include "sourcegull.annotations" (dict "root" . "extra" $ing.annotations) | trim) }}{{ . | nindent 2 }}{{ end }}
+spec:
+  {{- with $ing.ingressClassName }}
+  ingressClassName: {{ . | quote }}
+  {{- end }}
+  rules:
+    - host: {{ $hostname | quote }}
+      http:
+        paths:
+          {{- with $ing.extraPaths }}
+          {{- include "sourcegull.tplvalues.render" (dict "value" . "context" $) | nindent 10 }}
+          {{- end }}
+          - path: {{ $ing.path }}
+            pathType: {{ $ing.pathType }}
+            backend:
+              {{- toYaml $backend | nindent 14 }}
+    {{- range $ing.extraHosts }}
+    - host: {{ .name | quote }}
+      http:
+        paths:
+          - path: {{ default "/" .path }}
+            pathType: {{ default $ing.pathType .pathType }}
+            backend:
+              {{- toYaml $backend | nindent 14 }}
+    {{- end }}
+    {{- with $ing.extraRules }}
+    {{- include "sourcegull.tplvalues.render" (dict "value" . "context" $) | nindent 4 }}
+    {{- end }}
+  {{- if or $ing.tls $ing.extraTls }}
+  tls:
+    {{- if $ing.tls }}
+    - hosts:
+        - {{ $hostname | quote }}
+      secretName: {{ printf "%s-tls" $hostname }}
+    {{- end }}
+    {{- with $ing.extraTls }}
+    {{- include "sourcegull.tplvalues.render" (dict "value" . "context" $) | nindent 4 }}
+    {{- end }}
+  {{- end }}
+{{- end }}

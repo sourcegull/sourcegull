@@ -1,0 +1,119 @@
+# Upgrade N-2 -> N with Docker Compose
+# and with the Helm chart on kind: scripts/test/upgrade.sh. N is the commit under test; N-2 is
+# the `from` input, else the second newest release tag (the newest while there is one); before
+# the first release, give `from`. Run by hand, in particular for changes to migrations,
+# encryption, the out-of-band migrations or the deployment files.
+name: Upgrade
+
+# Manual only: no push, PR or schedule triggers.
+on:
+  workflow_dispatch:
+    inputs:
+      from:
+        description: Git ref of N-2 (empty = the default)
+        required: false
+        default: ""
+
+permissions:
+  contents: read
+
+concurrency:
+  group: upgrade-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  SOURCEGULL_UPGRADE_FROM: ${{ inputs.from }}
+
+jobs:
+  images:
+    name: build N-2 and N images
+    runs-on: ubuntu-24.04
+    timeout-minutes: 120
+    steps:
+      - name: Free disk space
+        run: |
+          sudo rm -rf /usr/share/dotnet /usr/local/lib/android /opt/ghc /usr/local/.ghcup \
+            /opt/hostedtoolcache/CodeQL /usr/share/swift /usr/local/share/powershell
+      - uses: actions/checkout@v5
+        with:
+          fetch-depth: 0
+      - name: N-2 sources
+        id: from
+        run: |
+          scripts/test/upgrade.sh refs
+          scripts/test/upgrade.sh source "$RUNNER_TEMP/src-from"
+          echo "ref=$(cat "$RUNNER_TEMP/src-from/.upgrade-ref")" >>"$GITHUB_OUTPUT"
+      - uses: docker/setup-buildx-action@v3
+      - name: Build N-2 image
+        uses: docker/build-push-action@v6
+        with:
+          context: ${{ runner.temp }}/src-from
+          file: ${{ runner.temp }}/src-from/deploy/docker/Dockerfile
+          platforms: linux/amd64
+          outputs: type=docker,dest=${{ runner.temp }}/upgrade-from.tar
+          tags: sourcegull/sourcegull:upgrade-from
+          build-args: |
+            REVISION=${{ steps.from.outputs.ref }}
+          cache-from: type=gha,scope=sourcegull-upgrade-from
+          cache-to: type=gha,scope=sourcegull-upgrade-from,mode=max
+      # Same cache scope as the image builds in ci.yml and helm.yml.
+      - name: Build N image
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          file: deploy/docker/Dockerfile
+          platforms: linux/amd64
+          outputs: type=docker,dest=${{ runner.temp }}/upgrade-to.tar
+          tags: sourcegull/sourcegull:upgrade-to
+          build-args: |
+            REVISION=${{ github.sha }}
+          cache-from: type=gha,scope=sourcegull
+          cache-to: type=gha,scope=sourcegull,mode=max
+      - uses: actions/upload-artifact@v4
+        with:
+          name: upgrade-images
+          path: |
+            ${{ runner.temp }}/upgrade-from.tar
+            ${{ runner.temp }}/upgrade-to.tar
+          retention-days: 1
+          compression-level: 6
+
+  upgrade:
+    name: upgrade N-2 -> N (${{ matrix.target }})
+    needs: images
+    runs-on: ubuntu-24.04
+    timeout-minutes: 60
+    strategy:
+      fail-fast: false
+      matrix:
+        target: [compose, helm]
+    steps:
+      - name: Free disk space
+        run: |
+          sudo rm -rf /usr/share/dotnet /usr/local/lib/android /opt/ghc /usr/local/.ghcup \
+            /opt/hostedtoolcache/CodeQL /usr/share/swift /usr/local/share/powershell
+      - uses: actions/checkout@v5
+        with:
+          fetch-depth: 0
+      - uses: actions/download-artifact@v4
+        with:
+          name: upgrade-images
+          path: ${{ runner.temp }}/images
+      - name: Load images
+        run: |
+          docker load -i "$RUNNER_TEMP/images/upgrade-from.tar"
+          docker load -i "$RUNNER_TEMP/images/upgrade-to.tar"
+      - run: scripts/test/upgrade.sh refs
+      - run: scripts/test/upgrade.sh ${{ matrix.target }}
+      - name: Logs on failure
+        if: failure() && matrix.target == 'compose'
+        run: |
+          for c in $(docker ps -aq --filter label=com.docker.compose.project=sourcegull-upgrade-test); do
+            echo "::group::$(docker inspect -f '{{.Name}}' "$c")"; docker logs --tail 300 "$c" 2>&1; echo "::endgroup::"
+          done
+      - name: Logs on failure
+        if: failure() && matrix.target == 'helm'
+        run: |
+          export KUBECONFIG=.test-out/upgrade/host-kubeconfig
+          kubectl -n sourcegull-upgrade get pods -o wide || true
+          kubectl -n sourcegull-upgrade logs -l app.kubernetes.io/name=sourcegull --all-containers --tail 200 --prefix || true

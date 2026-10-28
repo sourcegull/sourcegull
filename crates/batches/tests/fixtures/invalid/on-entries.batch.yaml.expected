@@ -1,0 +1,3 @@
+3:5 on.0: property "repository" is required
+5:5 on.1: additional property "repository" is not allowed
+7:5 on.2: additional property "brnch" is not allowed

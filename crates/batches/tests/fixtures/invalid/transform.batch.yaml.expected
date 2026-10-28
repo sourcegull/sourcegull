@@ -1,0 +1,3 @@
+10:15 transformChanges would lead to multiple changesets in every repository to have the same branch "split-a"
+12:15 transformChanges group branch is the same as branch "main-change" in changesetTemplate
+17:15 transformChanges would lead to multiple changesets in repository gitlab.example.com/x/y to have the same branch "split-d"

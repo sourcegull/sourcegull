@@ -1,0 +1,44 @@
+{{- $ctx := dict "root" . "component" "web" -}}
+{{- $svc := .Values.web.service -}}
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ include "sourcegull.componentName" $ctx }}
+  labels:
+    {{- include "sourcegull.componentLabels" $ctx | nindent 4 }}
+  {{- with (include "sourcegull.annotations" (dict "root" . "extra" $svc.annotations) | trim) }}{{ . | nindent 2 }}{{ end }}
+spec:
+  type: {{ $svc.type }}
+  {{- if and $svc.clusterIP (eq $svc.type "ClusterIP") }}
+  clusterIP: {{ $svc.clusterIP }}
+  {{- end }}
+  {{- if eq $svc.type "LoadBalancer" }}
+  {{- with $svc.loadBalancerIP }}
+  loadBalancerIP: {{ . }}
+  {{- end }}
+  {{- with $svc.loadBalancerSourceRanges }}
+  loadBalancerSourceRanges:
+    {{- toYaml . | nindent 4 }}
+  {{- end }}
+  {{- end }}
+  {{- if or (eq $svc.type "LoadBalancer") (eq $svc.type "NodePort") }}
+  externalTrafficPolicy: {{ $svc.externalTrafficPolicy }}
+  {{- end }}
+  sessionAffinity: {{ $svc.sessionAffinity }}
+  selector:
+    {{- include "sourcegull.selectorLabels" $ctx | nindent 4 }}
+  ports:
+    - name: http
+      port: {{ $svc.ports.http }}
+      targetPort: http
+      protocol: TCP
+      {{- if and (or (eq $svc.type "NodePort") (eq $svc.type "LoadBalancer")) $svc.nodePorts.http }}
+      nodePort: {{ $svc.nodePorts.http }}
+      {{- end }}
+    - name: internal
+      port: {{ $svc.ports.internal }}
+      targetPort: internal
+      protocol: TCP
+    {{- with $svc.extraPorts }}
+    {{- include "sourcegull.tplvalues.render" (dict "value" . "context" $) | nindent 4 }}
+    {{- end }}

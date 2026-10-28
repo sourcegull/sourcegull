@@ -1,0 +1,97 @@
+{{- /*
+Worker autoscaling. Two exclusive options:
+ - worker.autoscaling.keda: a KEDA ScaledObject on pgqueue depth. With trigger=postgresql (the
+   default) KEDA's `postgresql` scaler runs `sourcegull.worker.queueDepthQuery` (jobs queued and ready,
+   plus jobs running, over every queue table the worker processes) and sizes the Deployment to
+   ceil(depth / targetJobsPerReplica). With trigger=prometheus its `prometheus` scaler reads the
+   same depth from the `sourcegull_queue_jobs` gauge (`sourcegull.worker.queueDepthPromQL`) instead, so
+   KEDA needs no database access.
+ - worker.autoscaling.hpa: a plain CPU HorizontalPodAutoscaler (hpa.yaml), for clusters without KEDA.
+The worker also runs the leader-elected singletons, so neither scales below one replica.
+*/ -}}
+{{- $component := "worker" -}}
+{{- $name := include "sourcegull.componentName" (dict "root" . "component" $component) -}}
+{{- if .Values.worker.autoscaling.keda.enabled }}
+{{- $keda := .Values.worker.autoscaling.keda }}
+{{- $pgMode := .Values.postgresql.mode }}
+{{- $trigger := include "sourcegull.worker.kedaTrigger" . }}
+{{- $prom := $keda.prometheus }}
+{{- if eq $trigger "postgresql" }}
+apiVersion: keda.sh/v1alpha1
+kind: TriggerAuthentication
+metadata:
+  name: {{ $name }}
+  labels:
+    {{- include "sourcegull.componentLabels" (dict "root" . "component" $component) | nindent 4 }}
+spec:
+  secretTargetRef:
+    {{- if eq $pgMode "bundled" }}
+    - parameter: password
+      name: {{ include "sourcegull.postgresql.secretName" . }}
+      key: {{ include "sourcegull.postgresql.secretKey" . }}
+    {{- else if eq $pgMode "cnpg" }}
+    - parameter: connection
+      name: {{ include "sourcegull.cnpg.appSecretName" . }}
+      key: uri
+    {{- else }}
+    - parameter: connection
+      name: {{ include "sourcegull.externalDatabase.secretName" . }}
+      key: {{ .Values.externalDatabase.existingSecretUrlKey }}
+    {{- end }}
+---
+{{- end }}
+apiVersion: keda.sh/v1alpha1
+kind: ScaledObject
+metadata:
+  name: {{ $name }}
+  labels:
+    {{- include "sourcegull.componentLabels" (dict "root" . "component" $component) | nindent 4 }}
+spec:
+  scaleTargetRef:
+    apiVersion: apps/v1
+    kind: Deployment
+    name: {{ $name }}
+  minReplicaCount: {{ $keda.minReplicas }}
+  maxReplicaCount: {{ $keda.maxReplicas }}
+  pollingInterval: {{ $keda.pollingInterval }}
+  cooldownPeriod: {{ $keda.cooldownPeriod }}
+  advanced:
+    horizontalPodAutoscalerConfig:
+      behavior:
+        scaleDown:
+          # Scale in slowly: a removed worker's running jobs are reset and retried elsewhere.
+          stabilizationWindowSeconds: {{ $keda.scaleDownStabilizationSeconds }}
+          policies:
+            - type: Pods
+              value: 1
+              periodSeconds: 60
+  triggers:
+    {{- if eq $trigger "prometheus" }}
+    - type: prometheus
+      {{- with $prom.authenticationRef }}
+      authenticationRef:
+        name: {{ . }}
+      {{- end }}
+      metadata:
+        serverAddress: {{ $prom.serverAddress | quote }}
+        query: {{ default (include "sourcegull.worker.queueDepthPromQL" .) $prom.query | quote }}
+        threshold: {{ default $keda.targetJobsPerReplica $prom.threshold | quote }}
+        {{- with $prom.authModes }}
+        authModes: {{ . | quote }}
+        {{- end }}
+    {{- else }}
+    - type: postgresql
+      authenticationRef:
+        name: {{ $name }}
+      metadata:
+        query: {{ default (include "sourcegull.worker.queueDepthQuery" .) $keda.query | quote }}
+        targetQueryValue: {{ $keda.targetJobsPerReplica | quote }}
+        {{- if eq $pgMode "bundled" }}
+        host: {{ printf "%s.%s.svc" (include "sourcegull.postgresql.fullname" .) .Release.Namespace | quote }}
+        port: "5432"
+        userName: {{ .Values.postgresql.auth.username | quote }}
+        dbName: {{ .Values.postgresql.auth.database | quote }}
+        sslmode: disable
+        {{- end }}
+    {{- end }}
+{{- end }}

@@ -1,0 +1,34 @@
+[package]
+name = "sourcegull-batches-graphql"
+description = "The GraphQL API of bulk changes: bulk changes, specs, changesets, workspaces, bulk operations and credentials, merged into the schema by sourcegull-graphql."
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+publish = false
+
+[lints]
+workspace = true
+
+[dependencies]
+sourcegull-analytics = { workspace = true }
+sourcegull-authn = { workspace = true }
+sourcegull-batches = { workspace = true, features = ["store"] }
+sourcegull-batches-reconciler = { workspace = true }
+sourcegull-batches-resolver = { workspace = true }
+sourcegull-batches-steps = { workspace = true }
+sourcegull-codehost = { workspace = true }
+sourcegull-config = { workspace = true }
+sourcegull-db = { workspace = true }
+sourcegull-executor-api = { workspace = true }
+sourcegull-graphql-core = { workspace = true }
+sourcegull-outbound-webhooks = { workspace = true }
+sourcegull-pgqueue = { workspace = true }
+sourcegull-rpc = { workspace = true }
+sourcegull-services = { workspace = true }
+sourcegull-types = { workspace = true }
+async-graphql = { workspace = true }
+chrono = { workspace = true }
+serde_json = { workspace = true }
+tokio = { workspace = true }
+tracing = { workspace = true }

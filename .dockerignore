@@ -1,0 +1,15 @@
+# Keep the build context small and the cargo-chef cache stable.
+.git
+.github
+**/target
+target
+**/*.swp
+**/.DS_Store
+**/node_modules
+.env
+**/.env
+deploy/docker/secrets
+deploy/helm
+.e2e-out
+.devcontainer
+.cargo

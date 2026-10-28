@@ -1,0 +1,39 @@
+[package]
+name = "sourcegull-ranking"
+description = "Ranking from the code graph: PageRank over SCIP references, per-file static ranks for search."
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+publish = false
+
+[lints]
+workspace = true
+
+[dependencies]
+sourcegull-feature = { workspace = true }
+anyhow = { workspace = true }
+sourcegull-codeintel-policies = { workspace = true }
+sourcegull-codeintel-scip = { workspace = true }
+sourcegull-config = { workspace = true }
+sourcegull-db = { workspace = true }
+sourcegull-services = { workspace = true }
+sourcegull-rpc = { workspace = true }
+sourcegull-types = { workspace = true }
+futures = { workspace = true }
+hex = { workspace = true }
+metrics = { workspace = true }
+rayon = { workspace = true }
+sha2 = { workspace = true }
+thiserror = { workspace = true }
+tokio = { workspace = true }
+tokio-util = { workspace = true }
+tracing = { workspace = true }
+sqlx = { workspace = true }
+chrono = { workspace = true }
+
+[dev-dependencies]
+sourcegull-blobstore = { workspace = true }
+sourcegull-testutil = { workspace = true, features = ["git"] }
+prost = "0.14"
+tempfile = "3"

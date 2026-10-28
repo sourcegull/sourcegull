@@ -1,0 +1,10 @@
+name: published-value
+steps:
+  - run: echo
+    container: alpine:3
+changesetTemplate:
+  title: t
+  branch: b
+  commit:
+    message: m
+  published: "yes"

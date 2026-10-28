@@ -1,0 +1,25 @@
+name: rename-logger-import
+description: "Rewrites the import path of the logging package from
+
+`example.com/acme/log/v1`
+
+to
+
+`example.com/acme/log/v2`"
+
+on:
+  - repositoriesMatchingQuery: lang:go example.com/acme/log/v1
+
+steps:
+  - run: find . -name '*.go' -exec sed -i 's#example.com/acme/log/v1#example.com/acme/log/v2#g' {} +
+    container: alpine:3
+  - run: gofmt -w .
+    container: golang:1.22
+
+changesetTemplate:
+  title: Move to log/v2
+  body: Rewrites imports of `example.com/acme/log/v1`.
+  branch: batch/rename-logger-import
+  commit:
+    message: Move to log/v2
+  published: true

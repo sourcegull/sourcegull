@@ -1,0 +1,16 @@
+# Files outside crates/db that may read the repo table with raw SQL (scripts/check-repo-sql.py).
+# One path per line (a directory ends in `/`), then `# reason`: why the reads need no viewer
+# RepoAccess filter. Reads for a viewer belong in a RepoStore method that takes the RepoAccess.
+crates/analytics/src/query.rs  # site.analytics is site-admin only; codeIntelTopRepositories filters names by RepoAccess first
+crates/batches-graphql/src/apply.rs  # service_types: code host types to plan changesets, never shown
+crates/own/src/jobs.rs  # ownership indexer and scheduler, background jobs that act for no user
+crates/own/src/signals.rs  # signal indexing and coverage stats; stats are site-admin only
+crates/pgqueue/src/queue.rs  # doc comment example of a dequeue filter
+crates/searchjobs/src/store.rs  # worker context; job log is creator or site admin only, over the repositories the job searched
+crates/sourcegull/src/metrics_collector.rs  # instance-wide metrics
+crates/autoindex/src/store.rs  # auto-indexing scheduler state; the sweep lists repositories as a background job that acts for no user
+crates/codeintel-policies/src/store/coverage.rs  # precise index coverage is site-admin only; policy targets are for the auto-indexing scheduler
+crates/codeintel-scip/src/store/  # upload and index job reads join repo for names and deleted repositories; lists for a viewer filter by RepoAccess::readable_ids
+crates/ranking/src/store.rs  # ranking job, a background job that acts for no user
+crates/repo-node/src/  # repo node: cloning, indexing, janitor, rebalancing
+crates/batches/src/store/  # repo joins for names and deleted repositories; changeset lists for a viewer filter by RepoAccess::readable_ids, specs and workspaces are read by their spec's creator or a site admin

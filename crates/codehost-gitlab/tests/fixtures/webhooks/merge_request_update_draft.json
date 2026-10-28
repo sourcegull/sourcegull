@@ -1,0 +1,144 @@
+{
+  "object_kind": "merge_request",
+  "event_type": "merge_request",
+  "user": {
+    "id": 7,
+    "name": "Bob Reviewer",
+    "username": "bob",
+    "avatar_url": "https://www.gravatar.com/avatar/b?s=80&d=identicon",
+    "email": "[REDACTED]"
+  },
+  "project": {
+    "id": 42,
+    "name": "one",
+    "description": "",
+    "web_url": "https://gitlab.example.com/a/one",
+    "avatar_url": null,
+    "git_ssh_url": "git@gitlab.example.com:a/one.git",
+    "git_http_url": "https://gitlab.example.com/a/one.git",
+    "namespace": "a",
+    "visibility_level": 0,
+    "path_with_namespace": "a/one",
+    "default_branch": "main",
+    "ci_config_path": null,
+    "homepage": "https://gitlab.example.com/a/one",
+    "url": "git@gitlab.example.com:a/one.git",
+    "ssh_url": "git@gitlab.example.com:a/one.git",
+    "http_url": "https://gitlab.example.com/a/one.git"
+  },
+  "object_attributes": {
+    "assignee_id": null,
+    "author_id": 5,
+    "created_at": "2026-10-19T09:00:00Z",
+    "description": "It says hello.",
+    "draft": true,
+    "head_pipeline_id": null,
+    "id": 9001,
+    "iid": 1,
+    "last_edited_at": null,
+    "last_edited_by_id": null,
+    "merge_commit_sha": null,
+    "merge_error": null,
+    "merge_params": {
+      "force_remove_source_branch": "1"
+    },
+    "merge_status": "can_be_merged",
+    "merge_user_id": null,
+    "merge_when_pipeline_succeeds": false,
+    "milestone_id": null,
+    "source_branch": "fix",
+    "source_project_id": 42,
+    "state_id": 1,
+    "target_branch": "main",
+    "target_project_id": 42,
+    "time_estimate": 0,
+    "title": "Draft: Fix the readme",
+    "updated_at": "2026-10-19T09:05:00Z",
+    "updated_by_id": null,
+    "url": "https://gitlab.example.com/a/one/-/merge_requests/1",
+    "source": {
+      "id": 42,
+      "name": "one",
+      "description": "",
+      "web_url": "https://gitlab.example.com/a/one",
+      "avatar_url": null,
+      "git_ssh_url": "git@gitlab.example.com:a/one.git",
+      "git_http_url": "https://gitlab.example.com/a/one.git",
+      "namespace": "a",
+      "visibility_level": 0,
+      "path_with_namespace": "a/one",
+      "default_branch": "main",
+      "ci_config_path": null,
+      "homepage": "https://gitlab.example.com/a/one",
+      "url": "git@gitlab.example.com:a/one.git",
+      "ssh_url": "git@gitlab.example.com:a/one.git",
+      "http_url": "https://gitlab.example.com/a/one.git"
+    },
+    "target": {
+      "id": 42,
+      "name": "one",
+      "description": "",
+      "web_url": "https://gitlab.example.com/a/one",
+      "avatar_url": null,
+      "git_ssh_url": "git@gitlab.example.com:a/one.git",
+      "git_http_url": "https://gitlab.example.com/a/one.git",
+      "namespace": "a",
+      "visibility_level": 0,
+      "path_with_namespace": "a/one",
+      "default_branch": "main",
+      "ci_config_path": null,
+      "homepage": "https://gitlab.example.com/a/one",
+      "url": "git@gitlab.example.com:a/one.git",
+      "ssh_url": "git@gitlab.example.com:a/one.git",
+      "http_url": "https://gitlab.example.com/a/one.git"
+    },
+    "last_commit": {
+      "id": "da1560886d4f094c3e6c9ef40349f7d38b5d27d7",
+      "message": "Fix the readme\n",
+      "title": "Fix the readme",
+      "timestamp": "2026-10-19T08:59:00+00:00",
+      "url": "https://gitlab.example.com/a/one/-/commit/da1560886d4f094c3e6c9ef40349f7d38b5d27d7",
+      "author": {
+        "name": "Alice",
+        "email": "alice@example.com"
+      }
+    },
+    "work_in_progress": true,
+    "total_time_spent": 0,
+    "time_change": 0,
+    "human_total_time_spent": null,
+    "human_time_change": null,
+    "human_time_estimate": null,
+    "assignee_ids": [],
+    "reviewer_ids": [],
+    "labels": [],
+    "state": "opened",
+    "blocking_discussions_resolved": true,
+    "first_contribution": false,
+    "detailed_merge_status": "mergeable",
+    "action": "update"
+  },
+  "labels": [],
+  "changes": {
+    "draft": {
+      "previous": false,
+      "current": true
+    },
+    "title": {
+      "previous": "Fix the readme",
+      "current": "Draft: Fix the readme"
+    },
+    "updated_at": {
+      "previous": "2026-10-19 09:00:00 UTC",
+      "current": "2026-10-19 09:05:00 UTC"
+    }
+  },
+  "repository": {
+    "name": "one",
+    "url": "git@gitlab.example.com:a/one.git",
+    "description": "",
+    "homepage": "https://gitlab.example.com/a/one"
+  },
+  "assignees": [],
+  "reviewers": []
+}

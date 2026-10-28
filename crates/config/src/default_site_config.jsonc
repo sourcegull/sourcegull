@@ -1,0 +1,150 @@
+// Sourcegull site configuration.
+//
+// This document is JSONC: comments and trailing commas are allowed. Every key is optional;
+// see /.api/site-config-schema (or the editor's completion) for all keys and defaults.
+// Keys are grouped in sections; "Organize" in the editor puts keys back in section order.
+{
+  // ── General ──
+  // The URL users reach this instance at. Set it before configuring OAuth sign-in,
+  // because it is used to build callback URLs.
+  // "externalURL": "https://sourcegull.example.com",
+
+  // ── Authentication & sign-in ──
+  // Sign-in methods. The first account created becomes the site admin.
+  "auth.providers": [
+    { "type": "builtin", "allowSignup": false },
+    // GitLab sign-in (gitlab.com or self-managed), OAuth 2.0 with PKCE.
+    //
+    // 1. Set "externalURL" above first: the callback URL is built from it.
+    // 2. In GitLab, create an OAuth application. A group or user application works (group or
+    //    user Settings > Applications); an instance-wide one is under Admin > Applications on
+    //    self-managed GitLab.
+    //    - Redirect URI: <externalURL>/.auth/gitlab/callback, for example
+    //      https://sourcegull.example.com/.auth/gitlab/callback (exactly, no trailing slash).
+    //    - Confidential: yes (Sourcegull keeps the secret on the server).
+    //    - Scopes: read_user (who signed in) and read_api (group membership for
+    //      "allowGroups" and the per-user repository permissions sync). Sourcegull asks for
+    //      exactly these two; GitLab rejects sign-in if the application lacks one.
+    //    - Trusted (instance-wide applications only): optional, skips the consent screen.
+    // 3. Copy the application's "Application ID" to "clientID" and its "Secret" to
+    //    "clientSecret" below.
+    // 4. To apply GitLab repository permissions to users who sign in this way, add
+    //    "authorization": { "identityProvider": { "type": "oauth" } } to the GitLab code host
+    //    connection; its "url" must be the same GitLab instance as "url" here.
+    //
+    // {
+    //   "type": "gitlab",
+    //   // The GitLab instance (default https://gitlab.com/).
+    //   "url": "https://gitlab.example.com/",
+    //   "clientID": "<application id>",
+    //   "clientSecret": "<secret>",
+    //   // Create a Sourcegull account on first sign-in. Without it, GitLab users sign in only to an
+    //   // existing account with the same verified email.
+    //   "allowSignup": true,
+    //   // Only members of one of these groups (full paths) may sign in.
+    //   "allowGroups": ["my-group", "my-group/sub"],
+    //   // Label on the sign-in button.
+    //   "displayName": "GitLab",
+    // },
+  ],
+
+  // Allow signed-out visitors to search.
+  "auth.public": false,
+
+  // How long a session lasts after sign-in.
+  "auth.sessionExpiry": "30d",
+
+  "auth.passwordPolicy": {
+    "enabled": false,
+    "minimumLength": 12,
+  },
+
+  // Lock an account for 30 minutes after 5 failed sign-ins within an hour, for the client
+  // address they came from.
+  "auth.lockout": {
+    "consecutivePeriod": 3600,
+    "failedAttemptThreshold": 5,
+    "lockoutPeriod": 1800,
+  },
+
+  // Request limits per client address and account on sign-in, password reset, access
+  // requests, OAuth authorization and rejected webhooks (429 over a limit). For example:
+  // "auth.rateLimits": { "signInPerAddress": { "requests": 50, "period": 300 } },
+
+  // "all", "site-admin-create" or "none".
+  "auth.accessTokens": { "allow": "all", "maxTokenExpiresInDays": 365 },
+
+  // MCP clients that support OAuth connect with the URL alone and sign the user in through
+  // the browser. Uses "externalURL" as the issuer when it is set.
+  // "mcp.oauth.enabled": true,
+
+  // ── Users & permissions ──
+  // Repository permissions. Private repos of connections with an "authorization" block are
+  // readable only by the users granted them. Explicit permissions restrict every private
+  // repo and let admins grant access through the API, naming users by "email" or "username".
+  // "permissions.userMapping": { "enabled": true, "bindID": "email" },
+
+  // Apply permissions to site admins too.
+  // "authz.enforceForSiteAdmins": true,
+
+  // The permissions sync refreshes the oldest users and repositories every 15 s, at most once
+  // a minute each, and keeps 5 finished jobs per user and repository:
+  // "permissions.syncOldestUsers": 10, "permissions.syncOldestRepos": 10,
+  // "permissions.syncUsersBackoffSeconds": 60, "permissions.syncJobsHistorySize": 5,
+
+  // Provision users from an identity provider through SCIM 2.0 (at least 20 characters):
+  // "scim.authToken": "<random secret>",
+
+  // ── Repositories & git ──
+  // Minutes between discovery syncs of each code host connection:
+  // "repoListUpdateInterval": 1,
+
+  // Concurrent clones per repo node (read when the repo node starts):
+  // "gitMaxConcurrentClones": 5,
+
+  // Pin repositories to repo nodes (e.g. very large monorepos); the rebalancer moves them
+  // there, and back to their hash assignment when unpinned:
+  // "repoNodes.pinnedRepos": { "gitlab.com/acme/big": "http://sourcegull-repo-2.sourcegull-repo:3178" },
+
+  // ── Search & indexing ──
+  "search.limits": {
+    "defaultTimeoutSeconds": 20,
+    "maxTimeoutSeconds": 60,
+  },
+
+  // Branches to index besides the default branch, per repository:
+  // "search.index.branches": { "gitlab.com/acme/api": ["release"] },
+
+  // Files indexed with content above 1 MiB (up to 16 MiB); "*" applies to every repository:
+  // "search.index.alwaysIndex": { "*": ["**/schema.graphql"], "gitlab.com/acme/api": ["gen/**"] },
+
+  // ── Code intelligence & executors ──
+  // The shared secret executors authenticate with (at least 20 characters), needed for
+  // auto-indexing and server-side bulk changes:
+  // "executors.accessToken": "<random secret>",
+
+  // Infer and queue index jobs for the repositories that indexing policies name:
+  // "codeIntelAutoIndexing.enabled": true,
+
+  // ── Bulk changes ──
+  // Bulk changes are on for everyone by default; limit them to site admins:
+  // "batchChanges.restrictToAdmins": true,
+
+  // Publish changesets only at certain times, e.g. 10 an hour on weekdays (UTC):
+  // "batchChanges.rolloutWindows": [{ "days": ["monday", "tuesday", "wednesday", "thursday", "friday"], "rate": "10/hour" }],
+
+  // ── Trends ──
+  // How many repository histories per second trend backfills count, per worker:
+  // "insights.query.worker.rateLimit": 20,
+
+  // ── Email & webhooks ──
+  // Outbound email (password resets, invitations, watch notifications):
+  // "email.address": "sourcegull@example.com",
+  // "email.smtp": { "host": "smtp.example.com", "port": 587, "username": "sourcegull", "password": "<password>", "authentication": "PLAIN" },
+
+  // ── Observability & logs ──
+  "log": { "securityEventLog": { "location": "database" } },
+
+  // Log searches slower than this many milliseconds (site admin > Slow requests):
+  // "observability.logSlowSearches": 5000,
+}

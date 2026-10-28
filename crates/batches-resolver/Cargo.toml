@@ -1,0 +1,42 @@
+[package]
+name = "sourcegull-batches-resolver"
+description = "Batch Changes workspace resolution: `on` queries, branches, workspaces, skips and cache hits, run by the worker."
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+publish = false
+
+[lints]
+workspace = true
+
+[dependencies]
+sourcegull-feature = { workspace = true }
+anyhow = { workspace = true }
+sourcegull-authn = { workspace = true }
+sourcegull-authz = { workspace = true }
+sourcegull-batches = { workspace = true, features = ["store"] }
+sourcegull-batches-template = { workspace = true }
+sourcegull-config = { workspace = true }
+sourcegull-db = { workspace = true }
+sourcegull-search-web = { workspace = true }
+sourcegull-services = { workspace = true }
+sourcegull-pgqueue = { workspace = true }
+sourcegull-rpc = { workspace = true }
+sourcegull-search = { workspace = true }
+sourcegull-types = { workspace = true }
+async-trait = { workspace = true }
+futures = { workspace = true }
+moka = { workspace = true }
+regex = { workspace = true }
+serde_json = { workspace = true }
+thiserror = { workspace = true }
+tokio = { workspace = true }
+tracing = { workspace = true }
+
+[dev-dependencies]
+chrono = { workspace = true }
+sourcegull-gitstore = { workspace = true }
+sourcegull-query = { workspace = true }
+sourcegull-testutil = { workspace = true, features = ["git"] }
+tokio-util = { workspace = true }

@@ -1,0 +1,4 @@
+name: workspace-required
+workspaces:
+  - in: "*"
+    onlyFetchWorkspace: "yes"

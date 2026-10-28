@@ -1,0 +1,34 @@
+[package]
+name = "sourcegull-declarative"
+description = "Configuration as code: applies the resources and global settings files to the database."
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+publish = false
+
+[lints]
+workspace = true
+
+[dependencies]
+sourcegull-config = { workspace = true }
+sourcegull-codeintel-policies = { workspace = true }
+sourcegull-crypto = { workspace = true }
+sourcegull-db = { workspace = true }
+sourcegull-executor-api = { workspace = true }
+sourcegull-outbound-webhooks = { workspace = true }
+sourcegull-repos = { workspace = true }
+sourcegull-search = { workspace = true }
+sourcegull-types = { workspace = true }
+metrics = { workspace = true }
+serde_json = { workspace = true }
+sha2 = { workspace = true }
+sqlx = { workspace = true }
+thiserror = { workspace = true }
+tokio = { workspace = true }
+tokio-util = { workspace = true }
+tracing = { workspace = true }
+
+[dev-dependencies]
+sourcegull-codehost-gitlab = { workspace = true, features = ["testing"] }
+sourcegull-testutil = { workspace = true }

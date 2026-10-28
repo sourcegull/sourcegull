@@ -1,0 +1,15 @@
+name: published-rules
+steps:
+  - run: echo
+    container: alpine:3
+changesetTemplate:
+  title: t
+  branch: b
+  commit:
+    message: m
+  published:
+    - "*": true
+    - gitlab.example.com/a/*: maybe
+    - {}
+    - a: true
+      b: false

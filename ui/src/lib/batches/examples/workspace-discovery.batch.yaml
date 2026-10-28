@@ -1,0 +1,36 @@
+name: monorepo-workspaces
+description: One changeset per Go module and per npm package of a monorepo.
+
+on:
+  - repository: gitlab.example.com/acme/monorepo
+
+# Each directory holding a go.mod or a package.json becomes its own workspace.
+workspaces:
+  - rootAtLocationOf: go.mod
+    in: gitlab.example.com/acme/monorepo
+  - rootAtLocationOf: package.json
+    in: gitlab.example.com/acme/monorepo
+    onlyFetchWorkspace: true
+
+steps:
+  - run: echo "Checked $(pwd)" >> CHECKED.md
+    container: alpine:3
+  - run: if [ -f package.json ]; then jq -j .name package.json; fi
+    container: ghcr.io/jqlang/jq:1.7.1
+    outputs:
+      projectName:
+        value: ${{ step.stdout }}
+
+changesetTemplate:
+  title: Check ${{ steps.path }}
+  body: Adds CHECKED.md to the workspace at `${{ steps.path }}`.
+  # The npm package name when there is one, else the workspace path.
+  branch: |
+    ${{ if eq outputs.projectName "" }}
+    ${{ join_if "-" "batch/check" (replace steps.path "/" "-") }}
+    ${{ else }}
+    batch/check-${{ outputs.projectName }}
+    ${{ end }}
+  commit:
+    message: Add CHECKED.md
+  published: false

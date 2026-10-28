@@ -1,0 +1,139 @@
+{{- /*
+Monitoring with the Prometheus Operator and the Grafana dashboard sidecar. The rules
+and dashboards are generated from crates/monitoring into files/monitoring/ (see
+docs/observability/). All of it is off by default (`metrics.*`).
+*/ -}}
+{{- $m := .Values.metrics -}}
+{{- /* The blob port also serves the unauthenticated blob API: scrape it only where Prometheus may reach it. */ -}}
+{{- $scrapeBlob := and (eq .Values.blobstore.mode "builtin") (or (not .Values.networkPolicy.enabled) $m.blobScrapeFrom) -}}
+{{- if $m.serviceMonitor.enabled }}
+{{- $sm := $m.serviceMonitor }}
+# The worker pods have no Service of their own; this headless one gives the ServiceMonitor their
+# metrics endpoints.
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ include "sourcegull.componentName" (dict "root" . "component" "worker-metrics") }}
+  labels:
+    {{- include "sourcegull.componentLabels" (dict "root" . "component" "worker") | nindent 4 }}
+  {{- with (include "sourcegull.annotations" (dict "root" .) | trim) }}{{ . | nindent 2 }}{{ end }}
+spec:
+  clusterIP: None
+  selector:
+    {{- include "sourcegull.selectorLabels" (dict "root" . "component" "worker") | nindent 4 }}
+  ports:
+    - name: internal
+      port: 6060
+      targetPort: internal
+      protocol: TCP
+---
+apiVersion: monitoring.coreos.com/v1
+kind: ServiceMonitor
+metadata:
+  name: {{ include "sourcegull.fullname" . }}
+  namespace: {{ default .Release.Namespace $sm.namespace }}
+  labels:
+    {{- include "sourcegull.componentLabels" (dict "root" . "component" "monitoring") | nindent 4 }}
+    {{- with $sm.labels }}
+    {{- toYaml . | nindent 4 }}
+    {{- end }}
+  {{- with (include "sourcegull.annotations" (dict "root" . "extra" $sm.annotations) | trim) }}{{ . | nindent 2 }}{{ end }}
+spec:
+  {{- with $sm.jobLabel }}
+  jobLabel: {{ . }}
+  {{- end }}
+  namespaceSelector:
+    matchNames: [{{ .Release.Namespace | quote }}]
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: {{ include "sourcegull.name" . }}
+      app.kubernetes.io/instance: {{ .Release.Name }}
+    matchExpressions:
+      - key: app.kubernetes.io/component
+        operator: In
+        values: [web, worker, repo{{ if $scrapeBlob }}, blob{{ end }}]
+  endpoints:
+    - port: internal
+      path: /metrics
+      {{- with $sm.interval }}
+      interval: {{ . }}
+      {{- end }}
+      {{- with $sm.scrapeTimeout }}
+      scrapeTimeout: {{ . }}
+      {{- end }}
+      {{- if $sm.honorLabels }}
+      honorLabels: true
+      {{- end }}
+      relabelings:
+        # The dashboards and alerts select by `role`.
+        - sourceLabels: [__meta_kubernetes_service_label_app_kubernetes_io_component]
+          targetLabel: role
+        - sourceLabels: [__meta_kubernetes_pod_name]
+          targetLabel: pod
+        {{- with $sm.relabelings }}
+        {{- toYaml . | nindent 8 }}
+        {{- end }}
+      {{- with $sm.metricRelabelings }}
+      metricRelabelings:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+{{- if and $scrapeBlob .Values.networkPolicy.enabled }}
+---
+# Lets the peers in metrics.blobScrapeFrom reach the blob pods' internal port (metrics and the
+# blob API); network policies add up, so the blob policy's other peers keep their access.
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: {{ include "sourcegull.componentName" (dict "root" . "component" "blob-metrics") }}
+  labels:
+    {{- include "sourcegull.componentLabels" (dict "root" . "component" "blob") | nindent 4 }}
+  {{- with (include "sourcegull.annotations" (dict "root" .) | trim) }}{{ . | nindent 2 }}{{ end }}
+spec:
+  podSelector:
+    matchLabels:
+      {{- include "sourcegull.selectorLabels" (dict "root" . "component" "blob") | nindent 6 }}
+  policyTypes: [Ingress]
+  ingress:
+    - from:
+        {{- toYaml $m.blobScrapeFrom | nindent 8 }}
+      ports:
+        - port: internal
+          protocol: TCP
+{{- end }}
+{{- end }}
+{{- if $m.prometheusRule.enabled }}
+---
+apiVersion: monitoring.coreos.com/v1
+kind: PrometheusRule
+metadata:
+  name: {{ include "sourcegull.fullname" . }}
+  namespace: {{ default .Release.Namespace $m.prometheusRule.namespace }}
+  labels:
+    {{- include "sourcegull.componentLabels" (dict "root" . "component" "monitoring") | nindent 4 }}
+    {{- with $m.prometheusRule.labels }}
+    {{- toYaml . | nindent 4 }}
+    {{- end }}
+  {{- with (include "sourcegull.annotations" (dict "root" . "extra" $m.prometheusRule.annotations) | trim) }}{{ . | nindent 2 }}{{ end }}
+spec:
+  {{- .Files.Get "files/monitoring/sourcegull-alerts.yml" | fromYaml | toYaml | nindent 2 }}
+{{- end }}
+{{- if $m.grafanaDashboards.enabled }}
+{{- $gd := $m.grafanaDashboards }}
+{{- range $path, $_ := .Files.Glob "files/monitoring/dashboards/*.json" }}
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: {{ include "sourcegull.componentName" (dict "root" $ "component" (printf "dashboard-%s" (base $path | trimSuffix ".json" | trimPrefix "sourcegull-"))) }}
+  namespace: {{ default $.Release.Namespace $gd.namespace }}
+  labels:
+    {{- include "sourcegull.componentLabels" (dict "root" $ "component" "monitoring") | nindent 4 }}
+    {{- with $gd.labels }}
+    {{- toYaml . | nindent 4 }}
+    {{- end }}
+  {{- with (include "sourcegull.annotations" (dict "root" $ "extra" $gd.annotations) | trim) }}{{ . | nindent 2 }}{{ end }}
+data:
+  {{ base $path }}: |-
+    {{- $.Files.Get $path | nindent 4 }}
+{{- end }}
+{{- end }}

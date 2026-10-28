@@ -1,0 +1,23 @@
+name: eslint-fix
+description: Run `eslint --fix` in repositories with an ESLint configuration.
+
+on:
+  - repositoriesMatchingQuery: file:(^|/)\.eslintrc(\.js|\.json|\.cjs)?$ OR file:(^|/)eslint\.config\.(js|mjs|cjs)$
+
+steps:
+  # Use the repository's package manager; keep going when ESLint reports errors it cannot fix.
+  - run: |
+      if [ -f yarn.lock ]; then
+        yarn install --frozen-lockfile && (yarn eslint --fix . || true)
+      else
+        npm ci && (npx eslint --fix . || true)
+      fi
+    container: node:22
+
+changesetTemplate:
+  title: Apply eslint --fix
+  body: Fixes the lint errors that `eslint --fix` can fix on its own.
+  branch: batch/eslint-fix
+  commit:
+    message: Apply eslint --fix
+  published: false

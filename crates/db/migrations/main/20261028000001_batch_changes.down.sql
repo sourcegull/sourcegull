@@ -1,0 +1,18 @@
+DROP TABLE site_credentials;
+DROP TABLE user_credentials;
+DROP TABLE changeset_jobs;
+DROP TABLE changeset_events;
+DROP TRIGGER batch_changes_delete_changeset_refs ON batch_changes;
+DROP FUNCTION batch_changes_delete_changeset_refs();
+DROP TABLE changesets;
+DROP FUNCTION changeset_computed_state(text, integer, text, text);
+DROP TABLE changeset_specs;
+DROP TABLE batch_spec_execution_cache_entries;
+DROP TABLE batch_spec_workspace_execution_last_dequeues;
+DROP TABLE batch_spec_workspace_execution_jobs;
+DROP FUNCTION batch_spec_workspace_execution_last_dequeue();
+DROP TABLE batch_spec_workspaces;
+DROP TABLE batch_spec_resolution_jobs;
+ALTER TABLE batch_specs DROP CONSTRAINT batch_specs_batch_change_id_fkey;
+DROP TABLE batch_changes;
+DROP TABLE batch_specs;

@@ -1,0 +1,42 @@
+[package]
+name = "sourcegull-outbound-webhooks"
+description = "Outbound webhooks: event types and payloads, enqueueing, the signed delivery worker with its SSRF guard, and the log janitor."
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+publish = false
+
+[lints]
+workspace = true
+
+[dependencies]
+sourcegull-feature = { workspace = true }
+anyhow = { workspace = true }
+sourcegull-config = { workspace = true }
+sourcegull-crypto = { workspace = true }
+sourcegull-db = { workspace = true }
+sourcegull-services = { workspace = true }
+sourcegull-pgqueue = { workspace = true }
+sourcegull-types = { workspace = true }
+async-trait = { workspace = true }
+chrono = { workspace = true }
+hex = { workspace = true }
+hmac = { workspace = true }
+ipnet = { workspace = true }
+metrics = { workspace = true }
+reqwest = { workspace = true }
+serde = { workspace = true }
+serde_json = { workspace = true }
+sha2 = { workspace = true }
+sqlx = { workspace = true }
+thiserror = { workspace = true }
+tokio = { workspace = true }
+tokio-util = { workspace = true }
+tracing = { workspace = true }
+url = { workspace = true }
+sourcegull-batches = { workspace = true, features = ["store"] }
+
+[dev-dependencies]
+sourcegull-testutil = { workspace = true }
+wiremock = { workspace = true }

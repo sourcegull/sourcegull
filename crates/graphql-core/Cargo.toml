@@ -1,0 +1,31 @@
+[package]
+name = "sourcegull-graphql-core"
+description = "What the GraphQL schema assembly and the GraphQL domain crates share: the request context and error codes, pagination, node IDs, the node loader registry and late-bound references to the shared object types."
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+publish = false
+
+[lints]
+workspace = true
+
+[dependencies]
+sourcegull-analytics = { workspace = true }
+sourcegull-authn = { workspace = true }
+sourcegull-authz = { workspace = true }
+sourcegull-config = { workspace = true }
+sourcegull-crypto = { workspace = true }
+sourcegull-db = { workspace = true }
+sourcegull-pgqueue = { workspace = true }
+sourcegull-query = { workspace = true }
+sourcegull-repos = { workspace = true }
+sourcegull-rpc = { workspace = true }
+sourcegull-services = { workspace = true }
+sourcegull-types = { workspace = true }
+async-graphql = { workspace = true }
+chrono = { workspace = true }
+serde_json = { workspace = true }
+tokio = { workspace = true }
+tracing = { workspace = true }
+url = { workspace = true }

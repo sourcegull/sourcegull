@@ -1,0 +1,31 @@
+name: bump-chart-version
+description: Bumps the chart version on maintained branches.
+
+on:
+  - repositoriesMatchingQuery: file:Chart.yaml
+  - repository: gitlab.example.com/acme/charts
+    branches:
+      - main
+      - release-1.x
+  - repository: gitlab.example.com/acme/infra
+    branch: stable
+
+steps:
+  - run: |
+      sed -i -E 's/^version: (.*)$/version: \1-1/' Chart.yaml
+    container: alpine:3
+    outputs:
+      chart:
+        value: ${{ step.stdout }}
+        format: text
+
+changesetTemplate:
+  title: Bump chart version on ${{ repository.branch }}
+  body: Bumps the chart version.
+  branch: batch/bump-chart-${{ repository.branch }}
+  fork: true
+  commit:
+    message: Bump chart version
+  published:
+    - "*": draft
+    - gitlab.example.com/acme/charts@batch/bump-chart-main: true

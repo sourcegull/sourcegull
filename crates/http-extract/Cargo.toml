@@ -1,0 +1,17 @@
+[package]
+name = "sourcegull-http-extract"
+description = "Handler-side HTTP pieces shared by the crates that add routes: caller extractors, JSON error responses, the session cookie and CSRF header names."
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+publish = false
+
+[lints]
+workspace = true
+
+[dependencies]
+sourcegull-authn = { workspace = true }
+axum = { workspace = true }
+serde_json = { workspace = true }
+tracing = { workspace = true }

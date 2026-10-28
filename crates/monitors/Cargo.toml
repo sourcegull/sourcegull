@@ -1,0 +1,53 @@
+[package]
+name = "sourcegull-monitors"
+description = "Code monitors: the store, the event-driven evaluator of type:commit/type:diff queries over pushed commit ranges, and the email, webhook, Slack webhook, Mattermost webhook and Telegram actions."
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+publish = false
+autotests = false
+
+[lints]
+workspace = true
+
+[[test]]
+name = "integration"
+path = "tests/main.rs"
+
+[dependencies]
+sourcegull-feature = { workspace = true }
+anyhow = { workspace = true }
+sourcegull-pubsub = { workspace = true }
+sourcegull-authn = { workspace = true }
+sourcegull-authz = { workspace = true }
+sourcegull-config = { workspace = true }
+sourcegull-crypto = { workspace = true }
+sourcegull-db = { workspace = true }
+sourcegull-search-web = { workspace = true }
+sourcegull-services = { workspace = true }
+sourcegull-outbound-webhooks = { workspace = true }
+sourcegull-pgqueue = { workspace = true }
+sourcegull-query = { workspace = true }
+sourcegull-rpc = { workspace = true }
+sourcegull-search = { workspace = true }
+sourcegull-search-client = { workspace = true }
+sourcegull-types = { workspace = true }
+async-trait = { workspace = true }
+chrono = { workspace = true }
+metrics = { workspace = true }
+reqwest = { workspace = true }
+serde = { workspace = true }
+serde_json = { workspace = true }
+sqlx = { workspace = true }
+thiserror = { workspace = true }
+tokio = { workspace = true }
+tokio-util = { workspace = true }
+tracing = { workspace = true }
+url = { workspace = true }
+
+[dev-dependencies]
+roaring = { workspace = true }
+sourcegull-testutil = { workspace = true, features = ["git"] }
+sourcegull-gitstore = { workspace = true }
+wiremock = { workspace = true }

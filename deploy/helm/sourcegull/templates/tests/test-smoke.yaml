@@ -1,0 +1,114 @@
+{{- /*
+`helm test` smoke test beyond readyz, on when tests.smoke.enabled: signs in with the test
+account (signing it up first when tests.smoke.signUp allows), then runs a GraphQL query and a
+streaming search with the session cookie. The cookie is passed by hand: it is `Secure` when
+externalURL is https, and the test talks plain HTTP to the web Service.
+*/ -}}
+{{- if .Values.tests.smoke.enabled }}
+{{- $smoke := .Values.tests.smoke }}
+{{- $credentials := default (include "sourcegull.componentName" (dict "root" . "component" "test-credentials")) $smoke.credentialsSecret }}
+{{- if not $smoke.credentialsSecret }}
+apiVersion: v1
+kind: Secret
+metadata:
+  name: {{ $credentials }}
+  labels:
+    {{- include "sourcegull.componentLabels" (dict "root" . "component" "test") | nindent 4 }}
+type: Opaque
+data:
+  username: {{ $smoke.username | b64enc }}
+  password: {{ include "sourcegull.secretValue" (dict "root" . "name" $credentials "key" "password" "generate" (randAlphaNum 24)) }}
+---
+{{- end }}
+apiVersion: v1
+kind: Pod
+metadata:
+  name: {{ include "sourcegull.componentName" (dict "root" . "component" "test-smoke") }}
+  labels:
+    {{- include "sourcegull.componentLabels" (dict "root" . "component" "test") | nindent 4 }}
+  annotations:
+    {{- with .Values.commonAnnotations }}
+    {{- include "sourcegull.tplvalues.render" (dict "value" . "context" $) | nindent 4 }}
+    {{- end }}
+    helm.sh/hook: test
+    # The readyz test (weight 0) runs first.
+    helm.sh/hook-weight: "10"
+    helm.sh/hook-delete-policy: before-hook-creation,hook-succeeded
+spec:
+  restartPolicy: Never
+  automountServiceAccountToken: false
+  {{- with (include "sourcegull.imagePullSecrets" (dict "root" . "images" (list)) | trim) }}{{ . | nindent 2 }}{{ end }}
+  securityContext:
+    runAsNonRoot: true
+    runAsUser: 65534
+    runAsGroup: 65534
+    seccompProfile:
+      type: RuntimeDefault
+  containers:
+    - name: smoke
+      image: {{ include "sourcegull.image" (dict "root" . "image" $smoke.image "defaultTag" "8.11.1") }}
+      imagePullPolicy: {{ $smoke.image.pullPolicy }}
+      env:
+        - name: BASE
+          value: {{ printf "http://%s:%d" (include "sourcegull.componentName" (dict "root" . "component" "web")) (int .Values.web.service.ports.http) | quote }}
+        - name: SOURCEGULL_USER
+          valueFrom:
+            secretKeyRef:
+              name: {{ $credentials }}
+              key: username
+        - name: SOURCEGULL_PASSWORD
+          valueFrom:
+            secretKeyRef:
+              name: {{ $credentials }}
+              key: password
+        - name: SIGN_UP
+          value: {{ $smoke.signUp | quote }}
+        - name: SEARCH_QUERY
+          value: {{ $smoke.searchQuery | quote }}
+      command:
+        - sh
+        - -c
+        - |
+          set -eu
+          cd /tmp
+          json() { printf '{"username":"%s","password":"%s"%s}' "$SOURCEGULL_USER" "$SOURCEGULL_PASSWORD" "${1:-}"; }
+          post() { curl -sS -o body -D headers -w '%{http_code}' -H 'Content-Type: application/json' -H 'X-Requested-With: Sourcegull' --data "$2" "$BASE$1"; }
+          echo "== sign in as $SOURCEGULL_USER"
+          code=$(post /-/sign-in "$(json)")
+          if [ "$code" != 200 ] && [ "$SIGN_UP" = true ]; then
+            echo "sign-in returned $code; signing up $SOURCEGULL_USER"
+            code=$(post /-/sign-up "$(json ",\"email\":\"$SOURCEGULL_USER@example.com\"")")
+          fi
+          if [ "$code" != 200 ]; then echo "FAIL: sign-in returned $code: $(cat body)"; exit 1; fi
+          session=$(sed -n 's/^[Ss]et-[Cc]ookie: *\(sourcegull_session=[^;]*\).*/\1/p' headers | tr -d '\r' | head -n 1)
+          if [ -z "$session" ]; then echo "FAIL: no session cookie"; cat headers; exit 1; fi
+          echo "OK: signed in"
+          echo "== GraphQL"
+          code=$(curl -sS -o body -w '%{http_code}' -H "Cookie: $session" -H 'X-Requested-With: Sourcegull' \
+            -H 'Content-Type: application/json' --data '{"query":"query { currentUser { username } site { productVersion } }"}' \
+            "$BASE/.api/graphql")
+          cat body; echo
+          if [ "$code" != 200 ] || ! grep -q "\"username\":\"$SOURCEGULL_USER\"" body; then echo "FAIL: GraphQL returned $code"; exit 1; fi
+          echo "OK: GraphQL"
+          echo "== search: $SEARCH_QUERY"
+          code=$(curl -sS -o body -w '%{http_code}' --max-time 60 -H "Cookie: $session" -H 'Accept: text/event-stream' \
+            -G --data-urlencode "q=$SEARCH_QUERY" --data-urlencode 't=keyword' "$BASE/.api/search/stream")
+          head -c 2000 body; echo
+          if [ "$code" != 200 ] || ! grep -q '^event: done' body; then echo "FAIL: search returned $code without a done event"; exit 1; fi
+          if grep -q '^event: error' body; then echo "FAIL: search streamed an error"; exit 1; fi
+          echo "OK: search"
+      securityContext:
+        allowPrivilegeEscalation: false
+        readOnlyRootFilesystem: true
+        capabilities:
+          drop: [ALL]
+      resources:
+        requests: { cpu: 10m, memory: 16Mi }
+        limits: { memory: 64Mi }
+      volumeMounts:
+        - name: tmp
+          mountPath: /tmp
+  volumes:
+    - name: tmp
+      emptyDir: {}
+{{- end }}

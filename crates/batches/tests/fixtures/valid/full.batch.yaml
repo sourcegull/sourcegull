@@ -1,0 +1,67 @@
+# Every field of the format.
+version: 2
+name: update-go-deps.v2
+description: |
+  Bumps dependencies in every Go module.
+on:
+  - repositoriesMatchingQuery: file:go.mod lang:go
+  - repository: gitlab.example.com/platform/api
+    branch: release-1.2
+  - repository: gitlab.example.com/platform/web
+    branches: [main, next]
+workspaces:
+  - rootAtLocationOf: go.mod
+    in: gitlab.example.com/platform/*
+    onlyFetchWorkspace: true
+steps:
+  - run: go get -u ./... && go mod tidy
+    container: golang:1.22
+    env:
+      GOFLAGS: -mod=mod
+      GOPROXY: https://proxy.golang.org
+    outputs:
+      modFiles:
+        value: ${{ join steps.modified_files " " }}
+      report:
+        value: ${{ step.stdout }}
+        format: json
+  - run: cat /tmp/script.sh | sh
+    container: alpine:3
+    if: ${{ matches repository.name "gitlab.example.com/platform/*" }}
+    env:
+      - GITLAB_TOKEN
+      - LEVEL: debug
+    files:
+      /tmp/script.sh: |
+        echo ${{ outputs.modFiles }}
+    mount:
+      - path: ./scripts
+        mountpoint: /scripts
+  - run: echo done
+    container: alpine:3
+    if: false
+transformChanges:
+  group:
+    - directory: tools
+      branch: update-go-deps-tools
+    - directory: api/v2
+      branch: update-go-deps-api-v2
+      repository: gitlab.example.com/platform/api
+importChangesets:
+  - repository: gitlab.example.com/platform/infra
+    externalIDs: [12, "13"]
+changesetTemplate:
+  title: Update Go dependencies
+  body: Ran `go get -u` in ${{ steps.path }}.
+  branch: update-go-deps
+  fork: false
+  commit:
+    message: Update Go dependencies
+    author:
+      name: Batch Bot
+      email: batch-bot@example.com
+  published:
+    - "*": false
+    - gitlab.example.com/platform/*: draft
+    - gitlab.example.com/platform/api: true
+    - gitlab.example.com/platform/web@update-go-deps-tools: true

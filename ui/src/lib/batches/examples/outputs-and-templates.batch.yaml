@@ -1,0 +1,32 @@
+name: step-outputs
+description: Capture step output as text and as YAML, then use it in the changeset template.
+
+on:
+  - repository: gitlab.example.com/acme/cli
+
+steps:
+  - run: git log -1 --format=%an
+    container: alpine/git:2.45.2
+    outputs:
+      lastAuthor:
+        value: ${{ step.stdout }}
+  - run: cat .gitlab-ci.yml 2>/dev/null || echo "{}"
+    container: alpine:3
+    outputs:
+      ci:
+        # Parsed as YAML, so its fields can be read in templates.
+        value: ${{ step.stdout }}
+        format: yaml
+
+changesetTemplate:
+  title: Review the CI stages (last commit by ${{ outputs.lastAuthor }})
+  body: |
+    The pipeline defines these stages:
+
+    ${{ range $stage := outputs.ci.stages }}
+    - `${{ $stage }}`
+    ${{ end }}
+  branch: batch/ci-review
+  commit:
+    message: Review the CI stages
+  published: draft

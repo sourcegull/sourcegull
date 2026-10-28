@@ -1,0 +1,52 @@
+[package]
+name = "sourcegull-own"
+description = "Code Ownership: the GitLab CODEOWNERS parser and matcher, owner filters for search, (feature `store`) teams, ingested CODEOWNERS files, assigned owners, owner resolution, signals and analytics, (feature `teamsync`) teams synced from GitLab groups, and (feature `jobs`) the background indexers and team sync."
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+publish = false
+autotests = false
+
+[lints]
+workspace = true
+
+[features]
+default = ["store"]
+# The Postgres tables and owner resolution. Repo nodes use the parser and matcher only.
+store = ["dep:sourcegull-authn", "dep:sourcegull-db", "dep:sourcegull-types", "dep:sqlx", "dep:chrono", "dep:serde_json"]
+# Teams synced from GitLab groups (`own.syncTeamsFromGitLabGroups`).
+teamsync = ["store", "dep:sourcegull-codehost", "dep:sourcegull-crypto", "dep:sourcegull-repos"]
+# The background indexers of the signals and analytics and the team sync (the `worker` role).
+jobs = ["store", "teamsync", "dep:sourcegull-feature", "dep:anyhow", "dep:sourcegull-config", "dep:sourcegull-rpc", "dep:sourcegull-pgqueue", "dep:async-trait", "dep:tokio", "dep:tokio-util", "dep:tracing"]
+
+[[test]]
+name = "integration"
+path = "tests/main.rs"
+
+[dependencies]
+sourcegull-feature = { workspace = true, optional = true }
+anyhow = { workspace = true, optional = true }
+globset = { workspace = true }
+moka = { workspace = true, features = ["sync"] }
+thiserror = { workspace = true }
+sourcegull-authn = { workspace = true, optional = true }
+sourcegull-db = { workspace = true, optional = true }
+sourcegull-types = { workspace = true, optional = true }
+sqlx = { workspace = true, optional = true }
+chrono = { workspace = true, optional = true }
+serde_json = { workspace = true, optional = true }
+sourcegull-rpc = { workspace = true, optional = true }
+sourcegull-codehost = { workspace = true, optional = true }
+sourcegull-config = { workspace = true, optional = true }
+sourcegull-crypto = { workspace = true, optional = true }
+sourcegull-repos = { workspace = true, optional = true }
+sourcegull-pgqueue = { workspace = true, optional = true }
+async-trait = { workspace = true, optional = true }
+tokio = { workspace = true, optional = true }
+tokio-util = { workspace = true, optional = true }
+tracing = { workspace = true, optional = true }
+
+[dev-dependencies]
+sourcegull-testutil = { workspace = true }
+tokio = { workspace = true }

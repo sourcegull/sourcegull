@@ -1,0 +1,24 @@
+[package]
+name = "sourcegull-ratelimit"
+description = "Code host request budgets and per-key request limits, shared by every process through Postgres."
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+publish = false
+
+[lints]
+workspace = true
+
+[dependencies]
+sourcegull-codehost = { workspace = true }
+async-trait = { workspace = true }
+chrono = { workspace = true }
+sqlx = { workspace = true }
+tokio = { workspace = true }
+tracing = { workspace = true }
+
+[dev-dependencies]
+sourcegull-db = { workspace = true }
+sourcegull-testutil = { workspace = true }
+tokio = { workspace = true, features = ["test-util"] }

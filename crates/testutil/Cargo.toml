@@ -1,0 +1,28 @@
+[package]
+name = "sourcegull-testutil"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+publish = false
+
+[lints]
+workspace = true
+
+[features]
+## Git fixtures and an in-process repo node (`git` module).
+git = ["dep:sourcegull-gitstore", "dep:sourcegull-search-exec", "dep:sourcegull-rpc", "dep:sourcegull-types", "dep:tonic", "dep:tempfile"]
+
+[dependencies]
+sqlx = { workspace = true }
+uuid = { workspace = true }
+tokio = { workspace = true }
+sourcegull-gitstore = { workspace = true, optional = true }
+sourcegull-rpc = { workspace = true, optional = true }
+sourcegull-search-exec = { workspace = true, optional = true }
+sourcegull-types = { workspace = true, optional = true }
+tonic = { version = "0.14", optional = true }
+tempfile = { version = "3", optional = true }
+
+[dev-dependencies]
+tokio = { workspace = true }

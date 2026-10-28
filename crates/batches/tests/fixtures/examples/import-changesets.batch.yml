@@ -1,0 +1,10 @@
+name: track-release-blockers
+description: Tracks merge requests that block the next release.
+
+importChangesets:
+  - repository: gitlab.example.com/acme/api
+    externalIDs: [101, 102]
+  - repository: gitlab.example.com/acme/web
+    externalIDs:
+      - "77"
+      - 78

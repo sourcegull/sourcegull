@@ -1,0 +1,5 @@
+name: branches
+on:
+  - repository: gitlab.example.com/a/b
+    branch: main
+    branches: [next]

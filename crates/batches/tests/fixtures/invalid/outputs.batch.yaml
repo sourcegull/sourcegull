@@ -1,0 +1,15 @@
+name: outputs
+steps:
+  - run: echo
+    container: alpine:3
+    outputs:
+      a:
+        format: xml
+        value: x
+      b:
+        format: json
+changesetTemplate:
+  title: t
+  branch: b
+  commit:
+    message: m

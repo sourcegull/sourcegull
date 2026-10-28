@@ -1,0 +1,2 @@
+DROP INDEX codeintel_index_jobs_repo_latest_idx;
+DROP INDEX codeintel_uploads_repo_latest_idx;

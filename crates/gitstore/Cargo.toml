@@ -1,0 +1,39 @@
+[package]
+name = "sourcegull-gitstore"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+publish = false
+autotests = false
+
+[lints]
+workspace = true
+
+[[test]]
+name = "integration"
+path = "tests/main.rs"
+
+[dependencies]
+sourcegull-types = { workspace = true }
+sourcegull-rpc = { workspace = true }
+gix = { version = "0.89", default-features = false, features = ["revision", "blob-diff", "blame", "max-performance-safe", "sha1"] }
+tokio = { workspace = true }
+tokio-util = { workspace = true }
+tokio-stream = "0.1"
+futures = { workspace = true }
+thiserror = { workspace = true }
+tracing = { workspace = true }
+chrono = { workspace = true }
+moka = { workspace = true, features = ["sync"] }
+tonic = "0.14"
+bytes = "1"
+regex = "1"
+tempfile = "3"
+crc32fast = "1"
+sha2 = { workspace = true }
+memmap2 = "0.9"
+rustix = { version = "1", features = ["fs", "process"] }
+
+[dev-dependencies]
+tokio-stream = { version = "0.1", features = ["net"] }

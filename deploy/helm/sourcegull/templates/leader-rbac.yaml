@@ -1,0 +1,37 @@
+{{- /*
+Leader election: with `leader.backend: kubernetes`, worker pods hold one
+coordination.k8s.io Lease per singleton task in the release namespace. They create the
+objects on first use and get/update them afterwards; nothing else in the API is reachable.
+*/ -}}
+{{- if eq .Values.leader.backend "kubernetes" }}
+{{- $name := printf "%s-leader" (include "sourcegull.fullname" .) }}
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  name: {{ $name }}
+  namespace: {{ .Release.Namespace }}
+  labels:
+    {{- include "sourcegull.labels" . | nindent 4 }}
+  {{- with (include "sourcegull.annotations" (dict "root" $) | trim) }}{{ . | nindent 2 }}{{ end }}
+rules:
+  - apiGroups: [coordination.k8s.io]
+    resources: [leases]
+    verbs: [create, get, update]
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: {{ $name }}
+  namespace: {{ .Release.Namespace }}
+  labels:
+    {{- include "sourcegull.labels" . | nindent 4 }}
+  {{- with (include "sourcegull.annotations" (dict "root" $) | trim) }}{{ . | nindent 2 }}{{ end }}
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: Role
+  name: {{ $name }}
+subjects:
+  - kind: ServiceAccount
+    name: {{ include "sourcegull.serviceAccountName" . }}
+    namespace: {{ .Release.Namespace }}
+{{- end }}

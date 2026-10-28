@@ -1,0 +1,44 @@
+[package]
+name = "sourcegull-codeintel-scip"
+description = "Precise code intelligence: SCIP upload processing into code graph files."
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+publish = false
+
+[lints]
+workspace = true
+
+[dependencies]
+sourcegull-feature = { workspace = true }
+anyhow = { workspace = true }
+sourcegull-blobstore = { workspace = true }
+sourcegull-db = { workspace = true }
+sourcegull-pgqueue = { workspace = true }
+sourcegull-rpc = { workspace = true }
+sourcegull-types = { workspace = true }
+chrono = { workspace = true }
+async-trait = { workspace = true }
+crc32fast = "1"
+flate2 = "1"
+fst = "0.4"
+futures = { workspace = true }
+lz4_flex = { version = "0.14", default-features = false, features = ["std", "safe-encode", "safe-decode", "checked-decode"] }
+memmap2 = "0.9"
+metrics = { workspace = true }
+moka = { workspace = true }
+prost = "0.14"
+sha2 = { workspace = true }
+tempfile = "3"
+thiserror = { workspace = true }
+tokio = { workspace = true }
+tokio-util = { workspace = true, features = ["io"] }
+tracing = { workspace = true }
+sqlx = { workspace = true }
+serde = { workspace = true }
+
+[dev-dependencies]
+bytes = "1"
+sourcegull-testutil = { workspace = true }
+proptest = "1"

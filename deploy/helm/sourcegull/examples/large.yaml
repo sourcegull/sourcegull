@@ -1,0 +1,58 @@
+# Sizing preset "large" (SIZING.md): up to ~50,000 repositories, ~2 TB of mirrored repositories
+# (~400 GB of indexed source), up to ~1,000 concurrent searchers. Six repo nodes, an external
+# PostgreSQL, an S3-compatible blob store, workers autoscaled by KEDA, executors.
+# Every number is an estimate from the sizing rules in SIZING.md, not a measurement.
+#
+# Needs: Secret sourcegull-secrets (database-url, encryption-keys), Secret sourcegull-s3 (S3 keys), KEDA,
+# and a PostgreSQL 18 server with ~16 vCPU / 64 GiB and fast disks.
+#   helm install sourcegull deploy/helm/sourcegull -f deploy/helm/sourcegull/examples/large.yaml \
+#     --set externalURL=https://sourcegull.example.com
+existingSecret: sourcegull-secrets
+web:
+  autoscaling:
+    hpa: { enabled: true, minReplicas: 4, maxReplicas: 20 }
+  resources:
+    requests: { cpu: "2", memory: 2Gi }
+    limits: { memory: 4Gi }
+worker:
+  resources:
+    requests: { cpu: "1", memory: 1Gi }
+    limits: { memory: 4Gi }
+  autoscaling:
+    keda: { enabled: true, minReplicas: 3, maxReplicas: 20, targetJobsPerReplica: 25 }
+    # To scale on the sourcegull_queue_jobs gauge in Prometheus instead of a query on the database:
+    #   keda: { ..., trigger: prometheus,
+    #           prometheus: { serverAddress: "http://prometheus-operated.monitoring.svc:9090" } }
+repo:
+  replicaCount: 6
+  # ~340 GB of repositories per node x 1.5, with headroom.
+  persistence: { size: 600Gi }
+  resources:
+    # ~67 GB of indexed source per node: 0.5 x 67 GB + 2 GiB.
+    requests: { cpu: "8", memory: 36Gi }
+    limits: { memory: 48Gi }
+  topologySpreadConstraints:
+    - maxSkew: 1
+      topologyKey: kubernetes.io/hostname
+      whenUnsatisfiable: DoNotSchedule
+      labelSelector:
+        matchLabels: { app.kubernetes.io/name: sourcegull, app.kubernetes.io/component: repo }
+blobstore:
+  mode: s3
+  s3:
+    bucket: sourcegull
+    endpoint: https://s3.example.com
+    existingSecret: sourcegull-s3
+postgresql:
+  mode: external
+executor:
+  enabled: true
+  replicaCount: 2
+  maxConcurrentJobs: 8
+  jobs:
+    namespace: sourcegull-executors
+    resources:
+      requests: { cpu: "2", memory: 4Gi }
+      limits: { memory: 8Gi }
+    workspaceSize: 20Gi
+  emptyDirSizeLimit: 40Gi

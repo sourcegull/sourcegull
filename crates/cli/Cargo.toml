@@ -1,0 +1,56 @@
+[package]
+name = "sourcegull-cli"
+description = "The `gull` command-line client: `code-intel upload` and `batch new|validate|preview|apply`."
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+publish = false
+autotests = false
+
+[lints]
+workspace = true
+
+[[bin]]
+name = "gull"
+path = "src/main.rs"
+
+[[test]]
+name = "integration"
+path = "tests/main.rs"
+
+[dependencies]
+sourcegull-batches = { workspace = true }
+sourcegull-batches-steps = { workspace = true }
+sourcegull-batches-template = { workspace = true }
+anyhow = { workspace = true }
+async-trait = { workspace = true }
+clap = { workspace = true }
+flate2 = "1"
+futures = { workspace = true }
+hex = { workspace = true }
+reqwest = { workspace = true, features = ["stream"] }
+serde = { workspace = true }
+serde_json = { workspace = true }
+sha2 = { workspace = true }
+tar = "0.4"
+tempfile = "3"
+thiserror = { workspace = true }
+tokio = { workspace = true }
+tokio-util = { workspace = true, features = ["io"] }
+url = { workspace = true }
+
+[dev-dependencies]
+# The bulk change tables, for tests that check what the server stored.
+sourcegull-batches = { workspace = true, features = ["store"] }
+sourcegull-authn = { workspace = true }
+sourcegull-config = { workspace = true }
+sourcegull-db = { workspace = true }
+sourcegull = { workspace = true }
+sourcegull-graphql = { workspace = true }
+sourcegull-http-api = { workspace = true }
+sourcegull-services = { workspace = true }
+sourcegull-observability = { workspace = true }
+sourcegull-testutil = { workspace = true, features = ["git"] }
+sourcegull-types = { workspace = true }
+serde_yaml = "0.9"

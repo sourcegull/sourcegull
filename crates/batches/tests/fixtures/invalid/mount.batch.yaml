@@ -1,0 +1,16 @@
+name: mount
+steps:
+  - run: /tmp/sample.sh
+    container: alpine:3
+    mount:
+      - path: /foo,bar/
+        mountpoint: /tmp
+      - path: ./ok
+        mountpoint: /tmp/a,b
+    files:
+      /tmp/x,y: content
+changesetTemplate:
+  title: t
+  branch: b
+  commit:
+    message: m

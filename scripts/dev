@@ -1,0 +1,302 @@
+#!/usr/bin/env bash
+# Development in Docker (compose.yaml at the repository root). Needs only Docker with Compose.
+# Usage: scripts/dev <command> [args]; `scripts/dev help` lists the commands.
+set -euo pipefail
+cd "$(dirname "$0")/.."
+
+compose() { docker compose "$@"; }
+# One-off command in a fresh toolbox container (Postgres is started if needed).
+in_dev() {
+  local tty=()
+  [ -t 0 ] && [ -t 1 ] || tty=(-T)
+  # A running Postgres is used as is: from another worktree the initdb bind mount resolves to a
+  # different path, and letting compose recreate the container would kill other runs' tests.
+  local deps=()
+  [ -n "$(compose ps -q --status running postgres 2>/dev/null)" ] && deps=(--no-deps)
+  compose run --rm ${tty[@]+"${tty[@]}"} ${deps[@]+"${deps[@]}"} ${dev_env[@]+"${dev_env[@]}"} dev "$@"
+}
+# Extra `-e NAME=value` arguments for in_dev.
+dev_env=()
+
+usage() {
+  cat <<'EOF'
+scripts/dev <command>
+
+  up [service...]   start postgres, sourcegull and the UI dev server in the background
+  down              stop everything (volumes are kept)
+  restart           rebuild and restart sourcegull after Rust changes
+  logs [service]    follow logs (default: all)
+  ps                list the services
+
+  shell             bash in the toolbox container (cargo, npm, psql, git)
+  test [args]       cargo test --workspace [args], against the dev Postgres
+  test-executor     the executor tests with the host Docker socket mounted (real containers)
+  test-batches-steps
+                    the batch step runner tests (sourcegull-batches-steps) with the host Docker
+                    socket mounted (real alpine steps)
+  test-batch-cli    the `gull bulk` tests (sourcegull-cli) with the host Docker socket mounted
+                    (real alpine steps in volume mode against an in-process server)
+  test-s3 [down]    the S3 blob store tests (sourcegull-blobstore, and SCIP uploads in
+                    sourcegull-http-api) against MinIO (compose service `minio`, profile `s3`;
+                    `down` stops it)
+  test-kubernetes [down]
+                    the leader election (Lease) and executor Kubernetes runtime tests against
+                    k3s in Docker (container sourcegull-k3s on the dev network; `down` removes it)
+  k3s up|down       only start (or remove) the k3s container of test-kubernetes
+  test-codeintel [all|up|run|verify|down|status]
+                    precise code navigation end to end: GitLab + runner, the Helm chart in k3s,
+                    CI uploads and auto-indexing for Go/TypeScript/Java/Python/Rust
+                    (scripts/test/codeintel.sh)
+  test-batches-scale [all|up|run|local|verify|down|status]
+                    a 1,000-repository batch change campaign against GitLab CE, server-side
+                    and with `gull bulk apply` (scripts/test/batches-scale.sh)
+  test-upgrade [all|refs|contract|build|compose|helm|down]
+                    upgrade N-2 -> N with Docker Compose and the Helm chart on kind, data and
+                    out-of-band migrations checked, N-1 on N's schema (scripts/test/upgrade.sh)
+  check             raw repo SQL check, test module check, rustfmt, clippy, UI type check and
+                    UI tests (the pre-merge checks)
+  fmt               cargo fmt --all
+  psql [db]         psql on the dev Postgres (default database: sourcegull)
+  corpus <cmd> [corpus]
+                    benchmark corpora (scripts/bench/corpus.py: list, fetch, verify, path) under
+                    $SOURCEGULL_CORPUS_DIR (default ~/.cache/sourcegull-corpora), mounted into the toolbox
+  bench-search --corpus <name> [options]
+                    the search stream benchmark (scripts/bench/search.sh) on a corpus, in the
+                    toolbox against the dev Postgres (see docs/development.md)
+  e2e               browser checks of the search UI and admin pages (scripts/test/e2e-ui.sh);
+                    CHECKS="search gitea" runs some of them (`gitea` starts a fresh Gitea first)
+  app               build the production image and run it on :7081 (database sourcegull_app)
+  gitlab up|down|seed|logs|test
+                    a real GitLab CE on :8929 with seed data (deploy/docker/dev/gitlab-seed.rb);
+                    `test` runs the live tests in crates/codehost-gitlab/tests/live.rs
+  gitea up|down|logs
+                    a fresh, empty Gitea on :3000 with the site administrator root
+                    (compose service `gitea`, profile `gitea`)
+  prune [days]      delete build outputs in the target volume not written for [days] days
+                    (default 7): old dependency and test binaries, incremental caches and
+                    agents' target/wt-* dirs. Cargo keeps every old build otherwise.
+  reset             delete the database, data and build caches (docker compose down -v)
+
+  <anything else>   run it in the toolbox, e.g. `scripts/dev cargo build -p sourcegull`
+EOF
+}
+
+# The development GitLab (compose service `gitlab`, profile `gitlab`).
+gitlab_seed() {
+  echo "waiting for GitLab (the first start takes 3-5 minutes)..."
+  # The image's healthcheck passes before `reconfigure` finishes; readiness answers once Rails
+  # serves requests.
+  until compose exec -T gitlab curl -fsS -o /dev/null http://localhost:8929/-/readiness 2>/dev/null; do
+    sleep 5
+  done
+  compose exec -T gitlab gitlab-rails runner /seed/gitlab-seed.rb
+}
+gitlab() {
+  local sub=${1:-up}
+  [ $# -gt 0 ] && shift
+  case "$sub" in
+    up)
+      # The seed directory is a bind mount: a container created from another (since removed)
+      # checkout or worktree cannot start, so recreate it from this one then.
+      compose --profile gitlab up -d gitlab ||
+        compose --profile gitlab up -d --force-recreate gitlab
+      gitlab_seed
+      cat <<EOF
+
+GitLab  http://gitlab.localhost:8929  (host tools need '127.0.0.1 gitlab.localhost' in /etc/hosts)
+  root / Xq7v-Lm2k-Pz9w                token glpat-sourcegull-dev-root (api, sudo)
+  alice, bob, carol / Hn4t-Rb8c-Wy3j   tokens glpat-sourcegull-dev-<name> (read_api)
+  OAuth application                    sourcegull-dev / sourcegull-dev-secret
+Code host connection for the sourcegull container:
+  {"url": "http://gitlab.localhost:8929", "token": "glpat-sourcegull-dev-root",
+   "projectQuery": ["groups/acme/projects?include_subgroups=true", "groups/community/projects"]}
+EOF
+      ;;
+    seed) gitlab_seed ;;
+    down) compose --profile gitlab stop gitlab ;;
+    logs) compose --profile gitlab logs -f gitlab ;;
+    test)
+      local tty=()
+      [ -t 0 ] && [ -t 1 ] || tty=(-T)
+      compose run --rm ${tty[@]+"${tty[@]}"} -e SOURCEGULL_TEST_GITLAB_URL=http://gitlab.localhost:8929 \
+        dev cargo test -p sourcegull-codehost-gitlab --test integration live:: --locked "$@"
+      ;;
+    *) echo "usage: scripts/dev gitlab up|down|seed|logs|test" >&2; exit 2 ;;
+  esac
+}
+
+# The development Gitea (compose service `gitea`, profile `gitea`). `up` recreates it empty: the
+# Gitea browser check seeds it from scratch.
+GITEA_ROOT_PASSWORD=Jk5r-Tw2q-Vb7n
+gitea() {
+  local sub=${1:-up}
+  case "$sub" in
+    up)
+      compose --profile gitea up -d --force-recreate --renew-anon-volumes --wait gitea
+      compose exec -T -u git gitea gitea admin user create --admin --username root \
+        --password "$GITEA_ROOT_PASSWORD" --email root@gitea.example.com \
+        --must-change-password=false >/dev/null
+      echo "Gitea  http://gitea:3000 (containers), http://127.0.0.1:${SOURCEGULL_GITEA_PORT:-3000} (host)  root / $GITEA_ROOT_PASSWORD"
+      ;;
+    down) compose --profile gitea rm -sfv gitea ;;
+    logs) compose --profile gitea logs -f gitea ;;
+    *) echo "usage: scripts/dev gitea up|down|logs" >&2; exit 2 ;;
+  esac
+}
+
+# k3s in Docker (container sourcegull-k3s), started if needed; writes .k3s/kubeconfig.
+k3s_up() {
+  # k3s joins the dev network: the test reaches its API server as sourcegull-k3s, and job pods
+  # reach the test's HTTP server at the dev container's address.
+  # A running Postgres is used as is (see in_dev).
+  [ -n "$(compose ps -q --status running postgres 2>/dev/null)" ] || compose up -d postgres >/dev/null
+  net=$(docker inspect -f '{{range $k, $v := .NetworkSettings.Networks}}{{$k}} {{end}}' \
+    "$(compose ps -q postgres)" | cut -d' ' -f1)
+  if ! docker inspect sourcegull-k3s >/dev/null 2>&1; then
+    docker run -d --name sourcegull-k3s --privileged --network "$net" \
+      --tmpfs /run --tmpfs /var/run rancher/k3s:v1.35.9-k3s1 \
+      server --disable=traefik --disable=metrics-server --tls-san=sourcegull-k3s \
+      --kubelet-arg=fail-cgroupv1=false >/dev/null
+  fi
+  docker start sourcegull-k3s >/dev/null
+  echo "waiting for k3s..."
+  until docker exec sourcegull-k3s kubectl get serviceaccount default >/dev/null 2>&1; do
+    if [ "$(docker inspect -f '{{.State.Running}}' sourcegull-k3s)" != true ]; then
+      docker logs --tail 20 sourcegull-k3s >&2
+      echo "k3s stopped; see the log above (docker logs sourcegull-k3s)" >&2
+      exit 1
+    fi
+    sleep 2
+  done
+  mkdir -p .k3s
+  docker exec sourcegull-k3s cat /etc/rancher/k3s/k3s.yaml |
+    sed 's#https://127.0.0.1:6443#https://sourcegull-k3s:6443#' > .k3s/kubeconfig
+}
+
+# A toolbox command with the benchmark corpus directory mounted at the same path, and the
+# benchmark's settings passed through when set.
+in_dev_corpus() {
+  local dir=${SOURCEGULL_CORPUS_DIR:-$HOME/.cache/sourcegull-corpora}
+  mkdir -p "$dir"
+  dir=$(cd "$dir" && pwd -P)
+  local deps=() env=()
+  [ -n "$(compose ps -q --status running postgres 2>/dev/null)" ] && deps=(--no-deps)
+  local var
+  for var in PROFILE SKIP_BUILD CARGO_TARGET_DIR CARGO_BUILD_JOBS CARGO_PROFILE_DEV_DEBUG PORT \
+    OUT KEEP_WORK WAIT_INDEX INDEX_TIMEOUT COPY_COMMIT_LOG RUST_LOG BENCH_GIT_COMMIT BENCH_HOOK; do
+    [ -n "${!var:-}" ] && env+=(-e "$var=${!var}")
+  done
+  compose run --rm -T ${deps[@]+"${deps[@]}"} -v "$dir:$dir" \
+    -e SOURCEGULL_CORPUS_DIR="$dir" ${env[@]+"${env[@]}"} dev "$@"
+}
+
+cmd=${1:-help}
+[ $# -gt 0 ] && shift
+case "$cmd" in
+  help|-h|--help) usage ;;
+  up)
+    compose up -d "$@"
+    cat <<EOF
+
+The first start compiles the workspace; follow it with: scripts/dev logs sourcegull
+  UI (hot reload)   http://localhost:${SOURCEGULL_UI_PORT:-5173}
+  sourcegull            http://localhost:${SOURCEGULL_HTTP_PORT:-7080}   (embedded UI once ui/build exists)
+  metrics           http://localhost:${SOURCEGULL_INTERNAL_PORT:-6060}/metrics
+  postgres          postgres://sourcegull:sourcegull@localhost:${SOURCEGULL_PG_PORT:-55432}/sourcegull
+EOF
+    ;;
+  down) compose down "$@" ;;
+  restart) compose restart sourcegull ;;
+  logs) compose logs -f "$@" ;;
+  ps) compose ps "$@" ;;
+  shell|sh) in_dev bash ;;
+  test)
+    # Database tests fail instead of skipping when the test database is missing.
+    dev_env=(-e SOURCEGULL_REQUIRE_TEST_DATABASE=1)
+    in_dev cargo test --workspace --locked "$@"
+    ;;
+  corpus) in_dev_corpus python3 scripts/bench/corpus.py "$@" ;;
+  bench-search) in_dev_corpus scripts/bench/search.sh "$@" ;;
+  test-executor|test-batches-steps|test-batch-cli)
+    # The executor's and the step runner's Docker tests need the host's Docker daemon (they
+    # run alpine containers and volumes there); only these commands mount the socket.
+    # The socket belongs to the host's docker group: run as dev with that group.
+    # As in_dev, a running Postgres is used as is (the step runner needs none at all).
+    pkg=sourcegull-executor deps=()
+    [ "$cmd" = test-batches-steps ] && pkg=sourcegull-batches-steps deps=(--no-deps)
+    [ "$cmd" = test-batch-cli ] && pkg=sourcegull-cli
+    [ -n "$(compose ps -q --status running postgres 2>/dev/null)" ] && deps=(--no-deps)
+    compose run --rm -T ${deps[@]+"${deps[@]}"} -v /var/run/docker.sock:/var/run/docker.sock \
+      --user "$(id -u):$(stat -c %g /var/run/docker.sock)" dev \
+      cargo test -p "$pkg" --locked "$@"
+    ;;
+  test-s3)
+    if [ "${1:-}" = down ]; then
+      compose --profile s3 stop minio
+      exit 0
+    fi
+    compose --profile s3 up -d --wait minio
+    # The store's own tests, then SCIP uploads through the HTTP API with the blobs in MinIO.
+    in_dev env SOURCEGULL_TEST_S3_ENDPOINT=http://minio:9000 sh -c \
+      'cargo test -p sourcegull-blobstore --locked "$@" &&
+       cargo test -p sourcegull-http-api --test integration scip_upload:: --locked "$@"' sh "$@"
+    ;;
+  test-kubernetes)
+    if [ "${1:-}" = down ]; then
+      docker rm -f sourcegull-k3s >/dev/null && echo "removed sourcegull-k3s"
+      exit 0
+    fi
+    k3s_up
+    compose run --rm -T -e KUBECONFIG=/src/.k3s/kubeconfig dev sh -c \
+      'SOURCEGULL_TEST_KUBERNETES_LEASES=1 cargo test -p sourcegull-leader --test integration kubernetes:: --locked &&
+       SOURCEGULL_TEST_KUBERNETES_POD_HOST=$(hostname -i | cut -d" " -f1) \
+        exec cargo test -p sourcegull-executor --test integration kubernetes:: --locked "$@" -- --nocapture' sh "$@"
+    ;;
+  k3s)
+    case "${1:-up}" in
+      up) k3s_up ;;
+      down) docker rm -f sourcegull-k3s >/dev/null && echo "removed sourcegull-k3s" ;;
+      *) echo "usage: scripts/dev k3s up|down" >&2; exit 2 ;;
+    esac
+    ;;
+  test-codeintel) exec scripts/test/codeintel.sh "$@" ;;
+  test-batches-scale) exec scripts/test/batches-scale.sh "$@" ;;
+  test-upgrade) exec scripts/test/upgrade.sh "$@" ;;
+  check)
+    in_dev sh -c 'scripts/check-repo-sql.py && scripts/check-test-modules.sh && cargo fmt --all --check &&
+      cargo clippy --workspace --all-targets --locked -- -D warnings &&
+      deploy/docker/dev/ui-deps.sh && cd ui && npm run check && npm test'
+    ;;
+  fmt) in_dev cargo fmt --all ;;
+  prune)
+    days=${1:-7}
+    case "$days" in *[!0-9]*|'') echo "usage: scripts/dev prune [days]" >&2; exit 2 ;; esac
+    # Cargo rebuilds an output it finds missing, so deleting a current one only costs time.
+    in_dev bash -c '
+      days=$1
+      du -sh target 2>/dev/null
+      for d in target/*/deps target/*/examples target/*/incremental; do
+        [ -d "$d" ] && find "$d" -mindepth 1 -maxdepth 1 -mtime +"$days" -exec rm -rf {} +
+      done
+      for d in target/wt-*; do
+        [ -d "$d" ] && [ -z "$(find "$d" -mtime -"$days" -print -quit)" ] && rm -rf "$d"
+      done
+      du -sh target 2>/dev/null' bash "$days"
+    ;;
+  psql) compose exec postgres psql -U sourcegull "${1:-sourcegull}" ;;
+  e2e)
+    # As in_dev, a running Postgres is used as is (e2e depends only on Postgres).
+    deps=()
+    [ -n "$(compose ps -q --status running postgres 2>/dev/null)" ] && deps=(--no-deps)
+    case " ${CHECKS:-} " in *" gitea "*) gitea up ;; esac
+    compose --profile e2e run --rm --build ${deps[@]+"${deps[@]}"} e2e
+    ;;
+  app)
+    compose --profile app up -d --build app
+    echo "production image: http://localhost:${SOURCEGULL_APP_PORT:-7081}"
+    ;;
+  gitlab) gitlab "$@" ;;
+  gitea) gitea "$@" ;;
+  reset) compose --profile app --profile e2e --profile gitlab --profile gitea down -v ;;
+  *) in_dev "$cmd" "$@" ;;
+esac

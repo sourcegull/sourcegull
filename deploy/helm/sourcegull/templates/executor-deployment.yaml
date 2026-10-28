@@ -1,0 +1,125 @@
+{{- if .Values.executor.enabled }}
+{{- $component := "executor" -}}
+{{- $e := .Values.executor -}}
+{{- $jobs := $e.jobs -}}
+{{- $ctx := dict "root" . "component" $component "values" $e -}}
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ include "sourcegull.componentName" $ctx }}
+  labels:
+    {{- include "sourcegull.componentLabels" $ctx | nindent 4 }}
+  {{- with (include "sourcegull.annotations" (dict "root" .) | trim) }}{{ . | nindent 2 }}{{ end }}
+spec:
+  replicas: {{ $e.replicaCount }}
+  revisionHistoryLimit: 5
+  strategy:
+    {{- toYaml $e.updateStrategy | nindent 4 }}
+  selector:
+    matchLabels:
+      {{- include "sourcegull.selectorLabels" $ctx | nindent 6 }}
+  template:
+    metadata:
+      labels:
+        {{- include "sourcegull.podLabels" $ctx | nindent 8 }}
+      {{- with (include "sourcegull.annotations" (dict "root" . "extra" $e.podAnnotations) | trim) }}{{ . | nindent 6 }}{{ end }}
+    spec:
+      serviceAccountName: {{ include "sourcegull.componentName" $ctx }}
+      {{- with (include "sourcegull.imagePullSecrets" (dict "root" . "images" (list .Values.image)) | trim) }}{{ . | nindent 6 }}{{ end }}
+      {{- with (include "sourcegull.podSecurityContext" $ctx | trim) }}{{ . | nindent 6 }}{{ end }}
+      terminationGracePeriodSeconds: {{ $e.terminationGracePeriodSeconds }}
+      {{- with (include "sourcegull.podScheduling" $ctx | trim) }}{{ . | nindent 6 }}{{ end }}
+      {{- with (include "sourcegull.initContainers" $ctx | trim) }}{{ . | nindent 6 }}{{ end }}
+      containers:
+        - name: executor
+          image: {{ include "sourcegull.sourcegullImage" . }}
+          imagePullPolicy: {{ .Values.image.pullPolicy }}
+          {{- with (include "sourcegull.commandArgs" (merge (dict "defaultArgs" (list "executor")) $ctx) | trim) }}{{ . | nindent 10 }}{{ end }}
+          env:
+            - name: SOURCEGULL_EXECUTOR_FRONTEND_URL
+              value: {{ include "sourcegull.executor.frontendURL" . | quote }}
+            - name: SOURCEGULL_EXECUTOR_TOKEN
+              valueFrom:
+                secretKeyRef:
+                  name: {{ default (include "sourcegull.appSecretName" .) $e.existingSecret }}
+                  key: {{ $e.existingSecretTokenKey }}
+            - name: SOURCEGULL_EXECUTOR_QUEUES
+              value: {{ join "," $e.queues | quote }}
+            - name: SOURCEGULL_EXECUTOR_MAX_JOBS
+              value: {{ $e.maxConcurrentJobs | quote }}
+            - name: SOURCEGULL_EXECUTOR_RUNTIME
+              value: kubernetes
+            - name: SOURCEGULL_EXECUTOR_KUBERNETES_NAMESPACE
+              value: {{ include "sourcegull.executor.namespace" . | quote }}
+            - name: SOURCEGULL_EXECUTOR_KUBERNETES_HELPER_IMAGE
+              value: {{ default (include "sourcegull.sourcegullImage" .) $e.helperImage | quote }}
+            {{- with $jobs.runtimeClassName }}
+            - name: SOURCEGULL_EXECUTOR_KUBERNETES_RUNTIME_CLASS
+              value: {{ . | quote }}
+            {{- end }}
+            {{- with $jobs.nodeSelector }}
+            - name: SOURCEGULL_EXECUTOR_KUBERNETES_NODE_SELECTOR
+              value: {{ $sel := list }}{{ range $k, $v := . }}{{ $sel = append $sel (printf "%s=%s" $k $v) }}{{ end }}{{ join "," $sel | quote }}
+            {{- end }}
+            {{- with $jobs.tolerations }}
+            - name: SOURCEGULL_EXECUTOR_KUBERNETES_TOLERATIONS
+              value: {{ toJson . | quote }}
+            {{- end }}
+            {{- with $jobs.serviceAccount }}
+            - name: SOURCEGULL_EXECUTOR_KUBERNETES_SERVICE_ACCOUNT
+              value: {{ . | quote }}
+            {{- end }}
+            {{- with (include "sourcegull.pullSecretNames" (dict "root" . "images" (list .Values.image))) }}
+            - name: SOURCEGULL_EXECUTOR_KUBERNETES_IMAGE_PULL_SECRETS
+              value: {{ . | quote }}
+            {{- end }}
+            {{- with $jobs.resources.requests.cpu }}
+            - name: SOURCEGULL_EXECUTOR_KUBERNETES_CPU_REQUEST
+              value: {{ . | quote }}
+            {{- end }}
+            {{- with $jobs.resources.requests.memory }}
+            - name: SOURCEGULL_EXECUTOR_KUBERNETES_MEMORY_REQUEST
+              value: {{ . | quote }}
+            {{- end }}
+            {{- with $jobs.resources.limits.cpu }}
+            - name: SOURCEGULL_EXECUTOR_KUBERNETES_CPU_LIMIT
+              value: {{ . | quote }}
+            {{- end }}
+            {{- with $jobs.resources.limits.memory }}
+            - name: SOURCEGULL_EXECUTOR_KUBERNETES_MEMORY_LIMIT
+              value: {{ . | quote }}
+            {{- end }}
+            {{- with $jobs.workspaceSize }}
+            - name: SOURCEGULL_EXECUTOR_KUBERNETES_WORKSPACE_SIZE
+              value: {{ . | quote }}
+            {{- end }}
+            - name: SOURCEGULL_EXECUTOR_KUBERNETES_DEADLINE
+              value: {{ $jobs.deadlineSeconds | quote }}
+            - name: SOURCEGULL_EXECUTOR_KUBERNETES_START_TIMEOUT
+              value: {{ $jobs.startTimeoutSeconds | quote }}
+            - name: SOURCEGULL_EXECUTOR_SCRATCH_DIR
+              value: /tmp/sourcegull-executor
+            - name: SOURCEGULL_LOG_FORMAT
+              value: {{ .Values.logFormat | quote }}
+            - name: RUST_LOG
+              value: {{ .Values.logLevel | quote }}
+            {{- with (include "sourcegull.extraEnv" $ctx | trim) }}{{ . | nindent 12 }}{{ end }}
+          {{- with (include "sourcegull.envFrom" $ctx | trim) }}{{ . | nindent 10 }}{{ end }}
+          {{- with (include "sourcegull.lifecycle" $ctx | trim) }}{{ . | nindent 10 }}{{ end }}
+          resources:
+            {{- toYaml $e.resources | nindent 12 }}
+          {{- with (include "sourcegull.containerSecurityContext" $ctx | trim) }}{{ . | nindent 10 }}{{ end }}
+          volumeMounts:
+            - name: tmp
+              mountPath: /tmp
+            {{- with $e.extraVolumeMounts }}
+            {{- include "sourcegull.tplvalues.render" (dict "value" . "context" $) | nindent 12 }}
+            {{- end }}
+        {{- with (include "sourcegull.sidecars" $ctx | trim) }}{{ . | nindent 8 }}{{ end }}
+      volumes:
+        - name: tmp
+          {{- include "sourcegull.emptyDir" $e.emptyDirSizeLimit | nindent 10 }}
+        {{- with $e.extraVolumes }}
+        {{- include "sourcegull.tplvalues.render" (dict "value" . "context" $) | nindent 8 }}
+        {{- end }}
+{{- end }}

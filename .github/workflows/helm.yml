@@ -1,0 +1,61 @@
+# Helm chart tests: helm lint/template of every preset, ct lint, and
+# ct install on kind with an upgrade from the chart version on main, then `helm test` (readyz and
+# the sign-in/GraphQL/search smoke test). Runs when the chart, the image or this workflow change.
+name: Helm
+
+# Manual only: no push, PR or schedule triggers.
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: helm-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  lint:
+    name: helm lint/template, ct lint
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          # ct compares the chart with origin/main (version bump).
+          fetch-depth: 0
+      - run: scripts/test/helm-ct.sh template
+      - run: scripts/test/helm-ct.sh lint
+
+  install:
+    name: ct install --upgrade on kind
+    needs: lint
+    runs-on: ubuntu-24.04
+    timeout-minutes: 90
+    steps:
+      - name: Free disk space
+        run: |
+          sudo rm -rf /usr/share/dotnet /usr/local/lib/android /opt/ghc /usr/local/.ghcup \
+            /opt/hostedtoolcache/CodeQL /usr/share/swift /usr/local/share/powershell
+          df -h /
+      - uses: actions/checkout@v5
+        with:
+          fetch-depth: 0
+      - uses: docker/setup-buildx-action@v3
+      # Same cache scope as the image build in ci.yml.
+      - name: Build sourcegull image
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          file: deploy/docker/Dockerfile
+          platforms: linux/amd64
+          load: true
+          tags: sourcegull/sourcegull:ct
+          build-args: |
+            REVISION=${{ github.sha }}
+          cache-from: type=gha,scope=sourcegull
+          cache-to: type=gha,scope=sourcegull,mode=max
+      # On main the chart equals origin/main, so ct would find nothing to test: test it anyway
+      # (the upgrade step is then skipped, as the versions match).
+      - run: scripts/test/helm-ct.sh install
+        env:
+          SOURCEGULL_CT_ALL: ${{ github.event_name == 'pull_request' && '0' || '1' }}

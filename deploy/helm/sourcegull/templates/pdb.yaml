@@ -1,0 +1,14 @@
+{{- /* PodDisruptionBudgets of the components that can run more than one pod. */ -}}
+{{- $w := .Values.worker -}}
+{{- if and .Values.web.pdb.create (or .Values.web.autoscaling.hpa.enabled (gt (int .Values.web.replicaCount) 1)) }}
+---
+{{ include "sourcegull.pdb" (dict "root" . "component" "web" "values" .Values.web) }}
+{{- end }}
+{{- if and $w.pdb.create (or $w.autoscaling.hpa.enabled $w.autoscaling.keda.enabled (gt (int $w.replicaCount) 1)) }}
+---
+{{ include "sourcegull.pdb" (dict "root" . "component" "worker" "values" $w) }}
+{{- end }}
+{{- if and .Values.repo.enabled .Values.repo.pdb.create (gt (int .Values.repo.replicaCount) 1) }}
+---
+{{ include "sourcegull.pdb" (dict "root" . "component" "repo" "values" .Values.repo) }}
+{{- end }}

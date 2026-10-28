@@ -1,0 +1,43 @@
+# Values for every install of `ct install` on kind (scripts/test/helm-ct.sh): the chart sized for one
+# small node, the locally built image, the bundled database. Passed to the previous chart version
+# too (the upgrade test), so only keys that chart version knows may be used here; after a breaking
+# chart version ct skips that test.
+externalURL: http://sourcegull.ct.invalid
+image:
+  repository: sourcegull/sourcegull
+  tag: ct
+  # Loaded into the kind node by the script; never pulled.
+  pullPolicy: Never
+logFormat: pretty
+web:
+  replicaCount: 1
+  autoscaling: { hpa: { enabled: false } }
+  pdb: { create: false }
+  resources:
+    requests: { cpu: 50m, memory: 128Mi }
+    limits: { memory: 1Gi }
+worker:
+  replicaCount: 1
+  resources:
+    requests: { cpu: 50m, memory: 128Mi }
+    limits: { memory: 1Gi }
+repo:
+  replicaCount: 1
+  pdb: { create: false }
+  persistence: { size: 1Gi }
+  resources:
+    requests: { cpu: 50m, memory: 128Mi }
+    limits: { memory: 1Gi }
+blobstore:
+  persistence: { size: 1Gi }
+  resources:
+    requests: { cpu: 20m, memory: 64Mi }
+postgresql:
+  mode: bundled
+  persistence: { size: 1Gi }
+  config:
+    shared_buffers: 128MB
+    effective_cache_size: 256MB
+  resources:
+    requests: { cpu: 50m, memory: 256Mi }
+    limits: { memory: 1Gi }

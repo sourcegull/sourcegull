@@ -1,0 +1,30 @@
+{{- if .Values.repo.enabled }}
+{{- /*
+Headless Service of the repo StatefulSet: gives each pod a stable DNS name
+(<fullname>-repo-<i>.<fullname>-repo), which is its identity in SOURCEGULL_REPO_NODES.
+Not-ready pods are published too, so nodes can be reached while they start.
+*/ -}}
+{{- $ctx := dict "root" . "component" "repo" -}}
+{{- $svc := .Values.repo.service -}}
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ include "sourcegull.componentName" $ctx }}
+  labels:
+    {{- include "sourcegull.componentLabels" $ctx | nindent 4 }}
+  {{- with (include "sourcegull.annotations" (dict "root" . "extra" $svc.annotations) | trim) }}{{ . | nindent 2 }}{{ end }}
+spec:
+  clusterIP: None
+  publishNotReadyAddresses: true
+  selector:
+    {{- include "sourcegull.selectorLabels" $ctx | nindent 4 }}
+  ports:
+    - name: grpc
+      port: {{ $svc.ports.grpc }}
+      targetPort: grpc
+      protocol: TCP
+    - name: internal
+      port: {{ $svc.ports.internal }}
+      targetPort: internal
+      protocol: TCP
+{{- end }}

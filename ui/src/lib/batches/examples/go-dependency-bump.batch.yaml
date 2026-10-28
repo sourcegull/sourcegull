@@ -1,0 +1,19 @@
+name: bump-go-dependency
+description: Upgrade a Go module dependency and tidy go.mod in every repository that uses it.
+
+on:
+  - repositoriesMatchingQuery: file:^go\.mod$ golang.org/x/net
+
+steps:
+  - run: go get golang.org/x/net@latest && go mod tidy
+    container: golang:1.23
+    env:
+      GOFLAGS: -mod=mod
+
+changesetTemplate:
+  title: Upgrade golang.org/x/net
+  body: Upgrades `golang.org/x/net` to the latest release and runs `go mod tidy`.
+  branch: batch/bump-x-net
+  commit:
+    message: Upgrade golang.org/x/net
+  published: false

@@ -1,0 +1,25 @@
+name: warnings
+steps:
+  - run: echo
+    container: alpine:3
+    outputs:
+      result:
+        value: a
+    env:
+      - TOKEN
+      - TOKEN: override
+  - run: echo
+    container: alpine:3
+    outputs:
+      result:
+        value: ${{ outputs.result }}b
+importChangesets:
+  - repository: gitlab.example.com/a/b
+    externalIDs: [7]
+  - repository: gitlab.example.com/a/b
+    externalIDs: ["7"]
+changesetTemplate:
+  title: t
+  branch: b
+  commit:
+    message: m

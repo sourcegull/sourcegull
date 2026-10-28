@@ -1,0 +1,33 @@
+[package]
+name = "sourcegull-oobmigration"
+description = "Out-of-band migrations: the registry, the leader-elected runner, the upgrade and startup gate, and the re-encryption migration of key rotation."
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+publish = false
+autotests = false
+
+[lints]
+workspace = true
+
+[[test]]
+name = "integration"
+path = "tests/main.rs"
+
+[dependencies]
+sourcegull-feature = { workspace = true }
+sourcegull-crypto = { workspace = true }
+sourcegull-db = { workspace = true }
+sourcegull-types = { workspace = true }
+anyhow = { workspace = true }
+async-trait = { workspace = true }
+metrics = { workspace = true }
+tokio = { workspace = true }
+tokio-util = { workspace = true }
+tracing = { workspace = true }
+
+[dev-dependencies]
+sourcegull-outbound-webhooks = { workspace = true }
+sourcegull-testutil = { workspace = true }
+sourcegull-batches = { workspace = true, features = ["store"] }

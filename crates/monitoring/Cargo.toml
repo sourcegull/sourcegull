@@ -1,0 +1,20 @@
+[package]
+name = "sourcegull-monitoring"
+description = "Dashboards and alerts defined in Rust, generated into Grafana JSON, Prometheus rules and docs."
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+publish = false
+autotests = false
+
+[lints]
+workspace = true
+
+[[test]]
+name = "integration"
+path = "tests/main.rs"
+
+[dependencies]
+sourcegull-types = { workspace = true }
+serde_json = { workspace = true }

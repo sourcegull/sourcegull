@@ -1,0 +1,8 @@
+name: step-required
+steps:
+  - run: echo
+changesetTemplate:
+  title: t
+  branch: b
+  commit:
+    message: m

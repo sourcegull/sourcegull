@@ -1,0 +1,47 @@
+# Sizing preset "medium" (SIZING.md): up to ~10,000 repositories, ~300 GB of mirrored
+# repositories (~60 GB of indexed source), up to ~250 concurrent searchers. Three repo nodes, a
+# three-instance CloudNativePG cluster, workers autoscaled by KEDA.
+# Every number is an estimate from the sizing rules in SIZING.md, not a measurement.
+#
+# Needs the CloudNativePG operator and KEDA in the cluster:
+#   helm install sourcegull deploy/helm/sourcegull -f deploy/helm/sourcegull/examples/medium.yaml \
+#     --set externalURL=https://sourcegull.example.com
+web:
+  autoscaling:
+    hpa: { enabled: true, minReplicas: 3, maxReplicas: 8 }
+  resources:
+    # 1 vCPU / 1 GiB per ~50 concurrent searchers.
+    requests: { cpu: "1", memory: 1Gi }
+    limits: { memory: 2Gi }
+worker:
+  resources:
+    requests: { cpu: 500m, memory: 512Mi }
+    limits: { memory: 2Gi }
+  autoscaling:
+    keda: { enabled: true, minReplicas: 2, maxReplicas: 8, targetJobsPerReplica: 25 }
+repo:
+  # Scaling out later moves about 1/N of the repositories to the new nodes (rebalancing).
+  replicaCount: 3
+  # ~100 GB of repositories per node x 1.5, with headroom.
+  persistence: { size: 200Gi }
+  resources:
+    # ~20 GB of indexed source per node: 0.5 x 20 GB + 2 GiB.
+    requests: { cpu: "4", memory: 12Gi }
+    limits: { memory: 16Gi }
+blobstore:
+  persistence: { size: 100Gi }
+postgresql:
+  mode: cnpg
+  persistence: { size: 100Gi }
+  config:
+    shared_buffers: 4GB
+    effective_cache_size: 12GB
+    work_mem: 32MB
+    maintenance_work_mem: 1GB
+    max_connections: "300"
+  resources:
+    requests: { cpu: "2", memory: 16Gi }
+    limits: { memory: 16Gi }
+  cnpg:
+    instances: 3
+    walStorage: { size: 20Gi }

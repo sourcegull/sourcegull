@@ -1,0 +1,25 @@
+[package]
+name = "sourcegull-indexer"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+publish = false
+
+[lints]
+workspace = true
+
+[dependencies]
+sourcegull-gitstore = { workspace = true }
+sourcegull-index-format = { workspace = true }
+sourcegull-languages = { workspace = true }
+sourcegull-symbols = { workspace = true }
+sourcegull-types = { workspace = true }
+roaring = "0.11"
+gix = { version = "0.89", default-features = false, features = ["sha1"] }
+thiserror = { workspace = true }
+
+[dev-dependencies]
+lz4_flex = { version = "0.14", default-features = false, features = ["std", "safe-encode"] }
+memchr = "2"
+tempfile = "3"

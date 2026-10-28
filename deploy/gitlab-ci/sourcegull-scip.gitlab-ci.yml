@@ -1,0 +1,274 @@
+# Sourcegull precise code navigation from GitLab CI.
+#
+# Indexes the project with the open-source SCIP indexers (Apache-2.0 images from
+# https://github.com/sourcegraph/scip-*) and uploads the result with `gull code-intel upload`.
+# Copy this file into a project on your GitLab instance and include it from a project's
+# .gitlab-ci.yml:
+#
+#   include:
+#     - project: infra/sourcegull-ci
+#       file: /sourcegull-scip.gitlab-ci.yml
+#     # or, from a copy committed to the project itself:
+#     - local: /ci/sourcegull-scip.gitlab-ci.yml
+#
+# Then set two CI/CD variables:
+# - SOURCEGULL_ENDPOINT, the Sourcegull URL (e.g. https://sourcegull.example.com);
+# - SOURCEGULL_CLI_IMAGE, an image with the `gull` client, built from the `cli` target of
+#   deploy/docker/Dockerfile (`docker build --target cli -t registry.example.com/sourcegull-cli:<version> .`)
+#   and pushed to a registry your runners can pull from.
+# Without either one, no index or upload job runs; without SOURCEGULL_CLI_IMAGE, the job
+# sourcegull-scip-missing-cli-image fails (allowed to fail) with a message saying so.
+#
+# Uploads authenticate with SOURCEGULL_ACCESS_TOKEN (a masked variable holding a Sourcegull access token
+# of a user who can read the repository) or, without it, with the job's CI_JOB_TOKEN; the
+# instance then needs `"codeIntel.gitlabJobTokenUploads": true` in its site config and a code
+# host connection listing the project. The repository name comes from CI_PROJECT_URL; when the
+# connection uses a custom repository path pattern, set SOURCEGULL_UPLOAD_FLAGS: "-repo=<name>"
+# (the name as Sourcegull shows it).
+#
+# One index job and one upload job per language. A language's jobs run when its build file
+# exists at the repository root (go.mod, tsconfig.json or package.json, pom.xml or
+# build.gradle(.kts) or build.sbt, pyproject.toml or setup.py or requirements.txt, Cargo.toml),
+# or when SOURCEGULL_<LANG>_ENABLED is "true"; SOURCEGULL_<LANG>_DISABLED: "true" turns them off.
+# SOURCEGULL_<LANG>_ROOT indexes a subdirectory instead (set SOURCEGULL_<LANG>_ENABLED with it when the
+# build file is not at the root), SOURCEGULL_<LANG>_IMAGE picks the indexer image (the defaults are
+# the digests auto-indexing uses), and SOURCEGULL_<LANG>_INDEX_FLAGS adds indexer arguments. Merge
+# request pipelines are skipped unless SOURCEGULL_SCIP_MERGE_REQUESTS is "true";
+# SOURCEGULL_SCIP_DISABLED: "true" turns everything off.
+#
+# Jobs are in the `test` stage and allowed to fail. A project that defines its own `stages:`
+# must list `test` there or set `stage:` on each job (redefine the job with only that key);
+# otherwise GitLab refuses to create the pipeline. Override any other key the same way.
+#
+# To check that uploads arrive, open the repository's Code graph page in Sourcegull
+# (<SOURCEGULL_ENDPOINT>/<repo>/-/code-graph); the upload job's log also prints its link.
+
+variables:
+  SOURCEGULL_CLI_IMAGE: ""
+  SOURCEGULL_UPLOAD_FLAGS: ""
+  # sourcegraph/scip-go:v0.1.26
+  SOURCEGULL_GO_IMAGE: sourcegraph/scip-go@sha256:c8925f8de1b6f168eda664b6ed14ff14e59e063466209e7f335dd0f5b1746f7f
+  SOURCEGULL_GO_ROOT: "."
+  SOURCEGULL_GO_INDEX_FLAGS: ""
+  # sourcegraph/scip-typescript:autoindex
+  SOURCEGULL_TYPESCRIPT_IMAGE: sourcegraph/scip-typescript@sha256:50fb1b855d5f4cda127b889aa2a7a32a782932d213951bfe425e0a7b88e7477d
+  SOURCEGULL_TYPESCRIPT_ROOT: "."
+  SOURCEGULL_TYPESCRIPT_INDEX_FLAGS: ""
+  # sourcegraph/scip-java:0.12.3
+  SOURCEGULL_JAVA_IMAGE: sourcegraph/scip-java@sha256:2ad40207c69b0758fc0be783314fbb802232358acd648b5ecc2f870e372ee618
+  SOURCEGULL_JAVA_ROOT: "."
+  SOURCEGULL_JAVA_INDEX_FLAGS: ""
+  # sourcegraph/scip-python:autoindex (= v0.6.6)
+  SOURCEGULL_PYTHON_IMAGE: sourcegraph/scip-python@sha256:b54e304eaaff26568d5ccd21ac29aca8c99b8466590cb127b3af74337db38d92
+  SOURCEGULL_PYTHON_ROOT: "."
+  SOURCEGULL_PYTHON_INDEX_FLAGS: ""
+  # sourcegraph/scip-rust:v0.0.5 (rust-analyzer's SCIP output)
+  SOURCEGULL_RUST_IMAGE: sourcegraph/scip-rust@sha256:75ec8d7c7f8dc295754cf679b39683250797f951cc9686933995b285bc79e4f1
+  SOURCEGULL_RUST_ROOT: "."
+  SOURCEGULL_RUST_INDEX_FLAGS: ""
+
+# The conditions under which the template is active at all.
+.sourcegull-scip-base-rules:
+  rules:
+    - if: $SOURCEGULL_SCIP_DISABLED == "true"
+      when: never
+    - if: $SOURCEGULL_ENDPOINT == null || $SOURCEGULL_ENDPOINT == ""
+      when: never
+    - if: $CI_PIPELINE_SOURCE == "merge_request_event" && $SOURCEGULL_SCIP_MERGE_REQUESTS != "true"
+      when: never
+
+# Rules every index and upload job starts with. `image:` cannot be empty, so without
+# SOURCEGULL_CLI_IMAGE the jobs are skipped and sourcegull-scip-missing-cli-image reports it.
+.sourcegull-scip-rules:
+  rules:
+    - !reference [.sourcegull-scip-base-rules, rules]
+    - if: $SOURCEGULL_CLI_IMAGE == null || $SOURCEGULL_CLI_IMAGE == ""
+      when: never
+
+# Runs in the runner's default image only when SOURCEGULL_CLI_IMAGE is missing.
+sourcegull-scip-missing-cli-image:
+  stage: test
+  allow_failure: true
+  variables:
+    GIT_STRATEGY: none
+  rules:
+    - !reference [.sourcegull-scip-base-rules, rules]
+    - if: $SOURCEGULL_CLI_IMAGE == null || $SOURCEGULL_CLI_IMAGE == ""
+  script:
+    - echo "Sourcegull SCIP jobs skipped. Set the CI/CD variable SOURCEGULL_CLI_IMAGE to your Sourcegull CLI image (the cli target of deploy/docker/Dockerfile)." >&2
+    - exit 1
+
+.sourcegull-scip-index:
+  stage: test
+  interruptible: true
+  allow_failure: true
+  artifacts:
+    expire_in: 1 day
+
+.sourcegull-scip-upload:
+  stage: test
+  interruptible: true
+  allow_failure: true
+  image:
+    name: $SOURCEGULL_CLI_IMAGE
+    entrypoint: [""]
+  variables:
+    # The index comes as an artifact and CI_* names the repository and commit.
+    GIT_STRATEGY: none
+
+# Go (scip-go).
+.sourcegull-scip-go-rules:
+  rules:
+    - !reference [.sourcegull-scip-rules, rules]
+    - if: $SOURCEGULL_GO_DISABLED == "true"
+      when: never
+    - if: $SOURCEGULL_GO_ENABLED == "true"
+    - exists: [go.mod]
+
+sourcegull-scip-go:
+  extends: .sourcegull-scip-index
+  image:
+    name: $SOURCEGULL_GO_IMAGE
+    entrypoint: [""]
+  rules: !reference [.sourcegull-scip-go-rules, rules]
+  script:
+    - cd "$SOURCEGULL_GO_ROOT"
+    - scip-go $SOURCEGULL_GO_INDEX_FLAGS
+  artifacts:
+    paths: ["$SOURCEGULL_GO_ROOT/index.scip"]
+
+sourcegull-scip-go-upload:
+  extends: .sourcegull-scip-upload
+  rules: !reference [.sourcegull-scip-go-rules, rules]
+  needs: [sourcegull-scip-go]
+  script:
+    - gull code-intel upload -no-progress -file="$SOURCEGULL_GO_ROOT/index.scip" -root="$SOURCEGULL_GO_ROOT" $SOURCEGULL_UPLOAD_FLAGS
+
+# TypeScript and JavaScript (scip-typescript; --infer-tsconfig without a tsconfig.json).
+.sourcegull-scip-typescript-rules:
+  rules:
+    - !reference [.sourcegull-scip-rules, rules]
+    - if: $SOURCEGULL_TYPESCRIPT_DISABLED == "true"
+      when: never
+    - if: $SOURCEGULL_TYPESCRIPT_ENABLED == "true"
+    - exists: [tsconfig.json, package.json]
+
+sourcegull-scip-typescript:
+  extends: .sourcegull-scip-index
+  image:
+    name: $SOURCEGULL_TYPESCRIPT_IMAGE
+    entrypoint: [""]
+  rules: !reference [.sourcegull-scip-typescript-rules, rules]
+  script:
+    - cd "$SOURCEGULL_TYPESCRIPT_ROOT"
+    - |
+      if [ -f yarn.lock ]; then yarn install --frozen-lockfile --ignore-scripts
+      elif [ -f pnpm-lock.yaml ]; then npx --yes pnpm install --frozen-lockfile --ignore-scripts
+      elif [ -f package.json ]; then npm ci --ignore-scripts || npm install --ignore-scripts
+      fi
+    - |
+      if [ -f tsconfig.json ]; then scip-typescript index $SOURCEGULL_TYPESCRIPT_INDEX_FLAGS
+      else scip-typescript index --infer-tsconfig $SOURCEGULL_TYPESCRIPT_INDEX_FLAGS
+      fi
+  artifacts:
+    paths: ["$SOURCEGULL_TYPESCRIPT_ROOT/index.scip"]
+
+sourcegull-scip-typescript-upload:
+  extends: .sourcegull-scip-upload
+  rules: !reference [.sourcegull-scip-typescript-rules, rules]
+  needs: [sourcegull-scip-typescript]
+  script:
+    - gull code-intel upload -no-progress -file="$SOURCEGULL_TYPESCRIPT_ROOT/index.scip" -root="$SOURCEGULL_TYPESCRIPT_ROOT" $SOURCEGULL_UPLOAD_FLAGS
+
+# Java, Scala and Kotlin (scip-java: Maven, Gradle or sbt).
+.sourcegull-scip-java-rules:
+  rules:
+    - !reference [.sourcegull-scip-rules, rules]
+    - if: $SOURCEGULL_JAVA_DISABLED == "true"
+      when: never
+    - if: $SOURCEGULL_JAVA_ENABLED == "true"
+    - exists: [pom.xml, build.gradle, build.gradle.kts, build.sbt]
+
+sourcegull-scip-java:
+  extends: .sourcegull-scip-index
+  image:
+    name: $SOURCEGULL_JAVA_IMAGE
+    entrypoint: [""]
+  rules: !reference [.sourcegull-scip-java-rules, rules]
+  script:
+    - cd "$SOURCEGULL_JAVA_ROOT"
+    - scip-java index $SOURCEGULL_JAVA_INDEX_FLAGS
+  artifacts:
+    paths: ["$SOURCEGULL_JAVA_ROOT/index.scip"]
+
+sourcegull-scip-java-upload:
+  extends: .sourcegull-scip-upload
+  rules: !reference [.sourcegull-scip-java-rules, rules]
+  needs: [sourcegull-scip-java]
+  script:
+    - gull code-intel upload -no-progress -file="$SOURCEGULL_JAVA_ROOT/index.scip" -root="$SOURCEGULL_JAVA_ROOT" $SOURCEGULL_UPLOAD_FLAGS
+
+# Python (scip-python; installs requirements.txt when there is one, for better resolution).
+.sourcegull-scip-python-rules:
+  rules:
+    - !reference [.sourcegull-scip-rules, rules]
+    - if: $SOURCEGULL_PYTHON_DISABLED == "true"
+      when: never
+    - if: $SOURCEGULL_PYTHON_ENABLED == "true"
+    - exists: [pyproject.toml, setup.py, requirements.txt]
+
+sourcegull-scip-python:
+  extends: .sourcegull-scip-index
+  image:
+    name: $SOURCEGULL_PYTHON_IMAGE
+    entrypoint: [""]
+  rules: !reference [.sourcegull-scip-python-rules, rules]
+  script:
+    - cd "$SOURCEGULL_PYTHON_ROOT"
+    - if [ -f requirements.txt ]; then pip install -r requirements.txt || true; fi
+    - scip-python index . --project-name="$CI_PROJECT_NAME" --project-version="$CI_COMMIT_SHA" $SOURCEGULL_PYTHON_INDEX_FLAGS
+  artifacts:
+    paths: ["$SOURCEGULL_PYTHON_ROOT/index.scip"]
+
+sourcegull-scip-python-upload:
+  extends: .sourcegull-scip-upload
+  rules: !reference [.sourcegull-scip-python-rules, rules]
+  needs: [sourcegull-scip-python]
+  script:
+    - gull code-intel upload -no-progress -file="$SOURCEGULL_PYTHON_ROOT/index.scip" -root="$SOURCEGULL_PYTHON_ROOT" $SOURCEGULL_UPLOAD_FLAGS
+
+# Rust (rust-analyzer's SCIP output, from the scip-rust image).
+# The cargo registry and git checkouts are cached per project. CARGO_HOME is inside the project
+# directory (GitLab caches only paths there), so --exclude-vendored-libraries keeps the
+# dependency sources it unpacks out of the index.
+.sourcegull-scip-rust-rules:
+  rules:
+    - !reference [.sourcegull-scip-rules, rules]
+    - if: $SOURCEGULL_RUST_DISABLED == "true"
+      when: never
+    - if: $SOURCEGULL_RUST_ENABLED == "true"
+    - exists: [Cargo.toml]
+
+sourcegull-scip-rust:
+  extends: .sourcegull-scip-index
+  image:
+    name: $SOURCEGULL_RUST_IMAGE
+    entrypoint: [""]
+  rules: !reference [.sourcegull-scip-rust-rules, rules]
+  variables:
+    CARGO_HOME: $CI_PROJECT_DIR/.sourcegull-cargo
+  cache:
+    key: sourcegull-scip-rust-$CI_PROJECT_ID
+    paths: [.sourcegull-cargo/registry/index, .sourcegull-cargo/registry/cache, .sourcegull-cargo/git/db]
+  script:
+    - cd "$SOURCEGULL_RUST_ROOT"
+    - rust-analyzer scip . --exclude-vendored-libraries $SOURCEGULL_RUST_INDEX_FLAGS
+  artifacts:
+    paths: ["$SOURCEGULL_RUST_ROOT/index.scip"]
+
+sourcegull-scip-rust-upload:
+  extends: .sourcegull-scip-upload
+  rules: !reference [.sourcegull-scip-rust-rules, rules]
+  needs: [sourcegull-scip-rust]
+  script:
+    - gull code-intel upload -no-progress -file="$SOURCEGULL_RUST_ROOT/index.scip" -root="$SOURCEGULL_RUST_ROOT" $SOURCEGULL_UPLOAD_FLAGS

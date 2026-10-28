@@ -1,0 +1,89 @@
+# Template-only case of scripts/test/helm-ct.sh: every optional pod, Service, Ingress and metrics
+# setting at once, rendered (not installed) to check the chart accepts and places them.
+global:
+  imageRegistry: registry.example.com
+  imagePullSecrets: [{ name: regcred }]
+  defaultStorageClass: standard
+fullnameOverride: sk
+commonLabels: { team: search }
+commonAnnotations: { owner: "{{ .Release.Name }}" }
+extraDeploy:
+  - apiVersion: v1
+    kind: ConfigMap
+    metadata: { name: "{{ .Release.Name }}-extra" }
+    data: { a: b }
+existingSecret: sourcegull-secrets
+image: { pullSecrets: [sourcegull-pull] }
+extraEnvVars: [{ name: A, value: "1" }]
+extraEnvVarsCM: env-cm
+extraEnvVarsSecret: env-secret
+web:
+  command: [/usr/bin/tini, --, /usr/local/bin/sourcegull]
+  extraEnvVars: [{ name: B, value: "2" }]
+  extraEnvVarsSecret: web-env
+  extraVolumes: [{ name: ca, configMap: { name: corp-ca } }]
+  extraVolumeMounts: [{ name: ca, mountPath: /etc/ssl/corp }]
+  sidecars: [{ name: proxy, image: busybox:1.37, command: [sleep, infinity] }]
+  initContainers: [{ name: hello, image: busybox:1.37, command: ["true"] }]
+  emptyDirSizeLimit: 2Gi
+  hostAliases: [{ ip: 10.0.0.1, hostnames: [gitlab.internal] }]
+  priorityClassName: high
+  schedulerName: custom
+  podAntiAffinityPreset: hard
+  nodeAffinityPreset: { type: soft, key: pool, values: [web] }
+  topologySpreadConstraints:
+    - { maxSkew: 1, topologyKey: topology.kubernetes.io/zone, whenUnsatisfiable: ScheduleAnyway }
+  customLivenessProbe: { tcpSocket: { port: internal } }
+  readinessProbe: { enabled: false }
+  lifecycleHooks: { preStop: { exec: { command: [sleep, "10"] } } }
+  autoscaling: { hpa: { targetMemory: 80 } }
+  pdb: { minAvailable: "", maxUnavailable: 1 }
+  service:
+    type: LoadBalancer
+    loadBalancerIP: 10.0.0.5
+    loadBalancerSourceRanges: [10.0.0.0/8]
+    externalTrafficPolicy: Local
+    nodePorts: { http: 30080 }
+    extraPorts: [{ name: extra, port: 9000, targetPort: internal }]
+  podSecurityContext: { sysctls: [{ name: net.ipv4.ip_unprivileged_port_start, value: "0" }] }
+worker:
+  autoscaling: { hpa: { enabled: true } }
+  containerSecurityContext: { enabled: false }
+  affinity: { podAffinity: {} }
+repo:
+  replicaCount: 3
+  persistence: { storageClass: "-", annotations: { backup: "true" }, labels: { tier: data } }
+  persistentVolumeClaimRetentionPolicy: { enabled: true, whenScaled: Delete }
+  ssh: { existingSecret: repo-ssh }
+blobstore:
+  persistence: { enabled: false }
+executor:
+  enabled: true
+  existingSecret: executor-token
+  jobs: { namespace: sourcegull-jobs, nodeSelector: { pool: jobs }, tolerations: [{ key: jobs, operator: Exists }] }
+  extraVolumes: [{ name: docker-config, secret: { secretName: docker-config } }]
+  extraVolumeMounts: [{ name: docker-config, mountPath: /etc/docker-config }]
+migrate:
+  podAnnotations: { vault.example/inject: "true" }
+  nodeSelector: { pool: system }
+  tolerations: [{ key: system, operator: Exists }]
+postgresql:
+  mode: external
+externalDatabase: { existingSecret: db-url, existingSecretUrlKey: url }
+ingress:
+  enabled: true
+  ingressClassName: ""
+  hostname: sourcegull.example.org
+  tls: true
+  extraHosts: [{ name: sourcegull.internal }]
+  extraTls: [{ secretName: internal-tls, hosts: [sourcegull.internal] }]
+networkPolicy:
+  extraIngress: [{ ports: [{ port: 9000 }] }]
+metrics:
+  serviceMonitor:
+    enabled: true
+    namespace: monitoring
+    scrapeTimeout: 10s
+    relabelings: [{ targetLabel: cluster, replacement: main }]
+  prometheusRule: { enabled: true, labels: { release: prom } }
+  grafanaDashboards: { enabled: true, namespace: grafana }
