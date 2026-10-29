@@ -1,6 +1,9 @@
 <script lang="ts">
 	import { requestPasswordReset } from '#lib/auth.ts';
 	import { errorMessage } from '#lib/graphql.ts';
+	import type { PageProps } from './$types';
+
+	let { data }: PageProps = $props();
 
 	let email = $state('');
 	let error = $state<string | null>(null);
@@ -26,10 +29,14 @@
 
 <h1>Reset your password</h1>
 
-{#if sent}
+{#if !data.auth.emailEnabled}
+	<div class="alert alert-danger" role="alert">
+		Email is not set up on this instance, so reset links cannot be emailed. Ask a site admin to
+		create a reset link for you (Site admin &gt; Users &gt; Reset password), or to set up email.
+	</div>
+{:else if sent}
 	<div class="alert alert-success" role="status">
-		If an account has this verified email, a reset link is on its way. If email is not set up on
-		this instance, ask a site admin for a reset link.
+		If an account has this verified email, a reset link is on its way.
 	</div>
 {:else}
 	{#if error}

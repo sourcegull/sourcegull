@@ -302,7 +302,26 @@ async fn sign_up_sign_in_sign_out_flow() {
             "needsSiteInit": true,
             "builtin": true,
             "providers": [],
+            "emailEnabled": false,
         })
+    );
+    // Without SMTP a reset request says so instead of claiming a link is on its way.
+    let r = env
+        .post(
+            "/-/reset-password-init",
+            json!({ "email": "root@example.com" }),
+            None,
+            false,
+        )
+        .await;
+    assert_eq!(r.status, StatusCode::SERVICE_UNAVAILABLE, "{}", r.body);
+    assert!(
+        r.body["error"]
+            .as_str()
+            .unwrap()
+            .contains("Email is not set up"),
+        "{}",
+        r.body
     );
 
     // The first sign-up is allowed (site init) and signs the user in.

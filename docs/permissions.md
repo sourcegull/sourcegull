@@ -47,9 +47,11 @@ admins create accounts, or visitors [request access](#access-requests). Related 
   Behind a reverse proxy, list it there; otherwise every request counts against the proxy's
   address.
 - `auth.sessionExpiry`: session lifetime (default `30d`).
-- Password reset and email verification links are emailed when `email.smtp` is configured;
-  otherwise site admins can create reset links. A reset request is answered at once, the same
-  for known and unknown addresses; the lookup and the email happen in the background.
+- Password reset and email verification links are emailed when `email.smtp` is configured.
+  Without it, the forgot-password page and resending a verification link say that email is not
+  set up, and site admins create reset links under Site admin > Users > Reset password. A reset
+  request is answered at once, the same for known and unknown addresses; the lookup and the email
+  happen in the background.
 - Completing a password reset ends the user's sessions, deletes their access tokens and revokes
   the OAuth grants of their connected apps.
 

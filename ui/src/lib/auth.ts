@@ -33,6 +33,8 @@ export interface AuthState {
 	providers?: AuthProviderButton[];
 	/** The signed-in viewer may use bulk changes (`batchChanges.enabled`, `restrictToAdmins`). */
 	batchChangesEnabled?: boolean;
+	/** Outbound email (`email.smtp`) is configured. */
+	emailEnabled?: boolean;
 }
 
 /** Thrown by {@link postAuth} when the server answers `{ error }` or a non-2xx status. */
@@ -61,7 +63,8 @@ export async function fetchAuthState(doFetch: typeof fetch = fetch): Promise<Aut
 		needsSiteInit: body.needsSiteInit === true,
 		builtin: body.builtin !== false,
 		providers: Array.isArray(body.providers) ? body.providers : [],
-		batchChangesEnabled: body.authenticated === true && body.batchChangesEnabled === true
+		batchChangesEnabled: body.authenticated === true && body.batchChangesEnabled === true,
+		emailEnabled: body.emailEnabled === true
 	};
 }
 
@@ -202,6 +205,9 @@ export function authRedirect(state: AuthState, url: URL): string | null {
 	const returnTo = path + url.search;
 	return returnTo === '/' ? '/sign-in' : `/sign-in?returnTo=${encodeURIComponent(returnTo)}`;
 }
+
+/** The site configuration section with the outbound email (SMTP) settings. */
+export const EMAIL_SETTINGS_URL = '/site-admin/configuration?section=notifications';
 
 /** Whether a page that requires site admin may be shown. */
 export function canAccessSiteAdmin(state: AuthState): boolean {

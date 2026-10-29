@@ -1057,6 +1057,13 @@ export type DeactivateUserMutationVariables = Exact<{
 
 export type DeactivateUserMutation = { deactivateUser: { alwaysNil: string | null } };
 
+export type RandomizeUserPasswordMutationVariables = Exact<{
+  user: string | number;
+}>;
+
+
+export type RandomizeUserPasswordMutation = { randomizeUserPassword: { resetPasswordURL: string } };
+
 export type ReactivateUserMutationVariables = Exact<{
   user: string | number;
 }>;

@@ -97,7 +97,8 @@ describe('auth endpoints', () => {
 			needsSiteInit: false,
 			builtin: true,
 			providers: [],
-			batchChangesEnabled: false
+			batchChangesEnabled: false,
+			emailEnabled: false
 		});
 		expect(f.mock.calls[0]?.[0]).toBe('/-/auth-state');
 	});

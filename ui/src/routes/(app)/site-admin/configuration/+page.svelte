@@ -1,5 +1,6 @@
 <script lang="ts">
 	import { beforeNavigate } from '$app/navigation';
+	import { page } from '$app/state';
 	import { EditorView } from '@codemirror/view';
 	import { onMount, tick } from 'svelte';
 	import DeclaredConfigFiles from '#lib/components/DeclaredConfigFiles.svelte';
@@ -53,7 +54,8 @@
 
 	let schema = $state<(SiteConfigSchema & JsonSchema) | null>(null);
 	let schemaFailed = $state(false);
-	let selectedId = $state<string | null>(null);
+	// `?section=<id>` opens a section, for links to one setting from elsewhere.
+	let selectedId = $state<string | null>(page.url.searchParams.get('section'));
 	let organizing = $state(false);
 	let editorHost = $state<HTMLDivElement | undefined>();
 	let view = $state<'settings' | 'json'>('settings');

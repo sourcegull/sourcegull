@@ -79,7 +79,8 @@ struct VerifyEmailQuery {
 
 /// `POST /-/reset-password-init {email}`: emails a reset link when the address is a verified
 /// email of an account. The answer is the same either way and does not wait for the lookup or
-/// the email: both run in a background task.
+/// the email: both run in a background task. Without SMTP it fails with 503: no email can be
+/// sent to anyone, so saying so reveals nothing about accounts.
 async fn reset_password_init(
     State(state): State<AppState>,
     ClientIp(ip): ClientIp,
@@ -102,9 +103,15 @@ async fn reset_password_init(
             return too_many_requests(l.retry_after);
         }
     }
-    if state.config.load().value.email_smtp.is_some() {
-        tokio::spawn(send_password_reset(state, email));
+    if state.config.load().value.email_smtp.is_none() {
+        return error_response(
+            StatusCode::SERVICE_UNAVAILABLE,
+            "UNAVAILABLE",
+            "Email is not set up on this instance, so reset links cannot be emailed. Ask a site \
+             admin for a reset link.",
+        );
     }
+    tokio::spawn(send_password_reset(state, email));
     Json(serde_json::json!({ "ok": true })).into_response()
 }
 
@@ -514,8 +521,10 @@ async fn sign_out(State(state): State<AppState>, auth: Option<Extension<RequestA
 }
 
 /// `GET /-/auth-state`: `{authenticated, user?: {id, username, siteAdmin}, allowSignup,
-/// needsSiteInit, builtin, providers}`. `builtin` says whether password sign-in is enabled;
-/// `providers` lists the external sign-in buttons (`{type, displayName, authenticationURL}`).
+/// needsSiteInit, builtin, providers, emailEnabled}`. `builtin` says whether password sign-in is
+/// enabled; `providers` lists the external sign-in buttons (`{type, displayName,
+/// authenticationURL}`); `emailEnabled` whether `email.smtp` is set, so pages that send email
+/// can say up front when they cannot.
 async fn auth_state(State(state): State<AppState>, MaybeActor(actor): MaybeActor) -> Response {
     let needs_site_init = match state.auth.needs_site_init().await {
         Ok(v) => v,
@@ -528,6 +537,7 @@ async fn auth_state(State(state): State<AppState>, MaybeActor(actor): MaybeActor
         "needsSiteInit": needs_site_init,
         "builtin": state.auth.builtin_enabled(),
         "providers": crate::oauth_routes::provider_buttons(&state),
+        "emailEnabled": state.config.load().value.email_smtp.is_some(),
     });
     if let Some(a) = &actor {
         body["user"] = serde_json::json!({

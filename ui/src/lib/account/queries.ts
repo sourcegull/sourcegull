@@ -54,3 +54,11 @@ export const DEACTIVATE_USER = `mutation DeactivateUser($user: ID!) {
 export const REACTIVATE_USER = `mutation ReactivateUser($user: ID!) {
 	reactivateUser(user: $user) { id }
 }`;
+
+/** Creates a single-use reset link for a user (site admins); also emailed when email is set up. */
+export const RANDOMIZE_USER_PASSWORD = `mutation RandomizeUserPassword($user: ID!) {
+	randomizeUserPassword(user: $user) { resetPasswordURL }
+}`;
+export interface RandomizeUserPasswordResult {
+	randomizeUserPassword: { resetPasswordURL: string };
+}

@@ -973,7 +973,7 @@ impl OrgsMutation {
         if !send_invitation(ctx, &inv, actor.user_id, &url).await? {
             return Err(error(
                 codes::UNAVAILABLE,
-                "Email is not configured (email.smtp in the site configuration).",
+                sourcegull_services::email::NOT_CONFIGURED,
             ));
         }
         Ok(EmptyResponse)
