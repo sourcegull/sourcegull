@@ -211,6 +211,12 @@ error; raise the limit in `.env` (and `docker buildx rm sourcegull-limited` for 
 instead of building without it. The release workflow builds the published images the same way
 (thin LTO, 16 codegen units), within the runner's memory.
 
+For an image to try a change in (a local Compose or Kubernetes install), use
+`scripts/image-build.sh --test …`: it builds without LTO and with 256 codegen units. The UI is
+embedded in the binary, so even a CSS or image change relinks it, and with LTO that link takes most
+of a build. A `--test` image is a little slower and larger; measure performance only with the
+default settings, as released.
+
 ## Secret scanning
 
 `scripts/gitleaks.sh` runs gitleaks in Docker with `.gitleaks.toml`: the default rules, private
