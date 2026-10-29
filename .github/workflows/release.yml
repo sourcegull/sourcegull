@@ -28,8 +28,8 @@ env:
   IMAGE: ghcr.io/${{ github.repository_owner }}/sourcegull
   CLI_IMAGE: ghcr.io/${{ github.repository_owner }}/gull
   PUSH: ${{ github.ref_type == 'tag' }}
-  # Limits for the runner host (4 cores, 16 GB, no swap): the image builder's memory and rustc
-  # jobs, and the dev containers of the Gitea check. The images are built with thin LTO and 16
+  # Limits sized to the runner's machine: the image builder's memory and rustc jobs, and the dev
+  # containers of the Gitea check. The images are built with thin LTO and 16
   # codegen units (build-args below): fat LTO optimises the whole program on one core at every
   # build, for each platform, at a large cost in memory and time for a few percent at runtime.
   BUILD_MEMORY: 12g
@@ -43,6 +43,11 @@ jobs:
     timeout-minutes: 300
     steps:
       - uses: actions/checkout@v5
+        with:
+          # The secret scan reads every commit.
+          fetch-depth: 0
+      - name: Secret scan
+        run: scripts/gitleaks.sh history
 
       - name: Version
         id: version

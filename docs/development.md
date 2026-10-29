@@ -211,6 +211,20 @@ error; raise the limit in `.env` (and `docker buildx rm sourcegull-limited` for 
 instead of building without it. The release workflow builds the published images the same way
 (thin LTO, 16 codegen units), within the runner's memory.
 
+## Secret scanning
+
+`scripts/gitleaks.sh` runs gitleaks in Docker with `.gitleaks.toml`: the default rules, private
+IPv4 addresses (use documentation addresses such as `10.0.0.1` or `192.168.1.10` in examples
+and tests), and an allowlist of the test fixtures. Install the pre-commit hook once per clone:
+
+```sh
+git config core.hooksPath scripts/hooks
+```
+
+Names that must not be published, such as internal host names, go in `.git/info/gitleaks.toml`,
+which extends `.gitleaks.toml` and is never committed (see the script). The release workflow
+scans the whole history before it builds.
+
 ## Releases
 
 Set the version in `Cargo.toml` (`[workspace.package]`), the image defaults (`SOURCEGULL_VERSION`
