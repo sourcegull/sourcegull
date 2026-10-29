@@ -66,7 +66,7 @@ scripts/dev <command>
   e2e               browser checks of the search UI and admin pages (scripts/test/e2e-ui.sh);
                     CHECKS="search gitea" runs some of them (`gitea` starts a fresh Gitea first)
                     SOURCEGULL_E2E_IMAGE=<image> tests that image's binary instead of this checkout
-  media             the README GIF and screenshots (scripts/readme-media.sh) into docs/assets/,
+  media             the README animation and screenshots (scripts/readme-media.sh) into docs/assets/,
                     from public GitHub repositories and a released image's binary
                     (SOURCEGULL_MEDIA_IMAGE, default ghcr.io/sourcegull/sourcegull:latest)
   app               build the production image and run it on :7081 (database sourcegull_app)
@@ -317,14 +317,19 @@ EOF
     compose --profile e2e run --rm --build ${deps[@]+"${deps[@]}"} \
       -e SOURCEGULL_MEDIA_BIN=/src/.e2e-out/image/sourcegull -e OUT=/src/.e2e-out/media \
       -e MIRRORS=/src/.e2e-out/mirrors e2e bash scripts/readme-media.sh
-    docker run --rm --user "$(id -u):$(id -g)" -v "$PWD/.e2e-out/media:/w" -w /w \
-      --entrypoint /usr/local/bin/ffmpeg linuxserver/ffmpeg:7.1.1 \
-      -v error -y -i readme-search.webm \
-      -vf "fps=12,scale=960:-1:flags=lanczos,split[a][b];[a]palettegen=max_colors=128:stats_mode=diff[p];[b][p]paletteuse=dither=bayer:bayer_scale=5:diff_mode=rectangle" \
-      -loop 0 readme-search.gif
-    cp .e2e-out/media/readme-search.gif .e2e-out/media/readme-codenav-light.png \
-      .e2e-out/media/readme-codenav-dark.png docs/assets/
-    echo "docs/assets/ updated; the search screenshots are in .e2e-out/media/"
+    ffmpeg() {
+      docker run --rm --user "$(id -u):$(id -g)" -v "$PWD/.e2e-out/media:/w" -w /w \
+        --entrypoint /usr/local/bin/ffmpeg linuxserver/ffmpeg:7.1.1 -v error -y "$@"
+    }
+    ffmpeg -f concat -i frames/frames.txt -vf "scale=1800:-1:flags=lanczos" -fps_mode vfr \
+      -c:v libwebp_anim -quality 85 -compression_level 6 -loop 0 readme-search.webp
+    for theme in light dark; do
+      ffmpeg -i "readme-codenav-$theme.png" -c:v libwebp -quality 90 -compression_level 6 \
+        "readme-codenav-$theme.webp"
+    done
+    cp .e2e-out/media/readme-search.webp .e2e-out/media/readme-codenav-light.webp \
+      .e2e-out/media/readme-codenav-dark.webp docs/assets/
+    echo "docs/assets/ updated"
     ;;
   app)
     scripts/image-build.sh -f deploy/docker/Dockerfile --load -t sourcegull/sourcegull:dev .

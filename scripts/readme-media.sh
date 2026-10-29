@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
-# The README screenshots and search GIF (docs/assets/readme-*), taken from a throwaway instance
-# that holds only public open-source repositories:
+# The README screenshots and search animation (docs/assets/readme-*), taken from a throwaway
+# instance that holds only public open-source repositories:
 #   - a fresh database `sourcegull_media_<random>` on the dev Postgres, dropped at the end
 #   - `sourcegull run --roles=all` on 127.0.0.1:7090 with a temporary data dir
 #   - the repositories in REPOS, mirrored from github.com straight into the repo node's data dir
@@ -8,15 +8,16 @@
 #   - scripts/readme-media.cjs drives Chromium; frames and screenshots go to OUT
 #
 # Usage: scripts/dev media, which runs this in the e2e container (Playwright and Chromium) with
-# the binary of a released image, then turns the recording into a GIF and copies the README
-# files to docs/assets/.
+# the binary of a released image, then encodes the frames and screenshots as WebP into
+# docs/assets/.
 set -euo pipefail
 cd "$(dirname "$0")/.."
 PORT=${PORT:-7090}
 WORK=$(mktemp -d "${TMPDIR:-/tmp}/sourcegull-media.XXXXXX")
 export OUT=${OUT:-$WORK/out}
 mkdir -p "$OUT"
-REPOS=${REPOS:-"tokio-rs/tokio tokio-rs/axum BurntSushi/ripgrep serde-rs/serde prometheus/prometheus sveltejs/kit"}
+# The query in readme-media.cjs finds results in these; code navigation is in tokio.
+REPOS=${REPOS:-"tokio-rs/tokio tokio-rs/axum serde-rs/serde"}
 BIN=${SOURCEGULL_MEDIA_BIN:?the sourcegull binary to run}
 PG=${SOURCEGULL_E2E_DATABASE_URL%%\?*}
 

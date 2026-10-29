@@ -24,7 +24,7 @@
 </p>
 
 <p align="center">
-  <img src="docs/assets/readme-search.gif" width="900" alt="Typing the query lang:rust serde::Deserialize; 119 results from axum, serde and tokio arrive in a few milliseconds" />
+  <img src="docs/assets/readme-search.webp" width="900" alt="Typing the query lang:rust serde::Deserialize; 119 results from axum, serde and tokio arrive in a few milliseconds" />
 </p>
 
 ## Fast search
@@ -67,8 +67,8 @@ saved searches and search contexts; a GraphQL API, the `gull` CLI and outbound w
 dashboards and documented alerts. See [the documentation](docs/README.md).
 
 <picture>
-  <source media="(prefers-color-scheme: dark)" srcset="docs/assets/readme-codenav-dark.png" />
-  <img src="docs/assets/readme-codenav-light.png" width="900" alt="Code navigation in tokio: the hover card for asyncify, and its definition and 55 references in the panel below" />
+  <source media="(prefers-color-scheme: dark)" srcset="docs/assets/readme-codenav-dark.webp" />
+  <img src="docs/assets/readme-codenav-light.webp" width="900" alt="Code navigation in tokio: the hover card for asyncify, and its definition and 55 references in the panel below" />
 </picture>
 
 ## Ready for production
