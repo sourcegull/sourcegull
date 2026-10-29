@@ -53,6 +53,23 @@ admins create accounts, or visitors [request access](#access-requests). Related 
 - Completing a password reset ends the user's sessions, deletes their access tokens and revokes
   the OAuth grants of their connected apps.
 
+#### Locked-out admins
+
+When no site admin can sign in and email is not configured, run this where the server's
+environment is set, for example in a web container (it reads `SOURCEGULL_DATABASE_URL`, and
+`SOURCEGULL_SITE_CONFIG_FILE` and `SOURCEGULL_EXTERNAL_URL` when set):
+
+```sh
+# Kubernetes
+kubectl exec deploy/<release>-web -- sourcegull users reset-password <username>
+# Docker Compose
+docker compose exec web sourcegull users reset-password <username>
+```
+
+It prints a single-use reset link that expires after `auth.passwordResetLinkExpiry`, replaces any
+earlier unused link for the user, and clears the user's sign-in lockouts. Open the link in a
+browser and set a new password.
+
 ### GitLab OAuth
 
 ```jsonc
