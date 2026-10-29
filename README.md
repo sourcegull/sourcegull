@@ -40,7 +40,12 @@ Every feature is in this repository under Apache-2.0. There is no enterprise edi
 key and no paid tier, and the project will not add one. That includes the features that other
 code search products usually sell separately:
 
-- Single sign-on, SCIM, RBAC and an audit log (see [Ready for production](#ready-for-production)).
+- Single sign-on with GitLab, GitHub or Gitea OAuth, OpenID Connect or an authenticating proxy
+  (HTTP header), and
+  [SCIM provisioning](docs/permissions.md#scim-provisioning).
+- [Roles (RBAC)](docs/permissions.md#roles-rbac),
+  [repository permissions synced from GitLab](docs/permissions.md#repository-permissions) and
+  enforced on every read, and an [audit log](docs/permissions.md#audit-events).
 - [Precise code navigation](docs/code-navigation.md) from SCIP indexes, across repositories and
   package versions, uploaded from GitLab CI or built by auto-indexing, with search-based results
   filling in for repositories that are not indexed.
@@ -48,48 +53,29 @@ code search products usually sell separately:
   and tracks the GitLab merge requests.
 - [Trends](docs/features.md#trends), [watches](docs/features.md#watches)
   and exhaustive [search jobs](docs/search.md#search-jobs) with CSV/JSONL export.
+- Repository storage across [several repo nodes](docs/architecture.md#repo-nodes-and-rebalancing),
+  added or removed without downtime.
 - [Usage analytics](docs/features.md#usage-analytics) that stay on the instance.
 - An [MCP server](docs/mcp.md) for AI coding agents.
 
 Also included: literal, regexp, keyword (BM25) and structural search; notebooks; code ownership;
-saved searches and search contexts; a GraphQL API, the `gull` CLI and outbound webhooks. See
-[the documentation](docs/README.md).
+saved searches and search contexts; a GraphQL API, the `gull` CLI and outbound webhooks; Grafana
+dashboards and documented alerts. See [the documentation](docs/README.md).
 
 ## Ready for production
 
-### Sign-in and access
-
-- Single sign-on with OpenID Connect or GitLab, GitHub or Gitea OAuth, and
-  [SCIM provisioning](docs/permissions.md#scim-provisioning).
-- [Repository permissions synced from the code host](docs/permissions.md#repository-permissions)
-  and checked on every read.
-- [Roles (RBAC)](docs/permissions.md#roles-rbac) and an [audit log](docs/permissions.md#audit-events).
-
-### Security
-
-- Secrets encrypted at rest, with [key rotation](docs/configuration.md#encryption-keys) without a
-  restart.
-- Nothing is sent to a vendor cloud.
-
-### Deployment
-
-- One Rust binary, and PostgreSQL 18 is its only stateful dependency.
-- Docker Compose for one host, a [Helm chart](deploy/helm/sourcegull/README.md) for Kubernetes.
-- Configuration as code, with secrets from the environment.
-
-### Operations
-
-- Every release is tested by upgrading from the previous one
-  ([upgrade guide](deploy/docker/upgrade.md)).
-- Add or remove [repo nodes](docs/architecture.md#repo-nodes-and-rebalancing) without downtime.
-- [Grafana dashboards](docs/observability/dashboards.md) and
-  [Prometheus alerts](docs/observability/alerts.md) included.
-
-### Code hosts
-
-- GitLab (gitlab.com and self-managed): every feature.
-- GitHub (github.com and Enterprise Server) and Gitea: repository and permission sync, webhooks
-  and sign-in.
+- One Rust binary, and PostgreSQL 18 is its only stateful dependency. Nothing is sent to a
+  vendor cloud.
+- Docker Compose for one host, a Helm chart for Kubernetes. Every release is tested by
+  upgrading from the previous one.
+- Repository storage spreads across several repo nodes, which you can add or remove without
+  downtime.
+- Stored secrets are encrypted, and the keys rotate without a restart.
+- Grafana dashboards and Prometheus alerts are included.
+- Configuration as code: sign-in, code host connections and site admins come from files in git,
+  and secrets come from the environment.
+- GitLab (gitlab.com and self-managed) has every feature. GitHub (github.com and Enterprise
+  Server) and Gitea support repository sync, permission sync, webhooks and sign-in.
 
 ## Install
 
