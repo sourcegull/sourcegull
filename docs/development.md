@@ -227,15 +227,19 @@ scans the whole history before it builds.
 
 ## Releases
 
-Set the version in `Cargo.toml` (`[workspace.package]`), the image defaults (`SOURCEGULL_VERSION`
-in `deploy/docker/compose.yaml` and `.env.example`, `ARG VERSION` in the Dockerfile) and the
-chart's `appVersion`, then push a `vX.Y.Z` tag (`vX.Y.Z-rc.1` for a pre-release).
-`.github/workflows/release.yml` runs on the self-hosted runner (labels `self-hosted`, `linux`):
-it builds the images for amd64 and arm64, runs `scripts/test/release-smoke.sh` on both and the
-Gitea browser check against the amd64 image (`SOURCEGULL_E2E_IMAGE=<image> CHECKS=gitea scripts/dev e2e`),
-then pushes `ghcr.io/sourcegull/sourcegull` and `ghcr.io/sourcegull/gull`, signs them and
-creates the GitHub release. Started by hand on a branch, it builds and tests without pushing.
-The other workflows run only by hand, on the same runner.
+Set the version in `Cargo.toml` (`[workspace.package]`, `X.Y.Z-rc.1` for a pre-release), the
+image defaults (`SOURCEGULL_VERSION` in `deploy/docker/compose.yaml` and `.env.example`,
+`ARG VERSION` in the Dockerfile) and the chart's `appVersion`, merge to `main`, then run
+**Actions → Release** on `main` with **publish** checked. `.github/workflows/release.yml` runs on
+the self-hosted runner (labels `self-hosted`, `linux`): it scans the history for secrets, builds
+the images for amd64 and arm64, runs `scripts/test/release-smoke.sh` on both and the Gitea
+browser check against the amd64 image (`SOURCEGULL_E2E_IMAGE=<image> CHECKS=gitea scripts/dev e2e`),
+then pushes `ghcr.io/sourcegull/sourcegull` and `ghcr.io/sourcegull/gull`, signs them, and
+creates the `vX.Y.Z` tag and the GitHub release. Without **publish** it builds and tests only.
+
+The runner accepts only this repository's workflows from `main` (the organization's runner
+group lists them), so workflows added or changed on other branches or in pull requests cannot
+run on it; the other workflows also run by hand, from `main`.
 
 ## Conventions
 

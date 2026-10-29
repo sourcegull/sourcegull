@@ -4,15 +4,21 @@
 # ghcr.io/<owner>/gull with an SBOM and provenance, signs them by digest (keyless) and creates the
 # GitHub release.
 #
-# Runs on `v*` tags. Started by hand on a branch it builds and tests without pushing; on a tag it
-# releases that tag. The tag must match the workspace version in Cargo.toml (vX.Y.Z or
-# vX.Y.Z-pre); pre-releases get only the X.Y.Z-pre tag, others X.Y.Z, X.Y and latest.
+# Started by hand on main (Actions → Release → Run workflow): the self-hosted runner accepts
+# only this repository's workflows from main, so neither tags nor other branches can run it.
+# Without `publish` it builds and tests only. With it, it releases the workspace version in
+# Cargo.toml (X.Y.Z, or X.Y.Z-pre for a pre-release): creates the tag vX.Y.Z on the commit,
+# which must not exist yet, and pushes the images tagged X.Y.Z, X.Y and latest (pre-releases
+# only X.Y.Z-pre).
 name: Release
 
 on:
-  push:
-    tags: ["v*"]
   workflow_dispatch:
+    inputs:
+      publish:
+        description: Publish the release (tag, images, GitHub release); otherwise build and test only
+        type: boolean
+        default: false
 
 permissions:
   contents: write
@@ -27,7 +33,7 @@ concurrency:
 env:
   IMAGE: ghcr.io/${{ github.repository_owner }}/sourcegull
   CLI_IMAGE: ghcr.io/${{ github.repository_owner }}/gull
-  PUSH: ${{ github.ref_type == 'tag' }}
+  PUSH: ${{ inputs.publish && github.ref == 'refs/heads/main' }}
   # Limits sized to the runner's machine: the image builder's memory and rustc jobs, and the dev
   # containers of the Gitea check. The images are built with thin LTO and 16
   # codegen units (build-args below): fat LTO optimises the whole program on one core at every
@@ -53,13 +59,9 @@ jobs:
         id: version
         run: |
           version=$(sed -n 's/^version = "\(.*\)"$/\1/p' Cargo.toml | head -n 1)
-          if [ "$GITHUB_REF_TYPE" = tag ]; then
-            tag=${GITHUB_REF_NAME#v}
-            if [ "${tag%%-*}" != "$version" ]; then
-              echo "::error::tag $GITHUB_REF_NAME does not match the Cargo.toml version $version"
-              exit 1
-            fi
-            version=$tag
+          if [ "$PUSH" = true ] && git ls-remote --exit-code --tags origin "refs/tags/v$version" >/dev/null; then
+            echo "::error::v$version is already released; bump the version in Cargo.toml"
+            exit 1
           fi
           case "$version" in *-*) prerelease=true ;; *) prerelease=false ;; esac
           {
@@ -227,6 +229,8 @@ jobs:
       - uses: softprops/action-gh-release@v2
         if: env.PUSH == 'true'
         with:
+          tag_name: v${{ steps.version.outputs.version }}
+          target_commitish: ${{ github.sha }}
           prerelease: ${{ steps.version.outputs.prerelease }}
           body_path: ${{ runner.temp }}/notes.md
           append_body: true
