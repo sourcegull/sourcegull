@@ -5,7 +5,7 @@
 
 <p align="center">
   <strong>Fast, self-hosted code search and code intelligence for humans and agents, written in Rust.</strong><br />
-  For GitLab, GitHub and Gitea. Every feature is open source under Apache-2.0. There is no paid tier, and there will not be one.
+  For GitLab, GitHub and Gitea. Every feature is open source under Apache-2.0, including SSO, SCIM, RBAC and audit logs. There is no paid tier, and there will not be one.
 </p>
 
 <p align="center">
@@ -62,18 +62,20 @@ Also included: literal, regexp, keyword (BM25) and structural search; notebooks;
 saved searches and search contexts; a GraphQL API, the `gull` CLI and outbound webhooks; Grafana
 dashboards and documented alerts. See [the documentation](docs/README.md).
 
-## Self-hosted
+## Ready for production
 
-- One binary with roles and PostgreSQL 18. No Redis and no vendor cloud.
-- GitLab first, gitlab.com and self-managed: permissions sync, OAuth, webhooks, SCIP uploads from
-  CI and merge requests for bulk changes.
-- GitHub, github.com and GitHub Enterprise Server (personal token or GitHub App): repository sync,
-  permissions sync, webhooks and sign-in (pull requests for bulk changes are not there yet).
-- Gitea, self-hosted instances and gitea.com: repository sync, permissions sync, webhooks and
-  sign-in.
-- Docker Compose for one host, a Helm chart for Kubernetes. Configuration as code: sign-in,
-  code host connections, site admins and the rest from files in git, secrets from the
-  environment.
+- One Rust binary, and PostgreSQL 18 is its only stateful dependency. Nothing is sent to a
+  vendor cloud.
+- Docker Compose for one host, a Helm chart for Kubernetes. Every release is tested by
+  upgrading from the previous one.
+- Repository storage spreads across several repo nodes, which you can add or remove without
+  downtime.
+- Stored secrets are encrypted, and the keys rotate without a restart.
+- Grafana dashboards and Prometheus alerts are included.
+- Configuration as code: sign-in, code host connections and site admins come from files in git,
+  and secrets come from the environment.
+- GitLab (gitlab.com and self-managed) has every feature. GitHub (github.com and Enterprise
+  Server) and Gitea support repository sync, permission sync, webhooks and sign-in.
 
 ## Install
 
