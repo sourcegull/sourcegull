@@ -308,7 +308,7 @@ EOF
     deps=()
     [ -n "$(compose ps -q --status running postgres 2>/dev/null)" ] && deps=(--no-deps)
     image=${SOURCEGULL_MEDIA_IMAGE:-ghcr.io/sourcegull/sourcegull:latest}
-    docker pull -q "$image" >/dev/null
+    docker image inspect "$image" >/dev/null 2>&1 || docker pull -q "$image" >/dev/null
     cid=$(docker create "$image")
     mkdir -p .e2e-out/image .e2e-out/mirrors .e2e-out/media
     docker cp -q "$cid:/usr/local/bin/sourcegull" .e2e-out/image/sourcegull
@@ -321,14 +321,15 @@ EOF
       docker run --rm --user "$(id -u):$(id -g)" -v "$PWD/.e2e-out/media:/w" -w /w \
         --entrypoint /usr/local/bin/ffmpeg linuxserver/ffmpeg:7.1.1 -v error -y "$@"
     }
-    ffmpeg -f concat -i frames/frames.txt -vf "scale=1800:-1:flags=lanczos" -fps_mode vfr \
-      -c:v libwebp_anim -quality 85 -compression_level 6 -loop 0 readme-search.webp
     for theme in light dark; do
+      ffmpeg -f concat -i "frames-$theme/frames.txt" -vf "scale=1800:-1:flags=lanczos" \
+        -fps_mode vfr -c:v libwebp_anim -quality 85 -compression_level 6 -loop 0 \
+        "readme-search-$theme.webp"
       ffmpeg -i "readme-codenav-$theme.png" -c:v libwebp -quality 90 -compression_level 6 \
         "readme-codenav-$theme.webp"
+      cp ".e2e-out/media/readme-search-$theme.webp" ".e2e-out/media/readme-codenav-$theme.webp" \
+        docs/assets/
     done
-    cp .e2e-out/media/readme-search.webp .e2e-out/media/readme-codenav-light.webp \
-      .e2e-out/media/readme-codenav-dark.webp docs/assets/
     echo "docs/assets/ updated"
     ;;
   app)

@@ -1,5 +1,5 @@
 // The README media: screenshots of code navigation in the light and dark themes, and frames
-// of a search being typed (frames/, for the animated WebP).
+// of a search being typed (frames-<theme>/, for the animated WebPs).
 // Run it with scripts/readme-media.sh, which sets up the server and the repositories.
 const fs = require('node:fs');
 const { chromium } = require('playwright');
@@ -89,6 +89,63 @@ async function shots(browser, theme) {
 	await context.close();
 }
 
+async function record(browser, theme) {
+	step(`${theme}: frames of a search`);
+	// Signed in beforehand, so the recording starts on the search page.
+	const signedIn = await browser.newContext();
+	const before = await signedIn.newPage();
+	await signIn(before);
+	// The searches above are in the recent searches list on the home page.
+	await before.goto(`${BASE}/search`);
+	const clear = await before.waitForSelector('button:has-text("Clear")', { timeout: 5000 }).catch(() => null);
+	if (clear) {
+		await clear.click();
+		await before.waitForSelector('button:has-text("Clear")', { state: 'detached', timeout: 5000 });
+	}
+	const storageState = await signedIn.storageState();
+	await signedIn.close();
+	const context = await browser.newContext({
+		viewport: VIEWPORT,
+		colorScheme: theme,
+		storageState,
+		deviceScaleFactor: 2,
+	});
+	const page = await context.newPage();
+	await page.goto(`${BASE}/search`);
+	await page.waitForSelector('.query-input .cm-content');
+	await page.mouse.move(VIEWPORT.width / 2, VIEWPORT.height - 1);
+	await page.waitForTimeout(500);
+	// One screenshot per step, with its duration in frames.txt (ffmpeg's concat demuxer).
+	const dir = `${OUT}/frames-${theme}`;
+	fs.rmSync(dir, { recursive: true, force: true });
+	fs.mkdirSync(dir, { recursive: true });
+	let list = '';
+	let n = 0;
+	const frame = async (seconds) => {
+		const name = `${String(n++).padStart(4, '0')}.png`;
+		await page.screenshot({ path: `${dir}/${name}` });
+		list += `file '${name}'\nduration ${seconds}\n`;
+	};
+	await page.click('.query-input .cm-content');
+	await frame(0.8);
+	for (const ch of QUERY) {
+		await page.keyboard.type(ch);
+		await page.waitForTimeout(30);
+		await frame(0.08);
+	}
+	await page.keyboard.press('Escape');
+	await page.waitForTimeout(200);
+	await frame(0.4);
+	await page.keyboard.press('Enter');
+	await results(page);
+	await frame(3);
+	// The concat demuxer ignores the last entry's duration unless the file is listed again.
+	list += `file '${String(n - 1).padStart(4, '0')}.png'\n`;
+	fs.writeFileSync(`${dir}/frames.txt`, list);
+	console.log(`  ${n} frames`);
+	await context.close();
+}
+
 (async () => {
 	const browser = await chromium.launch({ executablePath: process.env.CHROMIUM_EXECUTABLE });
 
@@ -122,60 +179,7 @@ async function shots(browser, theme) {
 
 	for (const theme of ['light', 'dark']) await shots(browser, theme);
 
-	step('recording: type a search');
-	// Signed in beforehand, so the recording starts on the search page.
-	const signedIn = await browser.newContext();
-	const before = await signedIn.newPage();
-	await signIn(before);
-	// The searches above are in the recent searches list on the home page.
-	await before.goto(`${BASE}/search`);
-	const clear = await before.waitForSelector('button:has-text("Clear")', { timeout: 5000 }).catch(() => null);
-	if (clear) {
-		await clear.click();
-		await before.waitForSelector('button:has-text("Clear")', { state: 'detached', timeout: 5000 });
-	}
-	const storageState = await signedIn.storageState();
-	await signedIn.close();
-	const context = await browser.newContext({
-		viewport: VIEWPORT,
-		colorScheme: 'light',
-		storageState,
-		deviceScaleFactor: 2,
-	});
-	const page = await context.newPage();
-	await page.goto(`${BASE}/search`);
-	await page.waitForSelector('.query-input .cm-content');
-	await page.mouse.move(VIEWPORT.width / 2, VIEWPORT.height - 1);
-	await page.waitForTimeout(500);
-	// One screenshot per step, with its duration in frames.txt (ffmpeg's concat demuxer).
-	const dir = `${OUT}/frames`;
-	fs.rmSync(dir, { recursive: true, force: true });
-	fs.mkdirSync(dir, { recursive: true });
-	let list = '';
-	let n = 0;
-	const frame = async (seconds) => {
-		const name = `${String(n++).padStart(4, '0')}.png`;
-		await page.screenshot({ path: `${dir}/${name}` });
-		list += `file '${name}'\nduration ${seconds}\n`;
-	};
-	await page.click('.query-input .cm-content');
-	await frame(0.8);
-	for (const ch of QUERY) {
-		await page.keyboard.type(ch);
-		await page.waitForTimeout(30);
-		await frame(0.08);
-	}
-	await page.keyboard.press('Escape');
-	await page.waitForTimeout(200);
-	await frame(0.4);
-	await page.keyboard.press('Enter');
-	await results(page);
-	await frame(3);
-	// The concat demuxer ignores the last entry's duration unless the file is listed again.
-	list += `file '${String(n - 1).padStart(4, '0')}.png'\n`;
-	fs.writeFileSync(`${dir}/frames.txt`, list);
-	console.log(`  ${n} frames`);
-	await context.close();
+	for (const theme of ['light', 'dark']) await record(browser, theme);
 	await browser.close();
 })().catch((e) => {
 	console.error(e);

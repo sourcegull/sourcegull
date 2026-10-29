@@ -24,7 +24,10 @@
 </p>
 
 <p align="center">
-  <img src="docs/assets/readme-search.webp" width="900" alt="Typing the query lang:rust serde::Deserialize; 119 results from axum, serde and tokio arrive in a few milliseconds" />
+  <picture>
+    <source media="(prefers-color-scheme: dark)" srcset="docs/assets/readme-search-dark.webp" />
+    <img src="docs/assets/readme-search-light.webp" width="900" alt="Typing the query lang:rust serde::Deserialize; 119 results from axum, serde and tokio arrive in a few milliseconds" />
+  </picture>
 </p>
 
 ## Fast search

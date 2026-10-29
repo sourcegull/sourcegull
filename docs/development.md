@@ -168,10 +168,13 @@ on `127.0.0.1:3000` (`SOURCEGULL_GITEA_PORT`) on the host; `scripts/dev gitea do
 (`docs/assets/readme-*.webp`). `scripts/readme-media.sh` starts the binary of a released image
 (`SOURCEGULL_MEDIA_IMAGE`, default `ghcr.io/sourcegull/sourcegull:latest`) on a fresh database,
 mirrors public GitHub repositories (`REPOS`) into it without a connection, waits until they are
-indexed, and `scripts/readme-media.cjs` takes screenshots in Chromium: code navigation in the
-light and dark themes, and one frame per keystroke of a search, which ffmpeg turns into an
+indexed, and `scripts/readme-media.cjs` takes screenshots in Chromium, in the light and dark
+themes: code navigation, and one frame per keystroke of a search, which ffmpeg turns into an
 animated WebP.
-The mirrors stay in `.e2e-out/mirrors/` for the next run. `KEEP=1` (with `docker compose --profile
+For UI changes that are not released yet, build an image of the checkout first:
+`scripts/image-build.sh --test -f deploy/docker/Dockerfile --load -t sourcegull/sourcegull:media .`,
+then `SOURCEGULL_MEDIA_IMAGE=sourcegull/sourcegull:media scripts/dev media`. The mirrors stay in
+`.e2e-out/mirrors/` for the next run. `KEEP=1` (with `docker compose --profile
 e2e run`) keeps the instance running, to rerun the browser script against it.
 
 ## Benchmarks
