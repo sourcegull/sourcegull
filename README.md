@@ -78,7 +78,7 @@ dashboards and documented alerts. See [the documentation](docs/README.md).
 ## Install
 
 Start the Compose stack (PostgreSQL, `migrate`, `web`, `worker`, one repo node and a blob store)
-with the published image, `ghcr.io/sourcegull/sourcegull` (linux/amd64 and linux/arm64):
+with the published image, `ghcr.io/sourcegull/sourcegull` (linux/amd64):
 
 ```sh
 cd deploy/docker

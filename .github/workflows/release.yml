@@ -1,8 +1,7 @@
-# Release: builds the runtime and cli images for linux/amd64 and linux/arm64 (arm64 is
-# cross-compiled, see deploy/docker/Dockerfile), smoke-tests both (arm64 under emulation) and the
-# Gitea browser check against the amd64 image, then pushes ghcr.io/<owner>/sourcegull and
+# Release: builds the runtime and cli images for linux/amd64, runs the smoke test and the Gitea
+# browser check against the runtime image, then pushes ghcr.io/<owner>/sourcegull and
 # ghcr.io/<owner>/gull with an SBOM and provenance, signs them by digest (keyless) and creates the
-# GitHub release.
+# GitHub release. (The Dockerfile also cross-compiles linux/arm64, which is not published.)
 #
 # Started by hand on main (Actions → Release → Run workflow): the self-hosted runner accepts
 # only this repository's workflows from main, so neither tags nor other branches can run it.
@@ -78,9 +77,6 @@ jobs:
           } >>"$GITHUB_OUTPUT"
           echo "version $version (prerelease: $prerelease, push: $PUSH)"
 
-      - uses: docker/setup-qemu-action@v3
-        with:
-          platforms: arm64
       # A builder that stays on the runner host between runs (its state volume keeps the layer
       # and cargo caches), capped so a build cannot exhaust the host: an out-of-memory kill fails
       # the build. Recreated over the same state when the runner lost its buildx config.
@@ -97,9 +93,8 @@ jobs:
           docker buildx inspect --bootstrap "$name"
           echo "name=$name" >>"$GITHUB_OUTPUT"
 
-      # One image per platform, loaded for the tests below; the multi-platform push reuses their
-      # layers from the builder.
-      - name: Build runtime (amd64)
+      # Loaded for the tests below; the push reuses its layers from the builder.
+      - name: Build runtime
         uses: docker/build-push-action@v6
         with:
           context: .
@@ -107,28 +102,15 @@ jobs:
           target: runtime
           platforms: linux/amd64
           load: true
-          tags: sourcegull-release:amd64
-          build-args: ${{ steps.version.outputs.build-args }}
-          builder: ${{ steps.builder.outputs.name }}
-      - name: Build runtime (arm64)
-        uses: docker/build-push-action@v6
-        with:
-          context: .
-          file: deploy/docker/Dockerfile
-          target: runtime
-          platforms: linux/arm64
-          load: true
-          tags: sourcegull-release:arm64
+          tags: sourcegull-release:test
           build-args: ${{ steps.version.outputs.build-args }}
           builder: ${{ steps.builder.outputs.name }}
 
-      - name: Smoke test (amd64)
-        run: scripts/test/release-smoke.sh sourcegull-release:amd64 linux/amd64
-      - name: Smoke test (arm64, emulated)
-        run: SMOKE_TIMEOUT=900 scripts/test/release-smoke.sh sourcegull-release:arm64 linux/arm64
+      - name: Smoke test
+        run: scripts/test/release-smoke.sh sourcegull-release:test
       # Gitea connection, sign-in through Gitea and search results, in the browser.
-      - name: Gitea check (amd64)
-        run: SOURCEGULL_E2E_IMAGE=sourcegull-release:amd64 CHECKS=gitea scripts/dev e2e
+      - name: Gitea check
+        run: SOURCEGULL_E2E_IMAGE=sourcegull-release:test CHECKS=gitea scripts/dev e2e
       # Keeps the volumes (Postgres, the e2e image's caches) for the next run; the Gitea check
       # starts Gitea fresh and uses its own database.
       - name: Stop the test stack
@@ -169,7 +151,7 @@ jobs:
           context: .
           file: deploy/docker/Dockerfile
           target: runtime
-          platforms: linux/amd64,linux/arm64
+          platforms: linux/amd64
           push: true
           sbom: true
           provenance: mode=max
@@ -185,7 +167,7 @@ jobs:
           context: .
           file: deploy/docker/Dockerfile
           target: cli
-          platforms: linux/amd64,linux/arm64
+          platforms: linux/amd64
           push: true
           sbom: true
           provenance: mode=max
@@ -218,7 +200,7 @@ jobs:
           | \`$IMAGE:$VERSION\` | \`$DIGEST\` |
           | \`$CLI_IMAGE:$VERSION\` | \`$CLI_DIGEST\` |
 
-          linux/amd64 and linux/arm64, signed with keyless cosign:
+          linux/amd64, signed with keyless cosign:
 
           \`\`\`sh
           cosign verify $IMAGE@$DIGEST \\

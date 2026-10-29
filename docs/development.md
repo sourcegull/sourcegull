@@ -221,8 +221,9 @@ and tests), and an allowlist of the test fixtures. Install the pre-commit hook o
 git config core.hooksPath scripts/hooks
 ```
 
-Names that must not be published, such as internal host names, go in `.git/info/gitleaks.toml`,
-which extends `.gitleaks.toml` and is never committed (see the script). The release workflow
+Names that must not be published, such as internal host names, go as `[[rules]]` in
+`.git/info/gitleaks.toml`, which every worktree shares and which is never committed; the script
+adds them to `.gitleaks.toml`. The release workflow
 scans the whole history before it builds.
 
 ## Releases
@@ -232,8 +233,8 @@ image defaults (`SOURCEGULL_VERSION` in `deploy/docker/compose.yaml` and `.env.e
 `ARG VERSION` in the Dockerfile) and the chart's `appVersion`, merge to `main`, then run
 **Actions → Release** on `main` with **publish** checked. `.github/workflows/release.yml` runs on
 the self-hosted runner (labels `self-hosted`, `linux`): it scans the history for secrets, builds
-the images for amd64 and arm64, runs `scripts/test/release-smoke.sh` on both and the Gitea
-browser check against the amd64 image (`SOURCEGULL_E2E_IMAGE=<image> CHECKS=gitea scripts/dev e2e`),
+the linux/amd64 images, runs `scripts/test/release-smoke.sh` and the Gitea browser check against
+the runtime image (`SOURCEGULL_E2E_IMAGE=<image> CHECKS=gitea scripts/dev e2e`),
 then pushes `ghcr.io/sourcegull/sourcegull` and `ghcr.io/sourcegull/gull`, signs them, and
 creates the `vX.Y.Z` tag and the GitHub release. Without **publish** it builds and tests only.
 

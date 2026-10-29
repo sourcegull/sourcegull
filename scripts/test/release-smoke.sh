@@ -1,5 +1,6 @@
 #!/usr/bin/env bash
-# Smoke test of a built image, for any platform Docker can run (arm64 under emulation):
+# Smoke test of a built image, for any platform Docker can run (another architecture needs QEMU
+# registered on the host):
 # Postgres in a container and `supervise` (migrations, then every role); waits for /readyz and
 # loads the sign-up page. The release workflow runs it before pushing.
 #
