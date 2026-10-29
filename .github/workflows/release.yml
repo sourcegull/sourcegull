@@ -28,6 +28,11 @@ env:
   IMAGE: ghcr.io/${{ github.repository_owner }}/sourcegull
   CLI_IMAGE: ghcr.io/${{ github.repository_owner }}/gull
   PUSH: ${{ github.ref_type == 'tag' }}
+  # Limits for the runner host (4 cores, 8 GB, no swap): the image builder's memory and rustc
+  # jobs, and the dev containers of the Gitea check.
+  BUILD_MEMORY: 6g
+  CARGO_BUILD_JOBS: "3"
+  SOURCEGULL_DEV_MEMORY: 5g
 
 jobs:
   release:
@@ -57,6 +62,7 @@ jobs:
             echo "VERSION=$version"
             echo "REVISION=$GITHUB_SHA"
             echo "SOURCE_DATE_EPOCH=$(git log -1 --format=%ct)"
+            echo "CARGO_BUILD_JOBS=$CARGO_BUILD_JOBS"
             echo "EOF"
           } >>"$GITHUB_OUTPUT"
           echo "version $version (prerelease: $prerelease, push: $PUSH)"
@@ -64,10 +70,20 @@ jobs:
       - uses: docker/setup-qemu-action@v3
         with:
           platforms: arm64
-      - uses: docker/setup-buildx-action@v3
+      # A builder that stays on the runner host between runs (its state volume keeps the layer
+      # and cargo caches), capped so a build cannot exhaust the host: an out-of-memory kill fails
+      # the build. Recreated over the same state when the runner lost its buildx config.
+      - name: Builder
+        run: |
+          if ! docker buildx inspect sourcegull-release >/dev/null 2>&1; then
+            docker rm -f buildx_buildkit_sourcegull-release0 >/dev/null 2>&1 || true
+            docker buildx create --name sourcegull-release --driver docker-container \
+              --driver-opt "memory=$BUILD_MEMORY,memory-swap=$BUILD_MEMORY"
+          fi
+          docker buildx inspect --bootstrap sourcegull-release
 
-      # One image per platform, loaded for the tests below; the multi-platform push reuses the
-      # layers from the cache.
+      # One image per platform, loaded for the tests below; the multi-platform push reuses their
+      # layers from the builder.
       - name: Build runtime (amd64)
         uses: docker/build-push-action@v6
         with:
@@ -78,8 +94,7 @@ jobs:
           load: true
           tags: sourcegull-release:amd64
           build-args: ${{ steps.version.outputs.build-args }}
-          cache-from: type=gha,scope=release-amd64
-          cache-to: type=gha,scope=release-amd64,mode=max
+          builder: sourcegull-release
       - name: Build runtime (arm64)
         uses: docker/build-push-action@v6
         with:
@@ -90,8 +105,7 @@ jobs:
           load: true
           tags: sourcegull-release:arm64
           build-args: ${{ steps.version.outputs.build-args }}
-          cache-from: type=gha,scope=release-arm64
-          cache-to: type=gha,scope=release-arm64,mode=max
+          builder: sourcegull-release
 
       - name: Smoke test (amd64)
         run: scripts/test/release-smoke.sh sourcegull-release:amd64 linux/amd64
@@ -145,9 +159,7 @@ jobs:
           tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}
           build-args: ${{ steps.version.outputs.build-args }}
-          cache-from: |
-            type=gha,scope=release-amd64
-            type=gha,scope=release-arm64
+          builder: sourcegull-release
       - name: Push cli
         id: push-cli
         if: env.PUSH == 'true'
@@ -163,9 +175,7 @@ jobs:
           tags: ${{ steps.cli-meta.outputs.tags }}
           labels: ${{ steps.cli-meta.outputs.labels }}
           build-args: ${{ steps.version.outputs.build-args }}
-          cache-from: |
-            type=gha,scope=release-amd64
-            type=gha,scope=release-arm64
+          builder: sourcegull-release
 
       - uses: sigstore/cosign-installer@v3
         if: env.PUSH == 'true'
