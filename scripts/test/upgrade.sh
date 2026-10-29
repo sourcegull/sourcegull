@@ -153,8 +153,8 @@ build_image() {
   fi
   log "building $tag from $rev"
   local start=$SECONDS
-  docker buildx build -f "$dir/deploy/docker/Dockerfile" --load -t "$tag" \
-    --build-arg CARGO_BUILD_JOBS="${CARGO_BUILD_JOBS:-3}" --build-arg REVISION="$rev" "$dir"
+  "$ROOT/scripts/image-build.sh" -f "$dir/deploy/docker/Dockerfile" --load -t "$tag" \
+    --build-arg REVISION="$rev" "$dir"
   echo "built $tag in $((SECONDS - start)) s"
 }
 

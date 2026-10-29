@@ -78,6 +78,10 @@ ARG TARGETARCH
 ARG SOURCE_DATE_EPOCH
 # Optional cap on parallel rustc jobs (e.g. --build-arg CARGO_BUILD_JOBS=3 on a shared machine).
 ARG CARGO_BUILD_JOBS
+# Optional overrides of the release profile; scripts/image-build.sh sets thin LTO and 16 units,
+# which need far less memory than the defaults (fat, 1) at link time.
+ARG CARGO_PROFILE_RELEASE_LTO
+ARG CARGO_PROFILE_RELEASE_CODEGEN_UNITS
 # The Rust target of TARGETARCH, and a cross toolchain when it is not the build platform's.
 RUN set -eu; \
     case "$TARGETARCH" in \

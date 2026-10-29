@@ -204,8 +204,7 @@ cmd_install() {
 
   if [ "${SOURCEGULL_CT_BUILD:-0}" = 1 ] || ! docker image inspect "$IMAGE" >/dev/null 2>&1; then
     echo "== building $IMAGE"
-    docker buildx build -f deploy/docker/Dockerfile --load -t "$IMAGE" \
-      --build-arg CARGO_BUILD_JOBS="${CARGO_BUILD_JOBS:-3}" \
+    scripts/image-build.sh -f deploy/docker/Dockerfile --load -t "$IMAGE" \
       --build-arg REVISION="$(git rev-parse HEAD)" .
   fi
   local img

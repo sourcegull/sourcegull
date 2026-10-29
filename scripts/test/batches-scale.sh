@@ -73,7 +73,7 @@ image() {
   if [ -z "${SKIP_BUILD:-}" ]; then
     say "building $IMAGE (deploy/docker/Dockerfile)"
     local t0=$SECONDS
-    docker buildx build -q -f deploy/docker/Dockerfile --load -t "$IMAGE" \
+    scripts/image-build.sh -q -f deploy/docker/Dockerfile --load -t "$IMAGE" \
       --build-arg REVISION="$(git rev-parse --short HEAD 2>/dev/null || echo unknown)" . >/dev/null
     say "built in $((SECONDS - t0)) s"
     echo $((SECONDS - t0)) > "$WORK/build-seconds"

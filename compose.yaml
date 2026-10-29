@@ -29,6 +29,11 @@ x-dev-image: &dev-image
     context: deploy/docker/dev
     target: dev
   init: true
+  # Limits per container, without swap, so builds and tests cannot take the host down (an
+  # out-of-memory kill fails the build instead). Override in .env.
+  cpus: ${SOURCEGULL_DEV_CPUS:-4}
+  mem_limit: ${SOURCEGULL_DEV_MEMORY:-8g}
+  memswap_limit: ${SOURCEGULL_DEV_MEMORY:-8g}
   working_dir: /src
 
 x-dev-volumes: &dev-volumes

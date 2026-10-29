@@ -302,7 +302,8 @@ EOF
     compose --profile e2e run --rm --build ${deps[@]+"${deps[@]}"} e2e
     ;;
   app)
-    compose --profile app up -d --build app
+    scripts/image-build.sh -f deploy/docker/Dockerfile --load -t sourcegull/sourcegull:dev .
+    compose --profile app up -d app
     echo "production image: http://localhost:${SOURCEGULL_APP_PORT:-7081}"
     ;;
   gitlab) gitlab "$@" ;;

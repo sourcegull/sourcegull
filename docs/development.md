@@ -201,6 +201,15 @@ The previous release is the newest release tag, else the commit the branch start
 the second newest release tag (the newest while there is only one; `SOURCEGULL_UPGRADE_FROM`
 picks another ref) and skip until the first release is tagged.
 
+## Resource limits
+
+Local builds and tests are capped so they cannot exhaust the host: the dev containers
+(`compose.yaml`) get `SOURCEGULL_DEV_CPUS` (4) cores and `SOURCEGULL_DEV_MEMORY` (8g) without swap,
+and every local image build goes through `scripts/image-build.sh`, a buildx builder with the same
+kind of limits, 3 rustc jobs and thin LTO. A build that needs more fails with an out-of-memory
+error; raise the limit in `.env` (and `docker buildx rm sourcegull-limited` for the builder)
+instead of building without it. Release images (fat LTO) are built only by the release workflow.
+
 ## Releases
 
 Set the version in `Cargo.toml` (`[workspace.package]`), the image defaults (`SOURCEGULL_VERSION`
