@@ -5,7 +5,7 @@
 
 <p align="center">
   <strong>Fast, self-hosted code search and code intelligence for humans and agents, written in Rust.</strong><br />
-  For GitLab, GitHub and Gitea. Every feature is open source under Apache-2.0. There is no paid tier, and there will not be one.
+  For GitLab, GitHub and Gitea. Every feature is open source under Apache-2.0, including SSO, SCIM, RBAC and audit logs. There is no paid tier, and there will not be one.
 </p>
 
 <p align="center">
@@ -40,12 +40,7 @@ Every feature is in this repository under Apache-2.0. There is no enterprise edi
 key and no paid tier, and the project will not add one. That includes the features that other
 code search products usually sell separately:
 
-- Single sign-on with GitLab, GitHub or Gitea OAuth, OpenID Connect or an authenticating proxy
-  (HTTP header), and
-  [SCIM provisioning](docs/permissions.md#scim-provisioning).
-- [Roles (RBAC)](docs/permissions.md#roles-rbac),
-  [repository permissions synced from GitLab](docs/permissions.md#repository-permissions) and
-  enforced on every read, and an [audit log](docs/permissions.md#audit-events).
+- Single sign-on, SCIM, RBAC and an audit log (see [Ready for production](#ready-for-production)).
 - [Precise code navigation](docs/code-navigation.md) from SCIP indexes, across repositories and
   package versions, uploaded from GitLab CI or built by auto-indexing, with search-based results
   filling in for repositories that are not indexed.
@@ -53,27 +48,48 @@ code search products usually sell separately:
   and tracks the GitLab merge requests.
 - [Trends](docs/features.md#trends), [watches](docs/features.md#watches)
   and exhaustive [search jobs](docs/search.md#search-jobs) with CSV/JSONL export.
-- Repository storage across [several repo nodes](docs/architecture.md#repo-nodes-and-rebalancing),
-  added or removed without downtime.
 - [Usage analytics](docs/features.md#usage-analytics) that stay on the instance.
 - An [MCP server](docs/mcp.md) for AI coding agents.
 
 Also included: literal, regexp, keyword (BM25) and structural search; notebooks; code ownership;
-saved searches and search contexts; a GraphQL API, the `gull` CLI and outbound webhooks; Grafana
-dashboards and documented alerts. See [the documentation](docs/README.md).
+saved searches and search contexts; a GraphQL API, the `gull` CLI and outbound webhooks. See
+[the documentation](docs/README.md).
 
-## Self-hosted
+## Ready for production
 
-- One binary with roles and PostgreSQL 18. No Redis and no vendor cloud.
-- GitLab first, gitlab.com and self-managed: permissions sync, OAuth, webhooks, SCIP uploads from
-  CI and merge requests for bulk changes.
-- GitHub, github.com and GitHub Enterprise Server (personal token or GitHub App): repository sync,
-  permissions sync, webhooks and sign-in (pull requests for bulk changes are not there yet).
-- Gitea, self-hosted instances and gitea.com: repository sync, permissions sync, webhooks and
-  sign-in.
-- Docker Compose for one host, a Helm chart for Kubernetes. Configuration as code: sign-in,
-  code host connections, site admins and the rest from files in git, secrets from the
-  environment.
+### Sign-in and access
+
+- Single sign-on with OpenID Connect or GitLab, GitHub or Gitea OAuth, and
+  [SCIM provisioning](docs/permissions.md#scim-provisioning).
+- [Repository permissions synced from the code host](docs/permissions.md#repository-permissions)
+  and checked on every read.
+- [Roles (RBAC)](docs/permissions.md#roles-rbac) and an [audit log](docs/permissions.md#audit-events).
+
+### Security
+
+- Secrets encrypted at rest, with [key rotation](docs/configuration.md#encryption-keys) without a
+  restart.
+- Nothing is sent to a vendor cloud.
+
+### Deployment
+
+- One Rust binary, and PostgreSQL 18 is its only stateful dependency.
+- Docker Compose for one host, a [Helm chart](deploy/helm/sourcegull/README.md) for Kubernetes.
+- Configuration as code, with secrets from the environment.
+
+### Operations
+
+- Every release is tested by upgrading from the previous one
+  ([upgrade guide](deploy/docker/upgrade.md)).
+- Add or remove [repo nodes](docs/architecture.md#repo-nodes-and-rebalancing) without downtime.
+- [Grafana dashboards](docs/observability/dashboards.md) and
+  [Prometheus alerts](docs/observability/alerts.md) included.
+
+### Code hosts
+
+- GitLab (gitlab.com and self-managed): every feature.
+- GitHub (github.com and Enterprise Server) and Gitea: repository and permission sync, webhooks
+  and sign-in.
 
 ## Install
 
