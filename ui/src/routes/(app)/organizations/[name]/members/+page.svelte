@@ -2,6 +2,7 @@
 	import { goto } from '$app/navigation';
 	import { page } from '$app/state';
 	import { untrack } from 'svelte';
+	import { EMAIL_SETTINGS_URL } from '#lib/auth.ts';
 	import { errorMessage, graphql } from '#lib/graphql.ts';
 	import {
 		ADD_USER_TO_ORGANIZATION,
@@ -176,9 +177,15 @@
 		{/if}
 	</form>
 	{#if invited}
-		<div class="alert alert-success" role="status">
+		<div class="alert {invited.emailed ? 'alert-success' : 'alert-warning'}" role="status">
 			Invited {invited.who}.
-			{invited.emailed ? 'An email with this link was sent:' : 'Email is not configured; send them this link:'}
+			{#if invited.emailed}
+				An email with this link was sent:
+			{:else}
+				Nothing was emailed (email is not set up{#if data.auth.user?.siteAdmin}: <a href={EMAIL_SETTINGS_URL}
+						>set it up</a
+					>{/if}, or they have no verified address). Send them this link:
+			{/if}
 			<code class="link">{invited.url}</code>
 			<button class="btn btn-sm" type="button" onclick={() => navigator.clipboard?.writeText(invited?.url ?? '')}
 				>Copy link</button

@@ -301,7 +301,15 @@ async fn merged_routes_share_state_and_middleware() {
 fn csp_allows_the_bootstrap_script_only_by_hash() {
     let csp = sourcegull_http_api::content_security_policy();
     assert!(csp.contains("frame-ancestors 'none'"));
-    assert!(!csp.contains("script-src 'self' 'unsafe-inline'"));
+    let script_src = csp
+        .split(';')
+        .map(str::trim)
+        .find(|d| d.starts_with("script-src"))
+        .unwrap();
+    assert!(!script_src.contains("'unsafe-inline'"), "{csp}");
+    assert!(!script_src.contains("'unsafe-eval'"), "{csp}");
+    // The search query parser is WebAssembly.
+    assert!(script_src.contains("'wasm-unsafe-eval'"), "{csp}");
     if sourcegull_web_assets::ui_embedded() {
         assert!(csp.contains("'sha256-"), "{csp}");
     }

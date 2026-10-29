@@ -62,6 +62,9 @@
 				</div>
 			</div>
 			<div class="separator" role="separator"></div>
+			<a role="menuitem" href="/user/settings" onclick={() => (open = false)}>
+				<Icon name="settings" />Settings
+			</a>
 			<a role="menuitem" href="/user/settings/tokens" onclick={() => (open = false)}>
 				<Icon name="key" />Access tokens
 			</a>

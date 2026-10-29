@@ -116,7 +116,7 @@
 			{#each rows as u (u.id)}
 				<tr>
 					<td>
-						<a href="/users/{u.username}">{u.username}</a>
+						<a href="/site-admin/users?query={encodeURIComponent(u.username)}">{u.username}</a>
 						{#if u.displayName}<span class="muted">{u.displayName}</span>{/if}
 						{#if u.siteAdmin}<span class="badge badge-info">admin</span>{/if}
 						{#if u.locked}<span class="badge badge-warning">locked</span>{/if}

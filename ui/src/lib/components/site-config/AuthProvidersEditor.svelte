@@ -1,4 +1,5 @@
 <script lang="ts">
+	import { tick } from 'svelte';
 	import ConfigField from './ConfigField.svelte';
 	import CopyField from './CopyField.svelte';
 	import {
@@ -101,10 +102,16 @@
 		onchange([KEY], list);
 	}
 
-	function add(type: ProviderType): void {
+	let list: HTMLUListElement;
+
+	/** Appends a provider and opens its setup. */
+	async function add(type: ProviderType): Promise<void> {
+		const index = providers.length;
 		change([KEY, -1], newProvider(type));
-		open = providers.length; // the new provider's index once the document updates
+		open = index;
 		adding = false;
+		await tick();
+		list.children[index]?.scrollIntoView({ block: 'nearest', behavior: 'smooth' });
 	}
 
 	function remove(i: number): void {
@@ -153,7 +160,7 @@
 		</div>
 	{/if}
 
-	<ul class="provider-list">
+	<ul class="provider-list" bind:this={list}>
 		{#each providers as provider, i (i)}
 			{@const info = providerTypeInfo(provider.type)}
 			{@const variant = providerVariant(schema, provider.type)}

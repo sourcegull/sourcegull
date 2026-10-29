@@ -6,3 +6,4 @@ mod keys;
 mod monitoring;
 mod rebalance;
 mod sourcegull;
+mod users;

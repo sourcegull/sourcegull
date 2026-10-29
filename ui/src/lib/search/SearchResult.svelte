@@ -97,7 +97,7 @@
 		{:else if match.type === 'person'}
 			<span class="kind" title="Owner">owner</span>
 			{#if match.user}
-				<a class="title" href="/users/{match.user.username}">{match.user.displayName || match.user.username}</a>
+				<span class="title">{match.user.displayName || match.user.username}</span>
 				<span class="muted mono">@{match.user.username}</span>
 			{:else}
 				<span class="title">{match.handle ? `@${match.handle}` : match.email}</span>

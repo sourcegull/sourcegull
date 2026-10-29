@@ -578,6 +578,12 @@ impl UsersMutation {
             .app
             .as_ref()
             .ok_or_else(|| error(codes::INTERNAL, "Application state unavailable."))?;
+        if svc.config.load().value.email_smtp.is_none() {
+            return Err(error(
+                codes::UNAVAILABLE,
+                sourcegull_services::email::NOT_CONFIGURED,
+            ));
+        }
         sourcegull_services::email::send_verification(app, id, &email)
             .await
             .map_err(db_error)?;

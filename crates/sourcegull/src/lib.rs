@@ -32,6 +32,7 @@ pub mod server;
 pub mod site_config;
 pub mod startup;
 pub mod supervise;
+pub mod users_cmd;
 pub mod worker;
 
 use std::process::ExitCode;
@@ -115,6 +116,23 @@ async fn run(command: Command, cancel: CancellationToken) -> anyhow::Result<Exit
                 "{}",
                 keys::run_command(&db, &args.key_source()?, args.action).await?
             );
+            Ok(ExitCode::SUCCESS)
+        }
+        Command::Users(args) => {
+            let opts = sourcegull_db::DbOptions {
+                max_connections: 2,
+                application_name: "sourcegull:users".to_owned(),
+                ..Default::default()
+            };
+            let db = startup::connect_with_retry(
+                &args.database_url,
+                &opts,
+                startup::DB_CONNECT_DEADLINE,
+                &cancel,
+            )
+            .await?;
+            startup::ensure_schema_current(db.pool()).await?;
+            println!("{}", users_cmd::run(&db, &args).await?);
             Ok(ExitCode::SUCCESS)
         }
         Command::Config(args) => {

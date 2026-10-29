@@ -1,5 +1,8 @@
 <script lang="ts">
 	import { onMount } from 'svelte';
+	import { goto } from '$app/navigation';
+	import { page } from '$app/state';
+	import { EMAIL_SETTINGS_URL, resetAuthState } from '#lib/auth.ts';
 	import ManagedNotice from '#lib/components/ManagedNotice.svelte';
 	import { isExclusive } from '#lib/declared-config.ts';
 	import { errorMessage, graphql } from '#lib/graphql.ts';
@@ -15,7 +18,12 @@
 		type UsersResult,
 		type UsersVariables
 	} from '#lib/queries.ts';
-	import { DEACTIVATE_USER, REACTIVATE_USER } from '#lib/account/queries.ts';
+	import {
+		DEACTIVATE_USER,
+		RANDOMIZE_USER_PASSWORD,
+		REACTIVATE_USER,
+		type RandomizeUserPasswordResult
+	} from '#lib/account/queries.ts';
 	import type { PageProps } from './$types';
 
 	let { data }: PageProps = $props();
@@ -24,7 +32,8 @@
 
 	let users = $state<UserNode[]>([]);
 	let totalCount = $state(0);
-	let query = $state('');
+	// `?query=` prefills the filter, for links to one user.
+	let query = $state(page.url.searchParams.get('query') ?? '');
 	let includeDeactivated = $state(false);
 	let loading = $state(true);
 	let error = $state<string | null>(null);
@@ -118,6 +127,11 @@
 				userID: user.id,
 				siteAdmin
 			});
+			if (!siteAdmin && user.id === data.auth.user?.id) {
+				resetAuthState();
+				await goto('/search', { invalidateAll: true });
+				return;
+			}
 			await load();
 		} catch (err) {
 			error = `Could not update ${user.username}: ${errorMessage(err)}`;
@@ -144,6 +158,29 @@
 			await load();
 		} catch (err) {
 			error = `Could not update ${user.username}: ${errorMessage(err)}`;
+		} finally {
+			pending = null;
+		}
+	}
+
+	/** The last reset link created, shown until the next one. */
+	let resetLink = $state<{ username: string; url: string } | null>(null);
+
+	async function createResetLink(user: UserNode): Promise<void> {
+		pending = user.id;
+		error = null;
+		resetLink = null;
+		try {
+			const r = await graphql<RandomizeUserPasswordResult, { user: string }>(RANDOMIZE_USER_PASSWORD, {
+				user: user.id
+			});
+			// Relative when `externalURL` is not set: the admin copies it, so make it absolute.
+			resetLink = {
+				username: user.username,
+				url: new URL(r.randomizeUserPassword.resetPasswordURL, location.origin).href
+			};
+		} catch (err) {
+			error = `Could not create a reset link for ${user.username}: ${errorMessage(err)}`;
 		} finally {
 			pending = null;
 		}
@@ -189,6 +226,18 @@
 
 {#if error}
 	<div class="alert alert-danger" role="alert">{error}</div>
+{/if}
+{#if resetLink}
+	<div class="alert {data.auth.emailEnabled ? 'alert-success' : 'alert-warning'}" role="status">
+		{#if data.auth.emailEnabled}
+			Reset link for {resetLink.username} created and emailed to their verified address, if they
+			have one. You can also send it yourself:
+		{:else}
+			Email is not set up (<a href={EMAIL_SETTINGS_URL}>set it up</a>), so nothing was emailed. Send
+			this single-use reset link to {resetLink.username} privately:
+		{/if}
+		<code class="mono reset-link">{resetLink.url}</code>
+	</div>
 {/if}
 
 <div class="table-scroll">
@@ -251,6 +300,15 @@
 						<button class="btn btn-sm" type="button" onclick={() => editRoles(user)}
 							>Edit roles</button
 						>
+						{#if data.auth.builtin && !user.scimControlled}
+							<button
+								class="btn btn-sm"
+								type="button"
+								disabled={pending === user.id}
+								title="Create a single-use link to set a new password; the current one keeps working until it is used"
+								onclick={() => createResetLink(user)}>Reset password</button
+							>
+						{/if}
 						{#if !user.scimControlled && user.id !== data.auth.user?.id}
 							<button
 								class="btn btn-sm btn-danger"
@@ -306,6 +364,11 @@
 {/if}
 
 <style>
+	.reset-link {
+		display: block;
+		margin-top: var(--space-2);
+		word-break: break-all;
+	}
 	.filter {
 		max-width: 24rem;
 	}
