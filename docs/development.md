@@ -49,6 +49,7 @@ from the binary the `sourcegull` service builds, with jobs as containers on the 
 | `scripts/dev e2e` | browser checks of the UI with Playwright ([below](#browser-checks)) |
 | `scripts/dev corpus <cmd> [name]` | benchmark corpora ([below](#benchmarks)) |
 | `scripts/dev bench-search --corpus <name>` | the end-to-end search benchmark |
+| `scripts/dev media` | the README GIF and screenshots ([below](#readme-media)) |
 | `scripts/dev app` | build the production image and run it on :7081 (database `sourcegull_app`) |
 | `scripts/dev gitlab up\|down\|seed\|logs\|test` | the [development GitLab](#development-gitlab) |
 | `scripts/dev gitea up\|down\|logs` | a fresh, empty Gitea for the [Gitea browser check](#browser-checks) |
@@ -160,6 +161,17 @@ sign-in provider, signs in as each user through Gitea, and checks search, the fi
 MCP `read_file` for each, and that removing the collaborator on Gitea followed by a
 permissions sync revokes access. Gitea answers as `http://gitea:3000` inside the containers and
 on `127.0.0.1:3000` (`SOURCEGULL_GITEA_PORT`) on the host; `scripts/dev gitea down` removes it.
+
+### README media
+
+`scripts/dev media` makes the GIF and the code navigation screenshots at the top of the README
+(`docs/assets/readme-*`). `scripts/readme-media.sh` starts the binary of a released image
+(`SOURCEGULL_MEDIA_IMAGE`, default `ghcr.io/sourcegull/sourcegull:latest`) on a fresh database,
+mirrors public GitHub repositories (`REPOS`) into it without a connection, waits until they are
+indexed, and `scripts/readme-media.cjs` records them in Chromium, in the light and dark themes.
+The mirrors stay in `.e2e-out/mirrors/` for the next run, and the search screenshots, which the
+README does not use, are left in `.e2e-out/media/`. `KEEP=1` (with `docker compose --profile
+e2e run`) keeps the instance running, to rerun the browser script against it.
 
 ## Benchmarks
 
