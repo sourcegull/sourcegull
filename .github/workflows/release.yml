@@ -28,12 +28,12 @@ env:
   IMAGE: ghcr.io/${{ github.repository_owner }}/sourcegull
   CLI_IMAGE: ghcr.io/${{ github.repository_owner }}/gull
   PUSH: ${{ github.ref_type == 'tag' }}
-  # Limits for the runner host (4 cores, 8 GB, no swap): the image builder's memory and rustc
-  # jobs, and the dev containers of the Gitea check. With that memory the images are built with
-  # thin LTO and 16 codegen units (build-args below): the fat LTO of the release profile is
-  # killed for lack of memory there.
-  BUILD_MEMORY: 6500m
-  CARGO_BUILD_JOBS: "2"
+  # Limits for the runner host (4 cores, 16 GB, no swap): the image builder's memory and rustc
+  # jobs, and the dev containers of the Gitea check. The images are built with thin LTO and 16
+  # codegen units (build-args below): fat LTO optimises the whole program on one core at every
+  # build, for each platform, at a large cost in memory and time for a few percent at runtime.
+  BUILD_MEMORY: 12g
+  CARGO_BUILD_JOBS: "4"
   SOURCEGULL_DEV_MEMORY: 5g
 
 jobs:
@@ -122,9 +122,11 @@ jobs:
       # Gitea connection, sign-in through Gitea and search results, in the browser.
       - name: Gitea check (amd64)
         run: SOURCEGULL_E2E_IMAGE=sourcegull-release:amd64 CHECKS=gitea scripts/dev e2e
-      - name: Clean up the test stack
+      # Keeps the volumes (Postgres, the e2e image's caches) for the next run; the Gitea check
+      # starts Gitea fresh and uses its own database.
+      - name: Stop the test stack
         if: always()
-        run: scripts/dev reset || true
+        run: docker compose --profile e2e --profile gitea down --remove-orphans || true
 
       - name: Image tags
         id: meta

@@ -6,13 +6,12 @@
 #   docker buildx build -f deploy/docker/Dockerfile -t ghcr.io/sourcegull/sourcegull:dev .
 #
 # Stages:
-#   chef     - Rust toolchain + cargo-chef, on the build platform
+#   toolchain - the Rust toolchain, on the build platform
 #   wasm     - the query box parser (crates/query-wasm -> /out/query.wasm)
 #   ui       - builds the web UI (ui/ -> /ui/build) with Node.js, with query.wasm in static/
-#   planner  - computes the dependency "recipe" (changes only when Cargo.toml/Cargo.lock change)
-#   builder  - cooks (builds) the dependencies from the recipe, then builds the `sourcegull` and
-#              `gull` binaries for the target platform (cross-compiled when it differs from the
-#              build platform, so linux/arm64 builds on amd64 without emulation)
+#   builder  - builds the `sourcegull` and `gull` binaries for the target platform
+#              (cross-compiled when it differs from the build platform, so linux/arm64 builds on
+#              amd64 without emulation)
 #   cli      - `ghcr.io/sourcegull/gull`: debian:bookworm-slim with git, ca-certificates and `gull` only, for
 #              CI jobs (`--target cli`; deploy/gitlab-ci)
 #   runtime  - debian:bookworm-slim with git, ca-certificates and tini (final image; also ships
@@ -21,32 +20,36 @@
 # UI: the `sourcegull-web-assets` crate embeds the built UI into the binary. The `ui` stage
 # builds it and the builder points the crate at the result through SOURCEGULL_UI_BUILD_DIR, so a
 # stale ui/build in the build context is never embedded.
+#
+# Caching: target/ is a cache mount kept by the builder, so a rebuild compiles only the crates
+# (dependencies and workspace) that changed since the last build on that builder. VERSION and
+# REVISION are declared only after the expensive steps: a build argument invalidates every RUN
+# after its declaration.
 
 ARG RUST_VERSION=1.97
 ARG DEBIAN_SUITE=bookworm
 ARG NODE_VERSION=22
 
 ############################
-# chef
+# toolchain
 ############################
-FROM --platform=$BUILDPLATFORM rust:${RUST_VERSION}-${DEBIAN_SUITE} AS chef
-ARG CARGO_CHEF_VERSION=0.1.71
+FROM --platform=$BUILDPLATFORM rust:${RUST_VERSION}-${DEBIAN_SUITE} AS toolchain
 # The repository's rust-toolchain.toml asks for "stable"; pin to the image's own toolchain so the
 # build never downloads another one (RUST_VERSION is set by the rust base image).
 ENV RUSTUP_TOOLCHAIN=${RUST_VERSION} \
     CARGO_TERM_COLOR=never \
     CARGO_INCREMENTAL=0
-RUN cargo install cargo-chef --locked --version "${CARGO_CHEF_VERSION}"
 WORKDIR /src
 
 ############################
 # wasm
 ############################
-FROM chef AS wasm
+FROM toolchain AS wasm
 RUN rustup target add wasm32-unknown-unknown
 COPY . .
 RUN --mount=type=cache,id=sourcegull-cargo-registry,target=/usr/local/cargo/registry,sharing=locked \
     --mount=type=cache,id=sourcegull-cargo-git,target=/usr/local/cargo/git,sharing=locked \
+    --mount=type=cache,id=sourcegull-wasm-target,target=/src/target,sharing=locked \
     cargo build --release --locked -p sourcegull-query-wasm --target wasm32-unknown-unknown \
  && install -D -m 0644 target/wasm32-unknown-unknown/release/sourcegull_query_wasm.wasm /out/query.wasm
 
@@ -63,19 +66,10 @@ COPY --from=wasm /out/query.wasm static/query.wasm
 RUN rm -rf build && npm run build && test -f build/index.html
 
 ############################
-# planner
-############################
-FROM chef AS planner
-COPY . .
-RUN cargo chef prepare --recipe-path recipe.json
-
-############################
 # builder
 ############################
-FROM chef AS builder
+FROM toolchain AS builder
 ARG TARGETARCH
-# Reproducible builds: pass e.g. --build-arg SOURCE_DATE_EPOCH=$(git log -1 --format=%ct).
-ARG SOURCE_DATE_EPOCH
 # Optional cap on parallel rustc jobs (e.g. --build-arg CARGO_BUILD_JOBS=3 on a shared machine).
 ARG CARGO_BUILD_JOBS
 # Optional overrides of the release profile; scripts/image-build.sh sets thin LTO and 16 units,
@@ -103,17 +97,14 @@ ENV CARGO_TARGET_X86_64_UNKNOWN_LINUX_GNU_LINKER=x86_64-linux-gnu-gcc \
     CARGO_TARGET_AARCH64_UNKNOWN_LINUX_GNU_LINKER=aarch64-linux-gnu-gcc \
     CC_aarch64_unknown_linux_gnu=aarch64-linux-gnu-gcc \
     CXX_aarch64_unknown_linux_gnu=aarch64-linux-gnu-g++
-COPY --from=planner /src/recipe.json recipe.json
-# Dependency layer: rebuilt only when the recipe (dependency graph) changes.
-RUN --mount=type=cache,id=sourcegull-cargo-registry,target=/usr/local/cargo/registry,sharing=locked \
-    --mount=type=cache,id=sourcegull-cargo-git,target=/usr/local/cargo/git,sharing=locked \
-    cargo chef cook --release --locked --target "$(cat /rust-target)" --recipe-path recipe.json \
-      -p sourcegull -p sourcegull-cli
 COPY . .
 COPY --from=ui /ui/build /ui-build
 ENV SOURCEGULL_UI_BUILD_DIR=/ui-build
+# Both platforms share the cache (their outputs are under target/<triple>/, the build scripts
+# and proc macros they share under target/release/).
 RUN --mount=type=cache,id=sourcegull-cargo-registry,target=/usr/local/cargo/registry,sharing=locked \
     --mount=type=cache,id=sourcegull-cargo-git,target=/usr/local/cargo/git,sharing=locked \
+    --mount=type=cache,id=sourcegull-target,target=/src/target,sharing=locked \
     target=$(cat /rust-target) \
  && cargo build --release --locked --target "$target" -p sourcegull --bin sourcegull -p sourcegull-cli --bin gull \
  && install -D -m 0755 "target/$target/release/sourcegull" /out/sourcegull \
@@ -123,16 +114,16 @@ RUN --mount=type=cache,id=sourcegull-cargo-registry,target=/usr/local/cargo/regi
 # cli
 ############################
 FROM debian:${DEBIAN_SUITE}-slim AS cli
+# git lets `gull code-intel upload` infer the repository and commit outside GitLab CI.
+RUN apt-get update \
+ && apt-get install -y --no-install-recommends ca-certificates git \
+ && rm -rf /var/lib/apt/lists/* /var/cache/apt/archives/* /var/log/apt /var/log/dpkg.log
 ARG VERSION=0.1.0
 LABEL org.opencontainers.image.title="sourcegull-cli" \
       org.opencontainers.image.description="The gull command-line client" \
       org.opencontainers.image.licenses="Apache-2.0" \
       org.opencontainers.image.version="${VERSION}" \
       org.opencontainers.image.source="https://github.com/sourcegull/sourcegull"
-# git lets `gull code-intel upload` infer the repository and commit outside GitLab CI.
-RUN apt-get update \
- && apt-get install -y --no-install-recommends ca-certificates git \
- && rm -rf /var/lib/apt/lists/* /var/cache/apt/archives/* /var/log/apt /var/log/dpkg.log
 COPY --from=builder /out/gull /usr/local/bin/gull
 CMD ["gull", "--help"]
 
@@ -140,16 +131,6 @@ CMD ["gull", "--help"]
 # runtime
 ############################
 FROM debian:${DEBIAN_SUITE}-slim AS runtime
-ARG SOURCE_DATE_EPOCH
-ARG VERSION=0.1.0
-ARG REVISION=unknown
-
-LABEL org.opencontainers.image.title="sourcegull" \
-      org.opencontainers.image.description="Self-hosted code intelligence platform" \
-      org.opencontainers.image.licenses="Apache-2.0" \
-      org.opencontainers.image.version="${VERSION}" \
-      org.opencontainers.image.revision="${REVISION}" \
-      org.opencontainers.image.source="https://github.com/sourcegull/sourcegull"
 
 # git is needed by the repo role; git-lfs is not installed.
 RUN apt-get update \
@@ -166,6 +147,15 @@ RUN groupadd --system --gid 10001 sourcegull \
 
 COPY --from=builder /out/sourcegull /usr/local/bin/sourcegull
 COPY --from=builder /out/gull /usr/local/bin/gull
+
+ARG VERSION=0.1.0
+ARG REVISION=unknown
+LABEL org.opencontainers.image.title="sourcegull" \
+      org.opencontainers.image.description="Self-hosted code intelligence platform" \
+      org.opencontainers.image.licenses="Apache-2.0" \
+      org.opencontainers.image.version="${VERSION}" \
+      org.opencontainers.image.revision="${REVISION}" \
+      org.opencontainers.image.source="https://github.com/sourcegull/sourcegull"
 
 ENV SOURCEGULL_DATA_DIR=/var/opt/sourcegull \
     SOURCEGULL_HTTP_ADDR=0.0.0.0:7080 \

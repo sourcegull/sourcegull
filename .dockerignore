@@ -1,4 +1,4 @@
-# Keep the build context small and the cargo-chef cache stable.
+# Keep the build context small (and target/ out of it: the builder caches it separately).
 .git
 .github
 **/target

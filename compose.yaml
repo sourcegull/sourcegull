@@ -151,7 +151,8 @@ services:
     build:
       context: deploy/docker/dev
       target: e2e
-    command: ["sh", "-c", "deploy/docker/dev/ui-deps.sh && exec scripts/test/e2e-ui.sh"]
+    # A prebuilt binary (SOURCEGULL_E2E_BIN) embeds the UI: no npm dependencies needed.
+    command: ["sh", "-ec", "[ -n \"$${SOURCEGULL_E2E_BIN:-}\" ] || deploy/docker/dev/ui-deps.sh; exec scripts/test/e2e-ui.sh"]
     environment:
       SOURCEGULL_E2E_DATABASE_URL: postgres://sourcegull:sourcegull@postgres:5432/sourcegull
       OUT: /src/.e2e-out
