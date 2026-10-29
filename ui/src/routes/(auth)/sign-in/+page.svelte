@@ -58,6 +58,9 @@
 
 <h1>Sign in</h1>
 
+{#if page.url.searchParams.get('reset') === '1' && !error}
+	<div class="alert alert-success" role="status">Your password is changed. Sign in with the new one.</div>
+{/if}
 {#if error}
 	<div class="alert alert-danger" role="alert">{error}</div>
 {/if}

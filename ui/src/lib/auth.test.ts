@@ -52,6 +52,11 @@ describe('authRedirect', () => {
 		);
 		expect(authRedirect(alice, url('/sign-up'))).toBe('/search');
 	});
+
+	it('lets signed-in users open a password reset link', () => {
+		expect(authRedirect(alice, url('/reset-password?userID=VXNlcjox&code=c'))).toBeNull();
+		expect(authRedirect(alice, url('/forgot-password'))).toBe('/search');
+	});
 });
 
 describe('safeReturnTo', () => {

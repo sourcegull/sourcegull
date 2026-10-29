@@ -190,6 +190,8 @@ export function authRedirect(state: AuthState, url: URL): string | null {
 		return path === '/sign-up' ? null : '/sign-up';
 	}
 	if (state.authenticated) {
+		// A reset link works while signed in: completing it signs every session out.
+		if (path === '/reset-password') return null;
 		return isPublic(path) ? safeReturnTo(url.searchParams.get('returnTo')) : null;
 	}
 	if (path === '/sign-up' && !state.allowSignup) return '/sign-in';
