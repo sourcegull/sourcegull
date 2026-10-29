@@ -1,0 +1,4 @@
+#!/bin/sh
+# Refuses a commit whose staged changes contain secrets or internal addresses (gitleaks, in
+# Docker). Install once per clone: git config core.hooksPath scripts/hooks
+exec "$(git rev-parse --show-toplevel)/scripts/gitleaks.sh" staged
