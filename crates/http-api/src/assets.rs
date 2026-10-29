@@ -95,12 +95,14 @@ fn etag_matches(if_none_match: &str, etag: &str) -> bool {
 ///
 /// SvelteKit's `index.html` bootstraps the app with an inline `<script>`; instead of allowing all
 /// inline scripts, the policy allows exactly the inline scripts of the embedded `index.html` by
-/// hash. Inline styles are allowed because CodeMirror injects `<style>` elements at runtime.
+/// hash. `'wasm-unsafe-eval'` lets the search query parser (`/query.wasm`) compile; it allows
+/// WebAssembly only, not `eval`. Inline styles are allowed because CodeMirror injects `<style>`
+/// elements at runtime.
 pub fn content_security_policy() -> &'static str {
     static CSP: LazyLock<String> = LazyLock::new(|| {
         let index = sourcegull_web_assets::index_html();
         let html = String::from_utf8_lossy(&index.bytes);
-        let mut script_src = String::from("'self'");
+        let mut script_src = String::from("'self' 'wasm-unsafe-eval'");
         for script in inline_scripts(&html) {
             let hash = STANDARD.encode(Sha256::digest(script.as_bytes()));
             script_src.push_str(&format!(" 'sha256-{hash}'"));
