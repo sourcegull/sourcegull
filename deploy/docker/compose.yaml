@@ -3,7 +3,7 @@
 # node in SOURCEGULL_REPO_NODES (in .env). Repositories whose node changes are moved to it without
 # downtime (docs/architecture.md, "Repo nodes and rebalancing").
 #
-#   cd deploy/docker
+#   cd sourcegull-compose           # the release bundle; deploy/docker in a checkout
 #   cp .env.example .env            # then edit the passwords
 #   mkdir -p secrets && printf 'k1:%s\n' "$(openssl rand -base64 32)" > secrets/encryption-keys
 #   chmod 0644 secrets/encryption-keys   # must be readable by UID 10001 in the containers

@@ -10,19 +10,23 @@ run it:
 | [Docker Compose](#docker-compose) | trying Sourcegull, one host | PostgreSQL service in the Compose file |
 | [Kubernetes (Helm)](#kubernetes-helm) | larger installs, several repo nodes | external, bundled or CloudNativePG |
 
-Every option needs only PostgreSQL 18; there is no Redis or other service to run.
+Every option needs only PostgreSQL 18; there is no Redis or other service to run. Install from
+a [release](https://github.com/sourcegull/sourcegull/releases): each one publishes the images,
+the Helm chart and a Compose bundle, and its notes give the versions.
 
-## Images
+## Release artifacts
 
-Each release publishes, with an SBOM and build provenance, signed by digest:
+Each release publishes, signed by digest (images with an SBOM and build provenance):
 
-| Image | Contents |
+| Artifact | Contents |
 |---|---|
 | `ghcr.io/sourcegull/sourcegull` | the server and `gull`; what Compose and the Helm chart run |
 | `ghcr.io/sourcegull/gull` | only `gull` and git, for CI jobs ([SCIP uploads](code-navigation.md)) |
+| `oci://ghcr.io/sourcegull/charts/sourcegull` | the [Helm chart](#kubernetes-helm), versioned on its own |
+| `sourcegull-compose.tar.gz` (release asset) | the [Docker Compose](#docker-compose) files: `compose.yaml`, `.env.example`, configuration and monitoring files |
 
-Tags: `X.Y.Z`, `X.Y` (the newest patch release) and `latest`. Compose and the chart default to
-the release they ship with, so neither needs a build. The release notes show how to check a
+Image tags: `X.Y.Z`, `X.Y` (the newest patch release) and `latest`. The Compose bundle and the
+chart default to the image of their release, so neither needs a build. The release notes show how to check a
 signature with `cosign verify`.
 
 ### Building from source
@@ -40,12 +44,13 @@ image (cross-compiled, no emulation needed for the Rust build); `--target cli` b
 
 ## Docker Compose
 
-`deploy/docker/compose.yaml` runs PostgreSQL, a one-shot `migrate` service, `web`, `worker`, one
-repo node (`repo-0`) and a `blob` store, each as its own container with a read-only root file
-system.
+The Compose bundle runs PostgreSQL, a one-shot `migrate` service, `web`, `worker`, one repo node
+(`repo-0`) and a `blob` store, each as its own container with a read-only root file system.
+Download it from the latest release (the same files are in `deploy/docker/` of a checkout):
 
 ```sh
-cd deploy/docker
+curl -fsSL https://github.com/sourcegull/sourcegull/releases/latest/download/sourcegull-compose.tar.gz | tar -xz
+cd sourcegull-compose
 cp .env.example .env            # then change every password
 mkdir -p secrets && printf 'k1:%s\n' "$(openssl rand -base64 32)" > secrets/encryption-keys
 chmod 0644 secrets/encryption-keys   # read by UID 10001 in the containers
@@ -58,7 +63,7 @@ instead of a file ([configuration](configuration.md#keys-in-the-environment)). `
 documents every setting, including memory limits and Postgres tuning.
 
 To configure the instance from files instead of the UI, put the site configuration, global
-settings and resources files in `deploy/docker/config/` and name them in `.env`
+settings and resources files in `config/` and name them in `.env`
 ([configuration as code](configuration.md#configuration-as-code));
 `config/resources.example.jsonc` is a starting point.
 
@@ -77,23 +82,28 @@ To add repo nodes, copy the `repo-0` service and its volume as `repo-1`, … and
 the background without downtime ([rebalancing](architecture.md#repo-nodes-and-rebalancing)).
 
 Upgrades (pull, migrate, up), multi-version upgrades, backups and key rotation are described in
-[deploy/docker/upgrade.md](../deploy/docker/upgrade.md).
+[upgrade.md](../deploy/docker/upgrade.md), which the bundle includes.
 
 ## Kubernetes (Helm)
 
-The chart in [`deploy/helm/sourcegull`](../deploy/helm/sourcegull/README.md) deploys `web`, the repo
+The [chart](../deploy/helm/sourcegull/README.md), published as
+`oci://ghcr.io/sourcegull/charts/sourcegull` (Helm 3.8 or later), deploys `web`, the repo
 nodes as a StatefulSet, `worker`, the blob store, optional executors (Kubernetes runtime: one
 Job per auto-indexing job, one per bulk change step), a migration hook and optional monitoring
 objects. It runs `ghcr.io/sourcegull/sourcegull` at the chart's `appVersion` (`0.1.0`); set
 `image.registry` and `image.repository` for a mirror or an [image of your own](#building-from-source).
 With no other values the chart runs the bundled database and generates the encryption keys,
-which is enough to evaluate Sourcegull:
+which is enough to evaluate Sourcegull. The size presets come with the chart:
 
 ```sh
-helm install sourcegull deploy/helm/sourcegull -f deploy/helm/sourcegull/examples/small.yaml \
-  --set externalURL=https://sourcegull.example.com
+helm pull oci://ghcr.io/sourcegull/charts/sourcegull --untar   # the chart, with examples/
+helm install sourcegull oci://ghcr.io/sourcegull/charts/sourcegull \
+  -f sourcegull/examples/small.yaml --set externalURL=https://sourcegull.example.com
 helm test sourcegull
 ```
+
+`--version` pins a chart version (the release notes give it); from a checkout,
+`deploy/helm/sourcegull` works as the chart too.
 
 For production, use an external PostgreSQL 18 and your own Secret:
 
@@ -101,8 +111,8 @@ For production, use an external PostgreSQL 18 and your own Secret:
 kubectl create secret generic sourcegull-secrets \
   --from-literal=database-url='postgres://sourcegull:...@db.example.com:5432/sourcegull' \
   --from-literal=encryption-keys="k1:$(openssl rand -base64 32)"
-helm install sourcegull deploy/helm/sourcegull -f deploy/helm/sourcegull/examples/large.yaml \
-  --set externalURL=https://sourcegull.example.com
+helm install sourcegull oci://ghcr.io/sourcegull/charts/sourcegull \
+  -f sourcegull/examples/large.yaml --set externalURL=https://sourcegull.example.com
 ```
 
 - Database: `postgresql.mode` is `bundled` (default; one PostgreSQL StatefulSet, for evaluation

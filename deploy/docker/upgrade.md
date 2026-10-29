@@ -5,13 +5,16 @@ version N+1 stays compatible with version N, so you can upgrade one minor versio
 a short restart. To skip versions, stop Sourcegull and run a multi-version upgrade with the new
 image (see [Upgrading across several versions](#upgrading-across-several-versions)).
 
+Commands run in the directory of the Compose bundle (`sourcegull-compose`, or `deploy/docker` in a
+checkout).
+
 ## Before you upgrade
 
 1. Read the release notes for the target version.
 2. Back up the database and the encryption key file:
 
    ```sh
-   cd deploy/docker
+   cd sourcegull-compose
    docker compose exec -T postgres pg_dump -U sourcegull -Fc sourcegull > sourcegull-$(date +%F).dump
    cp secrets/encryption-keys secrets/encryption-keys.bak
    ```
@@ -19,9 +22,11 @@ image (see [Upgrading across several versions](#upgrading-across-several-version
 ## Upgrade: pull → migrate → up
 
 ```sh
-cd deploy/docker
+cd sourcegull-compose
 
-# 1. Point the stack at the new version.
+# 1. Take the new release's Compose files (extracted over the old ones; the bundle holds no
+#    .env, secrets/ or files of yours in config/), and point the stack at the new version.
+curl -fsSL https://github.com/sourcegull/sourcegull/releases/download/v0.2.0/sourcegull-compose.tar.gz | tar -xz -C ..
 sed -i 's/^SOURCEGULL_VERSION=.*/SOURCEGULL_VERSION=0.2.0/' .env
 
 # 2. Pull the new images.
@@ -49,7 +54,7 @@ checks that the database is exactly at `--from`, compares the schema with the on
 shipped (drift), applies each version's migrations in order and checks the result:
 
 ```sh
-cd deploy/docker
+cd sourcegull-compose
 docker compose stop web worker repo-0
 sed -i 's/^SOURCEGULL_VERSION=.*/SOURCEGULL_VERSION=0.4.0/' .env
 docker compose pull
@@ -125,7 +130,7 @@ brings only its minor updates. A new major version cannot start on the old one's
 so a major upgrade is a dump and restore.
 
 ```sh
-cd deploy/docker
+cd sourcegull-compose
 docker compose stop web worker repo-0
 docker compose exec -T postgres pg_dump -U sourcegull -Fc sourcegull > sourcegull-pg.dump
 docker compose down

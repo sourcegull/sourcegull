@@ -1,7 +1,9 @@
-# Release: builds the runtime and cli images for linux/amd64, runs the smoke test and the Gitea
-# browser check against the runtime image, then pushes ghcr.io/<owner>/sourcegull and
-# ghcr.io/<owner>/gull with an SBOM and provenance, signs them by digest (keyless) and creates the
-# GitHub release. (The Dockerfile also cross-compiles linux/arm64, which is not published.)
+# Release: checks the Helm chart, builds the runtime and cli images for linux/amd64, runs the
+# smoke test and the Gitea browser check against the runtime image, then pushes
+# ghcr.io/<owner>/sourcegull and ghcr.io/<owner>/gull with an SBOM and provenance and the chart to
+# oci://ghcr.io/<owner>/charts (when its version is new), signs them by digest (keyless) and
+# creates the GitHub release with the Compose bundle (sourcegull-compose.tar.gz) attached. (The
+# Dockerfile also cross-compiles linux/arm64, which is not published.)
 #
 # Started by hand on main (Actions → Release → Run workflow): the self-hosted runner accepts
 # only this repository's workflows from main, so neither tags nor other branches can run it.
@@ -32,6 +34,7 @@ concurrency:
 env:
   IMAGE: ghcr.io/${{ github.repository_owner }}/sourcegull
   CLI_IMAGE: ghcr.io/${{ github.repository_owner }}/gull
+  CHARTS: ghcr.io/${{ github.repository_owner }}/charts
   PUSH: ${{ inputs.publish && github.ref == 'refs/heads/main' }}
   # Limits sized to the runner's machine: the image builder's memory and rustc jobs, and the dev
   # containers of the Gitea check. The images are built with thin LTO and 16
@@ -53,6 +56,10 @@ jobs:
           fetch-depth: 0
       - name: Secret scan
         run: scripts/gitleaks.sh history
+
+      # helm lint --strict and helm template of every preset and option, values.schema.json current.
+      - name: Chart check
+        run: scripts/test/helm-ct.sh template
 
       - name: Version
         id: version
@@ -184,6 +191,40 @@ jobs:
           build-args: ${{ steps.version.outputs.build-args }}
           builder: ${{ steps.builder.outputs.name }}
 
+      # The chart has its own version: pushed only when that version is not in the registry yet.
+      - uses: azure/setup-helm@v4
+        if: env.PUSH == 'true'
+        with:
+          version: v3.16.4
+      - name: Push chart
+        id: chart
+        if: env.PUSH == 'true'
+        env:
+          TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          chart_version=$(sed -n 's/^version: //p' deploy/helm/sourcegull/Chart.yaml)
+          echo "version=$chart_version" >>"$GITHUB_OUTPUT"
+          printf '%s' "$TOKEN" | helm registry login ghcr.io -u "$GITHUB_ACTOR" --password-stdin
+          if helm show chart "oci://$CHARTS/sourcegull" --version "$chart_version" >/dev/null 2>&1; then
+            echo "chart $chart_version is already published"
+            echo "pushed=false" >>"$GITHUB_OUTPUT"
+            exit 0
+          fi
+          helm package deploy/helm/sourcegull -d "$RUNNER_TEMP/chart"
+          helm push "$RUNNER_TEMP/chart/sourcegull-$chart_version.tgz" "oci://$CHARTS" 2>&1 | tee "$RUNNER_TEMP/chart-push.log"
+          digest=$(sed -n 's/^Digest: //p' "$RUNNER_TEMP/chart-push.log")
+          echo "pushed=true" >>"$GITHUB_OUTPUT"
+          echo "digest=$digest" >>"$GITHUB_OUTPUT"
+
+      # The Compose files a host needs (no Dockerfile or development files), as a release asset.
+      - name: Compose bundle
+        if: env.PUSH == 'true'
+        run: |
+          tar -czf "$RUNNER_TEMP/sourcegull-compose.tar.gz" \
+            --transform 's,^deploy/docker,sourcegull-compose,' \
+            deploy/docker/compose.yaml deploy/docker/.env.example deploy/docker/upgrade.md \
+            deploy/docker/config deploy/docker/prometheus deploy/docker/grafana
+
       - uses: sigstore/cosign-installer@v3
         if: env.PUSH == 'true'
       - name: Sign
@@ -191,7 +232,10 @@ jobs:
         env:
           DIGEST: ${{ steps.push.outputs.digest }}
           CLI_DIGEST: ${{ steps.push-cli.outputs.digest }}
-        run: cosign sign --yes "$IMAGE@$DIGEST" "$CLI_IMAGE@$CLI_DIGEST"
+          CHART_DIGEST: ${{ steps.chart.outputs.digest }}
+        run: |
+          cosign sign --yes "$IMAGE@$DIGEST" "$CLI_IMAGE@$CLI_DIGEST"
+          if [ -n "$CHART_DIGEST" ]; then cosign sign --yes "$CHARTS/sourcegull@$CHART_DIGEST"; fi
 
       - name: Release notes
         if: env.PUSH == 'true'
@@ -199,8 +243,20 @@ jobs:
           VERSION: ${{ steps.version.outputs.version }}
           DIGEST: ${{ steps.push.outputs.digest }}
           CLI_DIGEST: ${{ steps.push-cli.outputs.digest }}
+          CHART_VERSION: ${{ steps.chart.outputs.version }}
         run: |
           cat >"$RUNNER_TEMP/notes.md" <<EOF
+          ## Install
+
+          Docker Compose: download \`sourcegull-compose.tar.gz\` below, then follow
+          [docs/install.md](https://github.com/$GITHUB_REPOSITORY/blob/v$VERSION/docs/install.md#docker-compose).
+
+          Kubernetes:
+
+          \`\`\`sh
+          helm install sourcegull oci://$CHARTS/sourcegull --version $CHART_VERSION
+          \`\`\`
+
           ## Images
 
           | Image | Digest |
@@ -225,3 +281,4 @@ jobs:
           body_path: ${{ runner.temp }}/notes.md
           append_body: true
           generate_release_notes: true
+          files: ${{ runner.temp }}/sourcegull-compose.tar.gz
