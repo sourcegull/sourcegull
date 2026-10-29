@@ -1,18 +1,23 @@
-# Release: builds the runtime and cli images for linux/amd64 and linux/arm64 (arm64 is
-# cross-compiled, see deploy/docker/Dockerfile), smoke-tests both (arm64 under emulation) and the
-# Gitea browser check against the amd64 image, then pushes ghcr.io/<owner>/sourcegull and
+# Release: builds the runtime and cli images for linux/amd64, runs the smoke test and the Gitea
+# browser check against the runtime image, then pushes ghcr.io/<owner>/sourcegull and
 # ghcr.io/<owner>/gull with an SBOM and provenance, signs them by digest (keyless) and creates the
-# GitHub release.
+# GitHub release. (The Dockerfile also cross-compiles linux/arm64, which is not published.)
 #
-# Runs on `v*` tags. Started by hand on a branch it builds and tests without pushing; on a tag it
-# releases that tag. The tag must match the workspace version in Cargo.toml (vX.Y.Z or
-# vX.Y.Z-pre); pre-releases get only the X.Y.Z-pre tag, others X.Y.Z, X.Y and latest.
+# Started by hand on main (Actions → Release → Run workflow): the self-hosted runner accepts
+# only this repository's workflows from main, so neither tags nor other branches can run it.
+# Without `publish` it builds and tests only. With it, it releases the workspace version in
+# Cargo.toml (X.Y.Z, or X.Y.Z-pre for a pre-release): creates the tag vX.Y.Z on the commit,
+# which must not exist yet, and pushes the images tagged X.Y.Z, X.Y and latest (pre-releases
+# only X.Y.Z-pre).
 name: Release
 
 on:
-  push:
-    tags: ["v*"]
   workflow_dispatch:
+    inputs:
+      publish:
+        description: Publish the release (tag, images, GitHub release); otherwise build and test only
+        type: boolean
+        default: false
 
 permissions:
   contents: write
@@ -27,7 +32,7 @@ concurrency:
 env:
   IMAGE: ghcr.io/${{ github.repository_owner }}/sourcegull
   CLI_IMAGE: ghcr.io/${{ github.repository_owner }}/gull
-  PUSH: ${{ github.ref_type == 'tag' }}
+  PUSH: ${{ inputs.publish && github.ref == 'refs/heads/main' }}
   # Limits sized to the runner's machine: the image builder's memory and rustc jobs, and the dev
   # containers of the Gitea check. The images are built with thin LTO and 16
   # codegen units (build-args below): fat LTO optimises the whole program on one core at every
@@ -53,13 +58,9 @@ jobs:
         id: version
         run: |
           version=$(sed -n 's/^version = "\(.*\)"$/\1/p' Cargo.toml | head -n 1)
-          if [ "$GITHUB_REF_TYPE" = tag ]; then
-            tag=${GITHUB_REF_NAME#v}
-            if [ "${tag%%-*}" != "$version" ]; then
-              echo "::error::tag $GITHUB_REF_NAME does not match the Cargo.toml version $version"
-              exit 1
-            fi
-            version=$tag
+          if [ "$PUSH" = true ] && git ls-remote --exit-code --tags origin "refs/tags/v$version" >/dev/null; then
+            echo "::error::v$version is already released; bump the version in Cargo.toml"
+            exit 1
           fi
           case "$version" in *-*) prerelease=true ;; *) prerelease=false ;; esac
           {
@@ -76,9 +77,6 @@ jobs:
           } >>"$GITHUB_OUTPUT"
           echo "version $version (prerelease: $prerelease, push: $PUSH)"
 
-      - uses: docker/setup-qemu-action@v3
-        with:
-          platforms: arm64
       # A builder that stays on the runner host between runs (its state volume keeps the layer
       # and cargo caches), capped so a build cannot exhaust the host: an out-of-memory kill fails
       # the build. Recreated over the same state when the runner lost its buildx config.
@@ -95,9 +93,8 @@ jobs:
           docker buildx inspect --bootstrap "$name"
           echo "name=$name" >>"$GITHUB_OUTPUT"
 
-      # One image per platform, loaded for the tests below; the multi-platform push reuses their
-      # layers from the builder.
-      - name: Build runtime (amd64)
+      # Loaded for the tests below; the push reuses its layers from the builder.
+      - name: Build runtime
         uses: docker/build-push-action@v6
         with:
           context: .
@@ -105,28 +102,15 @@ jobs:
           target: runtime
           platforms: linux/amd64
           load: true
-          tags: sourcegull-release:amd64
-          build-args: ${{ steps.version.outputs.build-args }}
-          builder: ${{ steps.builder.outputs.name }}
-      - name: Build runtime (arm64)
-        uses: docker/build-push-action@v6
-        with:
-          context: .
-          file: deploy/docker/Dockerfile
-          target: runtime
-          platforms: linux/arm64
-          load: true
-          tags: sourcegull-release:arm64
+          tags: sourcegull-release:test
           build-args: ${{ steps.version.outputs.build-args }}
           builder: ${{ steps.builder.outputs.name }}
 
-      - name: Smoke test (amd64)
-        run: scripts/test/release-smoke.sh sourcegull-release:amd64 linux/amd64
-      - name: Smoke test (arm64, emulated)
-        run: SMOKE_TIMEOUT=900 scripts/test/release-smoke.sh sourcegull-release:arm64 linux/arm64
+      - name: Smoke test
+        run: scripts/test/release-smoke.sh sourcegull-release:test
       # Gitea connection, sign-in through Gitea and search results, in the browser.
-      - name: Gitea check (amd64)
-        run: SOURCEGULL_E2E_IMAGE=sourcegull-release:amd64 CHECKS=gitea scripts/dev e2e
+      - name: Gitea check
+        run: SOURCEGULL_E2E_IMAGE=sourcegull-release:test CHECKS=gitea scripts/dev e2e
       # Keeps the volumes (Postgres, the e2e image's caches) for the next run; the Gitea check
       # starts Gitea fresh and uses its own database.
       - name: Stop the test stack
@@ -167,7 +151,7 @@ jobs:
           context: .
           file: deploy/docker/Dockerfile
           target: runtime
-          platforms: linux/amd64,linux/arm64
+          platforms: linux/amd64
           push: true
           sbom: true
           provenance: mode=max
@@ -183,7 +167,7 @@ jobs:
           context: .
           file: deploy/docker/Dockerfile
           target: cli
-          platforms: linux/amd64,linux/arm64
+          platforms: linux/amd64
           push: true
           sbom: true
           provenance: mode=max
@@ -216,7 +200,7 @@ jobs:
           | \`$IMAGE:$VERSION\` | \`$DIGEST\` |
           | \`$CLI_IMAGE:$VERSION\` | \`$CLI_DIGEST\` |
 
-          linux/amd64 and linux/arm64, signed with keyless cosign:
+          linux/amd64, signed with keyless cosign:
 
           \`\`\`sh
           cosign verify $IMAGE@$DIGEST \\
@@ -227,6 +211,8 @@ jobs:
       - uses: softprops/action-gh-release@v2
         if: env.PUSH == 'true'
         with:
+          tag_name: v${{ steps.version.outputs.version }}
+          target_commitish: ${{ github.sha }}
           prerelease: ${{ steps.version.outputs.prerelease }}
           body_path: ${{ runner.temp }}/notes.md
           append_body: true

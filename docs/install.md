@@ -1,7 +1,8 @@
 # Install
 
 Sourcegull ships as one image, `ghcr.io/sourcegull/sourcegull`, which holds the `sourcegull` server
-binary and the `gull` command-line client, for linux/amd64 and linux/arm64. There are two ways to
+binary and the `gull` command-line client, for linux/amd64 (for arm64,
+[build from source](#building-from-source)). There are two ways to
 run it:
 
 | Option | For | Database |
@@ -34,8 +35,8 @@ Compose (`SOURCEGULL_IMAGE`, `SOURCEGULL_VERSION` in `.env`) or the chart (`imag
 docker buildx build -f deploy/docker/Dockerfile -t registry.example.com/sourcegull/sourcegull:dev --load .
 ```
 
-The build compiles the web UI and embeds it in the binary. `--platform linux/arm64` cross-compiles
-for arm64; `--target cli` builds the `gull` image.
+The build compiles the web UI and embeds it in the binary. `--platform linux/arm64` builds an arm64
+image (cross-compiled, no emulation needed for the Rust build); `--target cli` builds the `gull` image.
 
 ## Docker Compose
 
