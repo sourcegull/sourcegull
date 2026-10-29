@@ -84,17 +84,19 @@ watch webhook URLs) are encrypted
 with data keys that are wrapped by the key-encryption keys in `secrets/encryption-keys`.
 To rotate:
 
-1. Append a new key as the **last** line (the last line is the current key; keep the old ones):
+1. Append a new key as the **last** line (the last line is the current key; keep the old one):
 
    ```sh
    echo "k2:$(openssl rand -base64 32)" >> secrets/encryption-keys
    ```
 
-2. Restart the services (`docker compose up -d --force-recreate`). The first process to start
-   with the new key re-wraps every data key with it, creates new data keys and retires the old
-   ones (decrypt-only); the others reload the keys.
+2. Restart the services (`docker compose up -d --force-recreate`). Changing the file alone does
+   not rotate. The first process to start with the new key re-wraps every data key with it,
+   creates new data keys and retires the old ones (decrypt-only); the others reload the keys.
 3. The workers re-encrypt every secret with the new data keys (out-of-band migration 1, "Re-encrypt
-   secrets"). When the Migrations page shows it at 100%, the old key lines can be removed.
+   secrets"). When the Migrations page shows it at 100%, delete the old key line; no restart is
+   needed. The file is then back to one line: since the data keys were re-wrapped, the old key
+   is never needed again, and a rotation never needs more than two lines.
 
 Watch webhook URLs saved before keys were configured (or before this release) stay in
 plaintext until out-of-band migration 2 ("Encrypt watch webhook URLs") encrypts them; it

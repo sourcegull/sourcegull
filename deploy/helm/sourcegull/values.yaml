@@ -76,7 +76,8 @@ extraEnvVarsSecret: ""
 # How the Sourcegull containers get the encryption keys (the `encryption-keys` entry of the app
 # Secret, see existingSecret). Every Sourcegull container needs the same keys.
 encryptionKeys:
-  # file: mounted and read as SOURCEGULL_KEYS_FILE (a rotated Secret is re-read without a restart).
+  # file: mounted and read as SOURCEGULL_KEYS_FILE (after updating the Secret, run
+  #   `sourcegull keys rotate` in one pod; the others re-read the file without a restart).
   # env: passed as SOURCEGULL_KEYS from the Secret (secretKeyRef; the pod spec holds no key).
   # external: the chart passes neither; set SOURCEGULL_KEYS yourself, e.g. with extraEnvVars and a
   #   secret-injecting webhook, or a valueFrom of your own.

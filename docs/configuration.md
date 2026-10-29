@@ -165,13 +165,27 @@ printf 'k1:%s\n' "$(openssl rand -base64 32)" > keys
 - Back the file up with the database. Losing it makes the stored secrets unreadable. Every
   Sourcegull process needs the same keys.
 
-**Rotation.** Append a new key as the last line and restart (or run `sourcegull keys rotate`
-without changing the file). The first process with the new key re-wraps the data keys, creates
-new ones and retires the old ones (decrypt-only); other processes reload the keys. Workers then
-re-encrypt every secret in the background as an out-of-band migration; progress shows on
-**Site admin → Migrations** and in `sourcegull migrate status`. When it reaches 100%, old key lines
-can be removed. `sourcegull keys status` lists the data keys and how many secrets still use retired
-ones. The Compose walkthrough is in [upgrade.md](../deploy/docker/upgrade.md#rotating-the-encryption-key).
+**Rotation.** Append a new key as the last line, then restart a process or run
+`sourcegull keys rotate`. Changing the file alone does nothing: a rotation happens only when a
+process starts or that command runs. The first process with the new key re-wraps every data
+key, retired ones included, with it, creates new data keys and retires the old ones
+(decrypt-only). It then notifies the other processes, which re-read their key file and reload the
+data keys without a restart. Workers then re-encrypt every secret in the background as an
+out-of-band migration; progress shows on **Site admin → Migrations** and in
+`sourcegull migrate status`. When it reaches 100%, remove the old key line; nothing removes it for
+you. `sourcegull keys rotate` with an unchanged file creates new data keys under the same key.
+
+- Because the data keys are re-wrapped, the file never needs more than two lines, the old key and
+  the new one, and only during a rotation.
+- Every process must have the new key before or when the rotation runs. A process with only the
+  old key cannot unwrap the re-wrapped data keys: its reload fails with a warning
+  ("reloading the data encryption keys failed") and it keeps the keys it had until it is restarted
+  with the new key.
+- Retired data keys stay in the `encryption_keys` table (one row per record class per rotation);
+  once re-encryption reaches 100% no secret uses them.
+- `sourcegull keys status` lists the data keys and how many secrets still use retired ones.
+
+The Compose walkthrough is in [upgrade.md](../deploy/docker/upgrade.md#rotating-the-encryption-key).
 
 ### Keys in the environment
 
@@ -195,9 +209,10 @@ export SOURCEGULL_KEYS="k1:<old base64>,k2:$(openssl rand -base64 32)"
   container's command, an init process that execs Sourcegull with the resolved environment) work
   unchanged. A value still starting with `vault:` is reported as an unresolved reference rather
   than as a malformed key.
-- The variable is fixed for the life of a process: rotating means changing it and restarting
-  every process (a key file is re-read on rotation without a restart). `sourcegull keys status` and
-  `sourcegull keys rotate` accept either source.
+- The variable is fixed for the life of a process, so a rotation takes two restarts of every
+  process: one with `old,new` (the first to start rotates), and one with only `new` after
+  re-encryption reaches 100%. A key file is re-read on rotation without a restart.
+  `sourcegull keys status` and `sourcegull keys rotate` accept either source.
 - Anyone who can read a process's or container's environment (`docker inspect`, a pod spec with
   a literal value) can read the keys. In Kubernetes, reference a Secret (`valueFrom`) or use an
   injector, never a literal value; the Helm chart's `encryptionKeys.source=env` does the former.

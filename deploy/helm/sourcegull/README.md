@@ -38,9 +38,15 @@ the app Secret (`existingSecret`, or the Secret the chart generates when it is e
 
 | Source | The containers get | Rotation |
 |---|---|---|
-| `file` (default) | the entry mounted as `SOURCEGULL_KEYS_FILE` | update the Secret; processes re-read it |
-| `env` | `SOURCEGULL_KEYS` from the entry (`secretKeyRef`; no key in the pod spec) | update the Secret, then `kubectl rollout restart` |
-| `external` | neither: set `SOURCEGULL_KEYS` yourself | change the source, then restart |
+| `file` (default) | the entry mounted as `SOURCEGULL_KEYS_FILE` | update the Secret, wait for the kubelet to refresh the mounted file (up to about a minute), then run `sourcegull keys rotate` in a pod; the other pods re-read the file |
+| `env` | `SOURCEGULL_KEYS` from the entry (`secretKeyRef`; no key in the pod spec) | update the Secret, then `kubectl rollout restart` every Sourcegull workload |
+| `external` | neither: set `SOURCEGULL_KEYS` yourself | change the source, then restart every Sourcegull workload |
+
+To rotate, append the new key to the entry (`k1:<old>` and `k2:<new>` on separate lines or
+comma-separated, the last one current). Updating the Secret alone does not rotate: the rotation
+runs when a process starts or `sourcegull keys rotate` runs. When re-encryption reaches 100% on
+**Site admin → Migrations**, remove the old key the same way (with `env` or `external`, that is a
+second restart). See [configuration](../../../docs/configuration.md#encryption-keys).
 
 Generate a key with `printf 'k1:%s\n' "$(openssl rand -base64 32)"` (see
 [configuration](../../../docs/configuration.md#encryption-keys)). With `external`, a
