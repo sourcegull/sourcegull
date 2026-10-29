@@ -22,7 +22,9 @@
 # stale ui/build in the build context is never embedded.
 #
 # Caching: target/ is a cache mount kept by the builder, so a rebuild compiles only the crates
-# (dependencies and workspace) that changed since the last build on that builder. VERSION and
+# (dependencies and workspace) that changed since the last build on that builder. Its id names the
+# Rust version: a new toolchain starts from an empty target/, and the old one ages out of the
+# builder's cache instead of piling up next to it (cargo never deletes old outputs). VERSION and
 # REVISION are declared only after the expensive steps: a build argument invalidates every RUN
 # after its declaration.
 
@@ -45,11 +47,12 @@ WORKDIR /src
 # wasm
 ############################
 FROM toolchain AS wasm
+ARG RUST_VERSION
 RUN rustup target add wasm32-unknown-unknown
 COPY . .
 RUN --mount=type=cache,id=sourcegull-cargo-registry,target=/usr/local/cargo/registry,sharing=locked \
     --mount=type=cache,id=sourcegull-cargo-git,target=/usr/local/cargo/git,sharing=locked \
-    --mount=type=cache,id=sourcegull-wasm-target,target=/src/target,sharing=locked \
+    --mount=type=cache,id=sourcegull-wasm-target-${RUST_VERSION},target=/src/target,sharing=locked \
     cargo build --release --locked -p sourcegull-query-wasm --target wasm32-unknown-unknown \
  && install -D -m 0644 target/wasm32-unknown-unknown/release/sourcegull_query_wasm.wasm /out/query.wasm
 
@@ -70,6 +73,7 @@ RUN rm -rf build && npm run build && test -f build/index.html
 ############################
 FROM toolchain AS builder
 ARG TARGETARCH
+ARG RUST_VERSION
 # Optional cap on parallel rustc jobs (e.g. --build-arg CARGO_BUILD_JOBS=3 on a shared machine).
 ARG CARGO_BUILD_JOBS
 # Optional overrides of the release profile; scripts/image-build.sh sets thin LTO and 16 units,
@@ -104,7 +108,7 @@ ENV SOURCEGULL_UI_BUILD_DIR=/ui-build
 # and proc macros they share under target/release/).
 RUN --mount=type=cache,id=sourcegull-cargo-registry,target=/usr/local/cargo/registry,sharing=locked \
     --mount=type=cache,id=sourcegull-cargo-git,target=/usr/local/cargo/git,sharing=locked \
-    --mount=type=cache,id=sourcegull-target,target=/src/target,sharing=locked \
+    --mount=type=cache,id=sourcegull-target-${RUST_VERSION},target=/src/target,sharing=locked \
     target=$(cat /rust-target) \
  && cargo build --release --locked --target "$target" -p sourcegull --bin sourcegull -p sourcegull-cli --bin gull \
  && install -D -m 0755 "target/$target/release/sourcegull" /out/sourcegull \

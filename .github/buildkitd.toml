@@ -1,0 +1,22 @@
+# BuildKit daemon of the release workflow's builder (.github/workflows/release.yml).
+#
+# Garbage collection, least recently used first. BuildKit's default policy drops cache mounts
+# unused for 48 hours once they pass 512 MB, which would empty cargo's target/ between releases;
+# here build contexts are the only short-lived entries, and everything else (layers, target/,
+# crate sources, npm) stays until the store passes 30 GB.
+[worker.oci]
+  gc = true
+
+[[worker.oci.gcpolicy]]
+  filters = ["type==source.local", "type==source.git.checkout"]
+  keepDuration = "48h"
+  maxUsedSpace = "1GB"
+
+[[worker.oci.gcpolicy]]
+  maxUsedSpace = "30GB"
+  reservedSpace = "10GB"
+
+[[worker.oci.gcpolicy]]
+  all = true
+  maxUsedSpace = "30GB"
+  reservedSpace = "10GB"
