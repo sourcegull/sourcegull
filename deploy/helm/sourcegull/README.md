@@ -7,11 +7,18 @@ is generated from it: after changing values.yaml run
 (enums, patterns and minimums are in its `RULES`);
 [`SIZING.md`](SIZING.md) and [`examples/`](examples/) give small, medium and large presets.
 
+Each release publishes the chart to `oci://ghcr.io/sourcegull/charts/sourcegull` (Helm 3.8 or
+later); the [release notes](https://github.com/sourcegull/sourcegull/releases) give its version.
+The presets in `examples/` come with the chart (`helm pull --untar` it to use them):
+
 ```sh
-helm install sourcegull deploy/helm/sourcegull -f deploy/helm/sourcegull/examples/small.yaml \
-  --set externalURL=https://sourcegull.example.com
+helm pull oci://ghcr.io/sourcegull/charts/sourcegull --untar
+helm install sourcegull oci://ghcr.io/sourcegull/charts/sourcegull \
+  -f sourcegull/examples/small.yaml --set externalURL=https://sourcegull.example.com
 helm test sourcegull
 ```
+
+From a checkout of this repository, use `deploy/helm/sourcegull` as the chart instead.
 
 With no values at all the chart installs a working evaluation instance: the bundled database,
 generated encryption keys (back up the Secret, see the install notes) and the builtin blob store.
@@ -195,14 +202,7 @@ use that only on throwaway installs.
 
 | Chart | Changes |
 |---|---|
-| 0.4.1 | The image defaults to the published `ghcr.io/sourcegull/sourcegull` (`image.registry` `ghcr.io`) |
-| 0.4.0 | The bundled database is PostgreSQL 18 (`postgresql.image.tag` `18.6-bookworm`), its volume mounted at `/var/lib/postgresql` (the data in `pgdata` on it). The project was renamed: the chart is `sourcegull`, the image `sourcegull/sourcegull`, environment variables `SOURCEGULL_*`, metrics `sourcegull_*`, and the bundled database's default user and database `sourcegull` |
-| 0.3.0 | Values reorganised around one set of pod settings per component (see [Pod settings](#pod-settings)); the defaults install the bundled database with generated keys. Renamed: `global.externalURL` and `global.existingSecret` to top-level `externalURL` and `existingSecret`; `*.replicas` to `replicaCount`; `*.hpa.{min,max,targetCPUUtilizationPercentage}` to `autoscaling.hpa.{minReplicas,maxReplicas,targetCPU}`; `*.pdb.enabled` to `pdb.create`; `repo.storage`, `blobstore.builtin` and `postgresql.persistence.storageClassName` to `persistence.{size,storageClass}`; `podSecurity` to per-component `podSecurityContext` and `containerSecurityContext`; `image.command` to per-component `command`; `extraEnv` to `extraEnvVars`; `postgresql.external` to `externalDatabase`; `monitoring.*` to `metrics.serviceMonitor`, `metrics.prometheusRule` and `metrics.grafanaDashboards`; `ingress.className` and `ingress.hosts` to `ingressClassName`, `hostname` and `extraHosts`; `web.service.port`, `internalPort` and `nodePort` to `ports` and `nodePorts`; `repo.service.grpcPort` to `repo.service.ports.grpc`; `repo.sshKeySecret` to `repo.ssh.existingSecret`; `executor.tokenSecret` to `executor.existingSecret` and `existingSecretTokenKey`; the executor's job settings to `executor.jobs.*`, its `scratchSize` to `emptyDirSizeLimit`; `blobstore.s3.accessKeyIdKey` and `secretAccessKeyKey` to `existingSecretAccessKeyIdKey` and `existingSecretSecretAccessKeyKey`. Removed the `postgresql.enabled` and `postgresql.cnpg.enabled` switches (use `postgresql.mode`). Resource names are unchanged, so an install upgrades in place once its values file uses the new names |
-| 0.2.1 | `config.siteConfig`, `config.globalSettings`, `config.resources` (configuration as code); `encryptionKeys.source` (`file`, `env`, `external`); `image.command` |
-| 0.2.0 | Removed the unsupported `siteConfig`, `codeHosts` and `tracing` values. Values files that still set them fail schema validation, so delete those keys before upgrading. `helm upgrade --reuse-values` from 0.1.x fails for the same reason (it reuses 0.1.x's defaults); upgrade with `--reset-then-reuse-values` or `-f values.yaml` instead |
-| 0.1.5 | `worker.autoscaling.keda.trigger=prometheus`: KEDA on the `sourcegull_queue_jobs` gauge instead of SQL (default stays `postgresql`) |
-| 0.1.1 | `postgresql.mode` with CloudNativePG; worker KEDA `ScaledObject` and CPU HPA; smoke `helm test`; sizing presets |
-| 0.1.0 | web, worker, repo, blob, executor, migrate, bundled or external PostgreSQL |
+| 0.1.0 | First release |
 
 ## Testing the chart
 

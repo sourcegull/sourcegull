@@ -232,11 +232,15 @@ Set the version in `Cargo.toml` (`[workspace.package]`, `X.Y.Z-rc.1` for a pre-r
 image defaults (`SOURCEGULL_VERSION` in `deploy/docker/compose.yaml` and `.env.example`,
 `ARG VERSION` in the Dockerfile) and the chart's `appVersion`, merge to `main`, then run
 **Actions → Release** on `main` with **publish** checked. `.github/workflows/release.yml` runs on
-the self-hosted runner (labels `self-hosted`, `linux`): it scans the history for secrets, builds
+the self-hosted runner (labels `self-hosted`, `linux`): it scans the history for secrets, checks
+the chart (`scripts/test/helm-ct.sh template`), builds
 the linux/amd64 images, runs `scripts/test/release-smoke.sh` and the Gitea browser check against
 the runtime image (`SOURCEGULL_E2E_IMAGE=<image> CHECKS=gitea scripts/dev e2e`),
-then pushes `ghcr.io/sourcegull/sourcegull` and `ghcr.io/sourcegull/gull`, signs them, and
-creates the `vX.Y.Z` tag and the GitHub release. Without **publish** it builds and tests only.
+then pushes `ghcr.io/sourcegull/sourcegull` and `ghcr.io/sourcegull/gull`, pushes the Helm chart to
+`oci://ghcr.io/sourcegull/charts` when its `version` is not published yet (bump it with any chart
+change, see the chart README), signs them, and creates the `vX.Y.Z` tag and the GitHub release
+with the Compose bundle (`sourcegull-compose.tar.gz`, the files of `deploy/docker/` a host needs)
+attached. Without **publish** it builds and tests only.
 
 Builds reuse a persistent builder on the runner (`sourcegull-release`): its state volume keeps the
 image layers and the cache mounts (cargo's `target/`, named after the Rust version, the crate

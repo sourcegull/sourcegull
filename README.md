@@ -77,11 +77,13 @@ dashboards and documented alerts. See [the documentation](docs/README.md).
 
 ## Install
 
-Start the Compose stack (PostgreSQL, `migrate`, `web`, `worker`, one repo node and a blob store)
-with the published image, `ghcr.io/sourcegull/sourcegull` (linux/amd64):
+Download the Compose bundle of the [latest release](https://github.com/sourcegull/sourcegull/releases/latest)
+and start the stack (PostgreSQL, `migrate`, `web`, `worker`, one repo node and a blob store) with
+the published image, `ghcr.io/sourcegull/sourcegull` (linux/amd64):
 
 ```sh
-cd deploy/docker
+curl -fsSL https://github.com/sourcegull/sourcegull/releases/latest/download/sourcegull-compose.tar.gz | tar -xz
+cd sourcegull-compose
 cp .env.example .env            # then change every password
 mkdir -p secrets && printf 'k1:%s\n' "$(openssl rand -base64 32)" > secrets/encryption-keys
 chmod 0644 secrets/encryption-keys
@@ -93,7 +95,13 @@ GitHub or Gitea connection under **Site admin → Code host connections**, and r
 cloning and indexing.
 
 For Kubernetes, the [Helm chart](deploy/helm/sourcegull) runs the repo nodes as a StatefulSet and
-executors as Kubernetes Jobs, with KEDA autoscaling and bundled or CloudNativePG PostgreSQL.
+executors as Kubernetes Jobs, with KEDA autoscaling and bundled or CloudNativePG PostgreSQL:
+
+```sh
+helm install sourcegull oci://ghcr.io/sourcegull/charts/sourcegull \
+  --set externalURL=https://sourcegull.example.com
+```
+
 [docs/install.md](docs/install.md) covers both, with optional profiles (executors, monitoring,
 MinIO), upgrades and [sizing](deploy/helm/sourcegull/SIZING.md).
 
