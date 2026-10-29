@@ -3,7 +3,7 @@
 # take the host down: a dedicated builder (container `buildx_buildkit_sourcegull-limited0`) capped
 # at SOURCEGULL_BUILD_CPUS cores and SOURCEGULL_BUILD_MEMORY of memory with no swap (a build that
 # needs more fails with an out-of-memory error instead of paging), CARGO_BUILD_JOBS rustc jobs,
-# and thin LTO (fat LTO's single link step needs far more memory; releases keep it).
+# and thin LTO (fat LTO's single link step needs far more memory), as in the release workflow.
 #
 # Usage: scripts/image-build.sh [docker buildx build args...] <context>
 #   e.g. scripts/image-build.sh -f deploy/docker/Dockerfile --load -t sourcegull/sourcegull:dev .

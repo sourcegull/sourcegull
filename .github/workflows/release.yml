@@ -29,9 +29,11 @@ env:
   CLI_IMAGE: ghcr.io/${{ github.repository_owner }}/gull
   PUSH: ${{ github.ref_type == 'tag' }}
   # Limits for the runner host (4 cores, 8 GB, no swap): the image builder's memory and rustc
-  # jobs, and the dev containers of the Gitea check.
-  BUILD_MEMORY: 6g
-  CARGO_BUILD_JOBS: "3"
+  # jobs, and the dev containers of the Gitea check. With that memory the images are built with
+  # thin LTO and 16 codegen units (build-args below): the fat LTO of the release profile is
+  # killed for lack of memory there.
+  BUILD_MEMORY: 6500m
+  CARGO_BUILD_JOBS: "2"
   SOURCEGULL_DEV_MEMORY: 5g
 
 jobs:
@@ -63,6 +65,8 @@ jobs:
             echo "REVISION=$GITHUB_SHA"
             echo "SOURCE_DATE_EPOCH=$(git log -1 --format=%ct)"
             echo "CARGO_BUILD_JOBS=$CARGO_BUILD_JOBS"
+            echo "CARGO_PROFILE_RELEASE_LTO=thin"
+            echo "CARGO_PROFILE_RELEASE_CODEGEN_UNITS=16"
             echo "EOF"
           } >>"$GITHUB_OUTPUT"
           echo "version $version (prerelease: $prerelease, push: $PUSH)"
@@ -74,13 +78,17 @@ jobs:
       # and cargo caches), capped so a build cannot exhaust the host: an out-of-memory kill fails
       # the build. Recreated over the same state when the runner lost its buildx config.
       - name: Builder
+        id: builder
         run: |
-          if ! docker buildx inspect sourcegull-release >/dev/null 2>&1; then
-            docker rm -f buildx_buildkit_sourcegull-release0 >/dev/null 2>&1 || true
-            docker buildx create --name sourcegull-release --driver docker-container \
+          # Named after the limit, so a new limit gets a new builder.
+          name=sourcegull-release-$BUILD_MEMORY
+          if ! docker buildx inspect "$name" >/dev/null 2>&1; then
+            docker rm -f "buildx_buildkit_${name}0" >/dev/null 2>&1 || true
+            docker buildx create --name "$name" --driver docker-container \
               --driver-opt "memory=$BUILD_MEMORY,memory-swap=$BUILD_MEMORY"
           fi
-          docker buildx inspect --bootstrap sourcegull-release
+          docker buildx inspect --bootstrap "$name"
+          echo "name=$name" >>"$GITHUB_OUTPUT"
 
       # One image per platform, loaded for the tests below; the multi-platform push reuses their
       # layers from the builder.
@@ -94,7 +102,7 @@ jobs:
           load: true
           tags: sourcegull-release:amd64
           build-args: ${{ steps.version.outputs.build-args }}
-          builder: sourcegull-release
+          builder: ${{ steps.builder.outputs.name }}
       - name: Build runtime (arm64)
         uses: docker/build-push-action@v6
         with:
@@ -105,7 +113,7 @@ jobs:
           load: true
           tags: sourcegull-release:arm64
           build-args: ${{ steps.version.outputs.build-args }}
-          builder: sourcegull-release
+          builder: ${{ steps.builder.outputs.name }}
 
       - name: Smoke test (amd64)
         run: scripts/test/release-smoke.sh sourcegull-release:amd64 linux/amd64
@@ -159,7 +167,7 @@ jobs:
           tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}
           build-args: ${{ steps.version.outputs.build-args }}
-          builder: sourcegull-release
+          builder: ${{ steps.builder.outputs.name }}
       - name: Push cli
         id: push-cli
         if: env.PUSH == 'true'
@@ -175,7 +183,7 @@ jobs:
           tags: ${{ steps.cli-meta.outputs.tags }}
           labels: ${{ steps.cli-meta.outputs.labels }}
           build-args: ${{ steps.version.outputs.build-args }}
-          builder: sourcegull-release
+          builder: ${{ steps.builder.outputs.name }}
 
       - uses: sigstore/cosign-installer@v3
         if: env.PUSH == 'true'

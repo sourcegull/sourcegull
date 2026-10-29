@@ -208,7 +208,8 @@ Local builds and tests are capped so they cannot exhaust the host: the dev conta
 and every local image build goes through `scripts/image-build.sh`, a buildx builder with the same
 kind of limits, 3 rustc jobs and thin LTO. A build that needs more fails with an out-of-memory
 error; raise the limit in `.env` (and `docker buildx rm sourcegull-limited` for the builder)
-instead of building without it. Release images (fat LTO) are built only by the release workflow.
+instead of building without it. The release workflow builds the published images the same way
+(thin LTO, 16 codegen units), within the runner's memory.
 
 ## Releases
 
