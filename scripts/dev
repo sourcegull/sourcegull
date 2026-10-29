@@ -66,6 +66,9 @@ scripts/dev <command>
   e2e               browser checks of the search UI and admin pages (scripts/test/e2e-ui.sh);
                     CHECKS="search gitea" runs some of them (`gitea` starts a fresh Gitea first)
                     SOURCEGULL_E2E_IMAGE=<image> tests that image's binary instead of this checkout
+  media             the README animation and screenshots (scripts/readme-media.sh) into docs/assets/,
+                    from public GitHub repositories and a released image's binary
+                    (SOURCEGULL_MEDIA_IMAGE, default ghcr.io/sourcegull/sourcegull:latest)
   app               build the production image and run it on :7081 (database sourcegull_app)
   gitlab up|down|seed|logs|test
                     a real GitLab CE on :8929 with seed data (deploy/docker/dev/gitlab-seed.rb);
@@ -300,6 +303,34 @@ EOF
       export SOURCEGULL_E2E_BIN=/src/.e2e-out/image/sourcegull
     fi
     compose --profile e2e run --rm --build ${deps[@]+"${deps[@]}"} e2e
+    ;;
+  media)
+    deps=()
+    [ -n "$(compose ps -q --status running postgres 2>/dev/null)" ] && deps=(--no-deps)
+    image=${SOURCEGULL_MEDIA_IMAGE:-ghcr.io/sourcegull/sourcegull:latest}
+    docker image inspect "$image" >/dev/null 2>&1 || docker pull -q "$image" >/dev/null
+    cid=$(docker create "$image")
+    mkdir -p .e2e-out/image .e2e-out/mirrors .e2e-out/media
+    docker cp -q "$cid:/usr/local/bin/sourcegull" .e2e-out/image/sourcegull
+    docker rm "$cid" >/dev/null
+    # The clones stay in .e2e-out/mirrors for the next run.
+    compose --profile e2e run --rm --build ${deps[@]+"${deps[@]}"} \
+      -e SOURCEGULL_MEDIA_BIN=/src/.e2e-out/image/sourcegull -e OUT=/src/.e2e-out/media \
+      -e MIRRORS=/src/.e2e-out/mirrors e2e bash scripts/readme-media.sh
+    ffmpeg() {
+      docker run --rm --user "$(id -u):$(id -g)" -v "$PWD/.e2e-out/media:/w" -w /w \
+        --entrypoint /usr/local/bin/ffmpeg linuxserver/ffmpeg:7.1.1 -v error -y "$@"
+    }
+    for theme in light dark; do
+      ffmpeg -f concat -i "frames-$theme/frames.txt" -vf "scale=1800:-1:flags=lanczos" \
+        -fps_mode vfr -c:v libwebp_anim -quality 85 -compression_level 6 -loop 0 \
+        "readme-search-$theme.webp"
+      ffmpeg -i "readme-codenav-$theme.png" -c:v libwebp -quality 90 -compression_level 6 \
+        "readme-codenav-$theme.webp"
+      cp ".e2e-out/media/readme-search-$theme.webp" ".e2e-out/media/readme-codenav-$theme.webp" \
+        docs/assets/
+    done
+    echo "docs/assets/ updated"
     ;;
   app)
     scripts/image-build.sh -f deploy/docker/Dockerfile --load -t sourcegull/sourcegull:dev .

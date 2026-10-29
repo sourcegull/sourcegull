@@ -49,6 +49,7 @@ from the binary the `sourcegull` service builds, with jobs as containers on the 
 | `scripts/dev e2e` | browser checks of the UI with Playwright ([below](#browser-checks)) |
 | `scripts/dev corpus <cmd> [name]` | benchmark corpora ([below](#benchmarks)) |
 | `scripts/dev bench-search --corpus <name>` | the end-to-end search benchmark |
+| `scripts/dev media` | the README animation and screenshots ([below](#readme-media)) |
 | `scripts/dev app` | build the production image and run it on :7081 (database `sourcegull_app`) |
 | `scripts/dev gitlab up\|down\|seed\|logs\|test` | the [development GitLab](#development-gitlab) |
 | `scripts/dev gitea up\|down\|logs` | a fresh, empty Gitea for the [Gitea browser check](#browser-checks) |
@@ -160,6 +161,21 @@ sign-in provider, signs in as each user through Gitea, and checks search, the fi
 MCP `read_file` for each, and that removing the collaborator on Gitea followed by a
 permissions sync revokes access. Gitea answers as `http://gitea:3000` inside the containers and
 on `127.0.0.1:3000` (`SOURCEGULL_GITEA_PORT`) on the host; `scripts/dev gitea down` removes it.
+
+### README media
+
+`scripts/dev media` makes the search animation and the code navigation screenshots in the README
+(`docs/assets/readme-*.webp`). `scripts/readme-media.sh` starts the binary of a released image
+(`SOURCEGULL_MEDIA_IMAGE`, default `ghcr.io/sourcegull/sourcegull:latest`) on a fresh database,
+mirrors public GitHub repositories (`REPOS`) into it without a connection, waits until they are
+indexed, and `scripts/readme-media.cjs` takes screenshots in Chromium, in the light and dark
+themes: code navigation, and one frame per keystroke of a search, which ffmpeg turns into an
+animated WebP.
+For UI changes that are not released yet, build an image of the checkout first:
+`scripts/image-build.sh --test -f deploy/docker/Dockerfile --load -t sourcegull/sourcegull:media .`,
+then `SOURCEGULL_MEDIA_IMAGE=sourcegull/sourcegull:media scripts/dev media`. The mirrors stay in
+`.e2e-out/mirrors/` for the next run. `KEEP=1` (with `docker compose --profile
+e2e run`) keeps the instance running, to rerun the browser script against it.
 
 ## Benchmarks
 

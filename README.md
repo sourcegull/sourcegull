@@ -23,6 +23,13 @@
   <img src="https://img.shields.io/badge/install-Docker%20%C2%B7%20Helm-2496ED?logo=docker&logoColor=white" alt="Docker and Helm" />
 </p>
 
+<p align="center">
+  <picture>
+    <source media="(prefers-color-scheme: dark)" srcset="docs/assets/readme-search-dark.webp" />
+    <img src="docs/assets/readme-search-light.webp" width="900" alt="Typing the query lang:rust serde::Deserialize; 119 results from axum, serde and tokio arrive in a few milliseconds" />
+  </picture>
+</p>
+
 ## Fast search
 
 Sourcegull uses a trigram index of its own. After a push, only the changed paths are written to a
@@ -61,6 +68,11 @@ code search products usually sell separately:
 Also included: literal, regexp, keyword (BM25) and structural search; notebooks; code ownership;
 saved searches and search contexts; a GraphQL API, the `gull` CLI and outbound webhooks; Grafana
 dashboards and documented alerts. See [the documentation](docs/README.md).
+
+<picture>
+  <source media="(prefers-color-scheme: dark)" srcset="docs/assets/readme-codenav-dark.webp" />
+  <img src="docs/assets/readme-codenav-light.webp" width="900" alt="Code navigation in tokio: the hover card for asyncify, and its definition and 55 references in the panel below" />
+</picture>
 
 ## Ready for production
 
