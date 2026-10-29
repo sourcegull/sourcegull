@@ -177,7 +177,7 @@ async fn verification_and_reset_links_are_single_use() {
         .send(Request::get(&verify).body(Body::empty()).unwrap())
         .await;
     assert_eq!(response.status, StatusCode::FOUND);
-    assert_eq!(location(&response), "/search?emailVerified=true");
+    assert_eq!(location(&response), "/user/settings/emails?verified=1");
     let again = env
         .send(Request::get(&verify).body(Body::empty()).unwrap())
         .await;

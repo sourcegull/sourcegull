@@ -193,7 +193,7 @@ async fn verify_email(
         )
         .await
     {
-        Ok(true) => crate::oauth_routes::redirect("/search?emailVerified=true", &[]),
+        Ok(true) => crate::oauth_routes::redirect("/user/settings/emails?verified=1", &[]),
         Ok(false) => crate::oauth_routes::fail(
             &state,
             "The verification link is invalid or was already used.",

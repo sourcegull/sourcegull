@@ -1,6 +1,7 @@
 <script lang="ts">
 	import { onMount } from 'svelte';
 	import { invalidateAll } from '$app/navigation';
+	import { resetAuthState } from '#lib/auth.ts';
 	import { errorMessage, graphql } from '#lib/graphql.ts';
 	import {
 		ACCOUNT_PROFILE,
@@ -45,7 +46,10 @@
 			});
 			user = { ...user, ...r.updateUser };
 			saved = true;
-			if (renamed) await invalidateAll();
+			if (renamed) {
+				resetAuthState();
+				await invalidateAll();
+			}
 		} catch (err) {
 			error = errorMessage(err);
 		} finally {

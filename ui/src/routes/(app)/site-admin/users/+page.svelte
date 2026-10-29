@@ -1,5 +1,8 @@
 <script lang="ts">
 	import { onMount } from 'svelte';
+	import { goto } from '$app/navigation';
+	import { page } from '$app/state';
+	import { resetAuthState } from '#lib/auth.ts';
 	import ManagedNotice from '#lib/components/ManagedNotice.svelte';
 	import { isExclusive } from '#lib/declared-config.ts';
 	import { errorMessage, graphql } from '#lib/graphql.ts';
@@ -24,7 +27,8 @@
 
 	let users = $state<UserNode[]>([]);
 	let totalCount = $state(0);
-	let query = $state('');
+	// `?query=` prefills the filter, for links to one user.
+	let query = $state(page.url.searchParams.get('query') ?? '');
 	let includeDeactivated = $state(false);
 	let loading = $state(true);
 	let error = $state<string | null>(null);
@@ -118,6 +122,11 @@
 				userID: user.id,
 				siteAdmin
 			});
+			if (!siteAdmin && user.id === data.auth.user?.id) {
+				resetAuthState();
+				await goto('/search', { invalidateAll: true });
+				return;
+			}
 			await load();
 		} catch (err) {
 			error = `Could not update ${user.username}: ${errorMessage(err)}`;

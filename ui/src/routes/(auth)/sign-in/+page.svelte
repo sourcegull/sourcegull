@@ -24,6 +24,11 @@
 	// External sign-in failures come back as `?error=`.
 	let error = $state<string | null>(page.url.searchParams.get('error'));
 	const returnTo = $derived(safeReturnTo(page.url.searchParams.get('returnTo')));
+	/** `path` carrying this page's `returnTo`, so the destination survives a detour. */
+	function returnToQuery(path: string): string {
+		const raw = page.url.searchParams.get('returnTo');
+		return raw ? `${path}?returnTo=${encodeURIComponent(raw)}` : path;
+	}
 	const providers = $derived(data.auth.providers ?? []);
 	const builtin = $derived(data.auth.builtin !== false);
 	let submitting = $state(false);
@@ -65,7 +70,7 @@
 	<div class="alert alert-danger" role="alert">{error}</div>
 {/if}
 
-{#if providers.length > 0}
+{#if providers.length > 0 && !data.auth.authenticated}
 	<div class="providers">
 		{#each providers as p (p.authenticationURL)}
 			<a class="btn full" href={providerSignInURL(p, returnTo)} data-sveltekit-reload>
@@ -110,7 +115,10 @@
 	<p class="muted footer"><a href="/forgot-password">Forgot password?</a></p>
 {/snippet}
 
-{#if collapsible}
+{#if data.auth.authenticated}
+	<!-- Signed in and shown only for `?error=`: an action on the account failed. -->
+	<a class="btn btn-primary" href={returnTo}>Continue</a>
+{:else if collapsible}
 	<details class="builtin" bind:open={builtinOpen} {ontoggle}>
 		<summary class="muted">Sign in with username and password</summary>
 		{@render builtinForm(false)}
@@ -119,8 +127,12 @@
 	{@render builtinForm(true)}
 {/if}
 
-{#if data.auth.allowSignup}
-	<p class="muted footer">New here? <a href="/sign-up">Create an account</a></p>
+{#if data.auth.authenticated}
+	<!-- No sign-up or access request for a signed-in user. -->
+{:else if data.auth.allowSignup}
+	<p class="muted footer">
+		New here? <a href={returnToQuery('/sign-up')}>Create an account</a>
+	</p>
 {:else if data.auth.accessRequest}
 	<p class="muted footer">Need an account? <a href="/request-access">Request access</a></p>
 {/if}

@@ -190,8 +190,10 @@ export function authRedirect(state: AuthState, url: URL): string | null {
 		return path === '/sign-up' ? null : '/sign-up';
 	}
 	if (state.authenticated) {
-		// A reset link works while signed in: completing it signs every session out.
-		if (path === '/reset-password') return null;
+		// Reset and invite links work while signed in (completing a reset signs every session
+		// out), and a sign-in error (a failed provider sign-in or email verification) stays shown.
+		if (path === '/reset-password' || path === '/set-password') return null;
+		if (path === '/sign-in' && url.searchParams.has('error')) return null;
 		return isPublic(path) ? safeReturnTo(url.searchParams.get('returnTo')) : null;
 	}
 	if (path === '/sign-up' && !state.allowSignup) return '/sign-in';

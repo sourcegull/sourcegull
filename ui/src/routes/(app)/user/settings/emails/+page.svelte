@@ -1,5 +1,6 @@
 <script lang="ts">
 	import { onMount } from 'svelte';
+	import { page } from '$app/state';
 	import { errorMessage, graphql } from '#lib/graphql.ts';
 	import {
 		ACCOUNT_EMAILS,
@@ -13,7 +14,10 @@
 	let user = $state<AccountEmailsResult['currentUser']>(null);
 	let newEmail = $state('');
 	let error = $state<string | null>(null);
-	let notice = $state<string | null>(null);
+	// The verification link lands here with `?verified=1`.
+	let notice = $state<string | null>(
+		page.url.searchParams.get('verified') === '1' ? 'Your email address is verified.' : null
+	);
 	let busy = $state(false);
 
 	async function load(): Promise<void> {
