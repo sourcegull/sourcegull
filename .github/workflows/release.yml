@@ -77,20 +77,28 @@ jobs:
           } >>"$GITHUB_OUTPUT"
           echo "version $version (prerelease: $prerelease, push: $PUSH)"
 
-      # A builder that stays on the runner host between runs (its state volume keeps the layer
-      # and cargo caches), capped so a build cannot exhaust the host: an out-of-memory kill fails
-      # the build. Recreated over the same state when the runner lost its buildx config.
+      # A builder that stays on the runner host between runs: its state volume
+      # (buildx_buildkit_sourcegull-release0_state) holds the layers and the cache mounts (cargo's
+      # target/, crate sources, npm), with garbage collection per .github/buildkitd.toml. Capped so
+      # a build cannot exhaust the host: an out-of-memory kill fails the build. When the limit or
+      # the BuildKit config changes, only the container is recreated; the volume, and with it the
+      # cache, is kept.
       - name: Builder
         id: builder
         run: |
-          # Named after the limit, so a new limit gets a new builder.
-          name=sourcegull-release-$BUILD_MEMORY
-          if ! docker buildx inspect "$name" >/dev/null 2>&1; then
-            docker rm -f "buildx_buildkit_${name}0" >/dev/null 2>&1 || true
+          name=sourcegull-release
+          settings=$(printf '%s\n' "$BUILD_MEMORY" | cat - .github/buildkitd.toml | sha256sum | cut -c1-16)
+          current=$(docker exec "buildx_buildkit_${name}0" cat /var/lib/buildkit/sourcegull-settings 2>/dev/null || true)
+          if [ "$current" != "$settings" ] || ! docker buildx inspect "$name" >/dev/null 2>&1; then
+            docker buildx rm --keep-state "$name" >/dev/null 2>&1 || docker rm -f "buildx_buildkit_${name}0" >/dev/null 2>&1 || true
             docker buildx create --name "$name" --driver docker-container \
+              --buildkitd-config .github/buildkitd.toml \
               --driver-opt "memory=$BUILD_MEMORY,memory-swap=$BUILD_MEMORY"
+            docker buildx inspect --bootstrap "$name"
+            docker exec "buildx_buildkit_${name}0" sh -c "echo $settings > /var/lib/buildkit/sourcegull-settings"
           fi
           docker buildx inspect --bootstrap "$name"
+          docker buildx du --builder "$name" | tail -n 3
           echo "name=$name" >>"$GITHUB_OUTPUT"
 
       # Loaded for the tests below; the push reuses its layers from the builder.

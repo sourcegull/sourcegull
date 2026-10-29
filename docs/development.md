@@ -238,6 +238,11 @@ the runtime image (`SOURCEGULL_E2E_IMAGE=<image> CHECKS=gitea scripts/dev e2e`),
 then pushes `ghcr.io/sourcegull/sourcegull` and `ghcr.io/sourcegull/gull`, signs them, and
 creates the `vX.Y.Z` tag and the GitHub release. Without **publish** it builds and tests only.
 
+Builds reuse a persistent builder on the runner (`sourcegull-release`): its state volume keeps the
+image layers and the cache mounts (cargo's `target/`, named after the Rust version, the crate
+sources and npm's cache), so a release recompiles only the crates that changed. Garbage
+collection (`.github/buildkitd.toml`) keeps the store under 30 GB, least recently used first.
+
 The runner accepts only this repository's workflows from `main` (the organization's runner
 group lists them), so workflows added or changed on other branches or in pull requests cannot
 run on it; the other workflows also run by hand, from `main`.
