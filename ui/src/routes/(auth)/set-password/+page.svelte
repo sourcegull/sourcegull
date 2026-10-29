@@ -31,7 +31,7 @@
 
 {#if done}
 	<div class="alert alert-success" role="status">
-		Your password is set. <a href="/sign-in">Sign in</a>.
+		Your password is set. <a href="/sign-in?local=1">Sign in</a>.
 	</div>
 {:else if !token}
 	<div class="alert alert-danger" role="alert">

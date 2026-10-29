@@ -14,6 +14,10 @@ use sourcegull_types::UserId;
 
 use crate::state::AppState;
 
+/// The error shown when an email is needed but `email.smtp` is not set.
+pub const NOT_CONFIGURED: &str = "Email is not set up on this instance. A site admin can configure \
+     SMTP under Site admin > Site configuration > Email & webhooks.";
+
 /// A text and HTML email.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct EmailMessage {
@@ -38,10 +42,7 @@ pub struct SmtpEmailSender;
 #[async_trait]
 impl EmailSender for SmtpEmailSender {
     async fn send(&self, config: &SiteConfig, mail: EmailMessage) -> Result<(), String> {
-        let smtp = config
-            .email_smtp
-            .as_ref()
-            .ok_or("Email is not configured")?;
+        let smtp = config.email_smtp.as_ref().ok_or(NOT_CONFIGURED)?;
         let message = build_message(config, mail)?;
         let mut builder = match smtp.encryption {
             SmtpEncryption::Starttls => {

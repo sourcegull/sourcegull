@@ -73,7 +73,7 @@
 	</form>
 {/if}
 
-<p class="muted footer"><a href="/sign-in">Back to sign in</a></p>
+<p class="muted footer"><a href="/sign-in?local=1">Back to sign in</a></p>
 
 <style>
 	.footer {

@@ -24,6 +24,8 @@ Other subcommands of the same binary:
 - `sourcegull supervise`: creates a key file if missing, applies migrations and runs every role in
   one process against the database at `SOURCEGULL_DATABASE_URL`.
 - `sourcegull keys status|rotate`: data encryption keys.
+- `sourcegull users reset-password <username>`: prints a password reset link
+  ([permissions](permissions.md#locked-out-admins)).
 - `sourcegull monitoring generate`: writes the Grafana dashboards, Prometheus rules and
   [alert docs](observability/) from their definitions in `crates/monitoring`.
 

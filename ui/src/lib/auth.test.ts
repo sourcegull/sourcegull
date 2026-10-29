@@ -52,6 +52,17 @@ describe('authRedirect', () => {
 		);
 		expect(authRedirect(alice, url('/sign-up'))).toBe('/search');
 	});
+
+	it('lets signed-in users open a password reset link', () => {
+		expect(authRedirect(alice, url('/reset-password?userID=VXNlcjox&code=c'))).toBeNull();
+		expect(authRedirect(alice, url('/forgot-password'))).toBe('/search');
+	});
+
+	it('lets signed-in users open an invite link and see a sign-in error', () => {
+		expect(authRedirect(alice, url('/set-password?token=t'))).toBeNull();
+		expect(authRedirect(alice, url('/sign-in?error=denied'))).toBeNull();
+		expect(authRedirect(alice, url('/sign-in'))).toBe('/search');
+	});
 });
 
 describe('safeReturnTo', () => {
@@ -86,7 +97,8 @@ describe('auth endpoints', () => {
 			needsSiteInit: false,
 			builtin: true,
 			providers: [],
-			batchChangesEnabled: false
+			batchChangesEnabled: false,
+			emailEnabled: false
 		});
 		expect(f.mock.calls[0]?.[0]).toBe('/-/auth-state');
 	});

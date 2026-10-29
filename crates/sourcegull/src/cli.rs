@@ -41,6 +41,8 @@ pub enum Command {
     Migrate(MigrateArgs),
     /// Inspect or rotate the data encryption keys.
     Keys(KeysArgs),
+    /// Account recovery for when no site admin can sign in.
+    Users(UsersArgs),
     /// Check configuration files offline (for CI pipelines).
     Config(ConfigArgs),
     /// Create the key file if missing, apply migrations and run every role in one process.
@@ -504,6 +506,38 @@ pub enum KeysAction {
     /// and retire the old ones; secrets are then re-encrypted in the background by the
     /// workers. Appending a new key to the key file and restarting rotates the same way.
     Rotate,
+}
+
+/// `sourcegull users`.
+#[derive(Debug, Args)]
+pub struct UsersArgs {
+    /// Postgres URL of the main database.
+    #[arg(long, env = "SOURCEGULL_DATABASE_URL", hide_env_values = true)]
+    pub database_url: String,
+
+    /// Site config file, when the server reads its config from one instead of the database.
+    #[arg(long, env = "SOURCEGULL_SITE_CONFIG_FILE", value_parser = optional_path)]
+    pub site_config_file: Option<PathBuf>,
+
+    /// Default for `externalURL` when the site config does not set it.
+    #[arg(long, env = "SOURCEGULL_EXTERNAL_URL")]
+    pub external_url: Option<String>,
+
+    /// The action.
+    #[command(subcommand)]
+    pub action: UsersAction,
+}
+
+/// User actions.
+#[derive(Debug, Clone, PartialEq, Eq, Subcommand)]
+pub enum UsersAction {
+    /// Print a single-use password reset link for a user and clear their sign-in lockouts.
+    /// The link replaces any earlier unused one and expires after
+    /// `auth.passwordResetLinkExpiry`; nothing is emailed.
+    ResetPassword {
+        /// Username (case-insensitive).
+        username: String,
+    },
 }
 
 /// `sourcegull config`.

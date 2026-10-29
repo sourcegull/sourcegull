@@ -1,12 +1,14 @@
 <script lang="ts">
 	import { goto } from '$app/navigation';
-	import { resetAuthState, signUp } from '#lib/auth.ts';
+	import { page } from '$app/state';
+	import { resetAuthState, safeReturnTo, signUp } from '#lib/auth.ts';
 	import { errorMessage } from '#lib/graphql.ts';
 	import type { PageProps } from './$types';
 
 	let { data }: PageProps = $props();
 
 	const siteInit = $derived(data.auth.needsSiteInit);
+	const returnTo = $derived(safeReturnTo(page.url.searchParams.get('returnTo')));
 
 	let username = $state('');
 	let email = $state('');
@@ -23,7 +25,7 @@
 			await signUp(username, email, password);
 			resetAuthState();
 			// The first user is the site admin; take them straight to the configuration.
-			await goto(wasSiteInit ? '/site-admin/configuration' : '/search', { replaceState: true });
+			await goto(wasSiteInit ? '/site-admin/configuration' : returnTo, { replaceState: true });
 		} catch (err) {
 			error = errorMessage(err);
 		} finally {

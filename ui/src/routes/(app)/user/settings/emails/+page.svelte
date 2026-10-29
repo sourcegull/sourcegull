@@ -1,5 +1,7 @@
 <script lang="ts">
 	import { onMount } from 'svelte';
+	import { page } from '$app/state';
+	import { EMAIL_SETTINGS_URL } from '#lib/auth.ts';
 	import { errorMessage, graphql } from '#lib/graphql.ts';
 	import {
 		ACCOUNT_EMAILS,
@@ -9,11 +11,18 @@
 		SET_USER_EMAIL_PRIMARY,
 		type AccountEmailsResult
 	} from '#lib/account/queries.ts';
+	import type { PageProps } from './$types';
+
+	let { data }: PageProps = $props();
+	const emailEnabled = $derived(data.auth.emailEnabled === true);
 
 	let user = $state<AccountEmailsResult['currentUser']>(null);
 	let newEmail = $state('');
 	let error = $state<string | null>(null);
-	let notice = $state<string | null>(null);
+	// The verification link lands here with `?verified=1`.
+	let notice = $state<string | null>(
+		page.url.searchParams.get('verified') === '1' ? 'Your email address is verified.' : null
+	);
 	let busy = $state(false);
 
 	async function load(): Promise<void> {
@@ -43,7 +52,11 @@
 	async function add(event: SubmitEvent): Promise<void> {
 		event.preventDefault();
 		const email = newEmail.trim();
-		await run(ADD_USER_EMAIL, email, `Added ${email}. Open the link sent to it to verify it.`);
+		await run(
+			ADD_USER_EMAIL,
+			email,
+			emailEnabled ? `Added ${email}. Open the link sent to it to verify it.` : `Added ${email}.`
+		);
 		if (!error) newEmail = '';
 	}
 
@@ -65,6 +78,16 @@
 </div>
 
 {#if error}<div class="alert alert-danger" role="alert">{error}</div>{/if}
+{#if !emailEnabled}
+	<div class="alert alert-warning" role="note">
+		Email is not set up on this instance, so no verification links are sent.
+		{#if data.auth.user?.siteAdmin}
+			<a href={EMAIL_SETTINGS_URL}>Set up email</a>.
+		{:else}
+			Ask a site admin to set up email.
+		{/if}
+	</div>
+{/if}
 {#if notice}<div class="alert alert-success" role="status">{notice}</div>{/if}
 {#if user?.scimControlled}
 	<div class="alert alert-info" role="note">Your identity provider manages your email addresses.</div>
@@ -79,7 +102,7 @@
 				{#if e.verified}<span class="badge">Verified</span>{:else}<span class="badge badge-warning">Not verified</span>{/if}
 				{#if !user.scimControlled}
 					<span class="toolbar">
-						{#if !e.verified}
+						{#if !e.verified && emailEnabled}
 							<button class="btn btn-sm" type="button" disabled={busy}
 								onclick={() => run(RESEND_VERIFICATION_EMAIL, e.email, `Sent a verification link to ${e.email}.`)}
 								>Resend verification</button
