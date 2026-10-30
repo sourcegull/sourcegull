@@ -21,7 +21,7 @@ pub fn dashboard() -> Dashboard {
                     Observable::new(
                         "disk_free_ratio",
                         "free disk space on the data volume",
-                        r#"min by (instance) (sourcegull_repo_disk_free_bytes{role="repo"} / sourcegull_repo_disk_total_bytes{role="repo"})"#,
+                        r#"min by (instance) (sourcegull_repo_disk_free_bytes{role=~"repo|all"} / sourcegull_repo_disk_total_bytes{role=~"repo|all"})"#,
                         Owner::Source,
                     )
                     .legend("{{instance}}")
@@ -38,7 +38,7 @@ pub fn dashboard() -> Dashboard {
                     Observable::new(
                         "disk_free_bytes",
                         "free bytes on the data volume",
-                        r#"min by (instance) (sourcegull_repo_disk_free_bytes{role="repo"})"#,
+                        r#"min by (instance) (sourcegull_repo_disk_free_bytes{role=~"repo|all"})"#,
                         Owner::Source,
                     )
                     .legend("{{instance}}")
@@ -53,7 +53,7 @@ pub fn dashboard() -> Dashboard {
                         Observable::new(
                             "repo_update_rate",
                             "clones and fetches per second by kind and outcome",
-                            format!(r#"sum by (kind, outcome) (rate({UPDATES}{{role="repo"}}[5m]))"#),
+                            format!(r#"sum by (kind, outcome) (rate({UPDATES}{{role=~"repo|all"}}[5m]))"#),
                             Owner::Source,
                         )
                         .legend("{{kind}} {{outcome}}")
@@ -62,7 +62,7 @@ pub fn dashboard() -> Dashboard {
                         Observable::new(
                             "repo_update_error_ratio",
                             "share of clones and fetches failing",
-                            ratio(UPDATES, r#"role="repo""#, r#"outcome="error""#, "kind", "30m"),
+                            ratio(UPDATES, r#"role=~"repo|all""#, r#"outcome="error""#, "kind", "30m"),
                             Owner::Source,
                         )
                         .legend("{{kind}}")
@@ -79,7 +79,7 @@ pub fn dashboard() -> Dashboard {
                         Observable::new(
                             "repo_update_p90_duration",
                             "90th percentile clone and fetch duration by kind",
-                            quantile(0.9, "sourcegull_repo_update_duration_seconds", r#"role="repo""#, "kind", "15m"),
+                            quantile(0.9, "sourcegull_repo_update_duration_seconds", r#"role=~"repo|all""#, "kind", "15m"),
                             Owner::Source,
                         )
                         .legend("{{kind}}")
@@ -147,7 +147,7 @@ pub fn dashboard() -> Dashboard {
                         Observable::new(
                             "index_queue_length",
                             "repositories waiting to be indexed",
-                            r#"max by (instance) (sourcegull_index_queue_length{role="repo"})"#,
+                            r#"max by (instance) (sourcegull_index_queue_length{role=~"repo|all"})"#,
                             Owner::Search,
                         )
                         .legend("{{instance}}")
@@ -160,7 +160,7 @@ pub fn dashboard() -> Dashboard {
                         Observable::new(
                             "index_update_rate",
                             "index updates per second by outcome",
-                            format!(r#"sum by (outcome) (rate({INDEX_UPDATES}{{role="repo"}}[5m]))"#),
+                            format!(r#"sum by (outcome) (rate({INDEX_UPDATES}{{role=~"repo|all"}}[5m]))"#),
                             Owner::Search,
                         )
                         .legend("{{outcome}}")
@@ -169,7 +169,7 @@ pub fn dashboard() -> Dashboard {
                         Observable::new(
                             "index_error_ratio",
                             "share of index builds failing",
-                            ratio(INDEX_UPDATES, r#"role="repo""#, r#"outcome="error""#, "", "30m"),
+                            ratio(INDEX_UPDATES, r#"role=~"repo|all""#, r#"outcome="error""#, "", "30m"),
                             Owner::Search,
                         )
                         .unit(Unit::Ratio)
@@ -183,7 +183,7 @@ pub fn dashboard() -> Dashboard {
                         Observable::new(
                             "index_build_p90_duration",
                             "90th percentile index build duration",
-                            quantile(0.9, "sourcegull_index_build_duration_seconds", r#"role="repo""#, "", "30m"),
+                            quantile(0.9, "sourcegull_index_build_duration_seconds", r#"role=~"repo|all""#, "", "30m"),
                             Owner::Search,
                         )
                         .unit(Unit::Seconds)
@@ -220,7 +220,7 @@ pub fn dashboard() -> Dashboard {
                     Observable::new(
                         "repo_move_rate",
                         "repository moves finished per second by outcome",
-                        format!(r#"sum by (outcome) (rate({MOVES}{{role="repo"}}[5m]))"#),
+                        format!(r#"sum by (outcome) (rate({MOVES}{{role=~"repo|all"}}[5m]))"#),
                         Owner::Source,
                     )
                     .legend("{{outcome}}")
@@ -229,7 +229,7 @@ pub fn dashboard() -> Dashboard {
                     Observable::new(
                         "repo_move_throughput",
                         "bytes copied between repo nodes per second",
-                        r#"sum by (instance) (rate(sourcegull_repo_move_bytes_total{role="repo"}[5m]))"#,
+                        r#"sum by (instance) (rate(sourcegull_repo_move_bytes_total{role=~"repo|all"}[5m]))"#,
                         Owner::Source,
                     )
                     .legend("{{instance}}")

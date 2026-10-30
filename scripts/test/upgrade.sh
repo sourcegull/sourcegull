@@ -22,9 +22,9 @@
 #   scripts/test/upgrade.sh source D [REF]
 #                                      write N-2's (or REF's) tree to directory D (CI builds it
 #                                      from there)
-#   scripts/test/upgrade.sh compose   N-2's compose.yaml and image; seed data (smoke.sh seed);
+#   scripts/test/upgrade.sh compose   N-2's production Compose layout and image; seed data (smoke.sh seed);
 #                                      stop, rotate the encryption key, then the documented
-#                                      multi-version upgrade with N's compose.yaml and image
+#                                      multi-version upgrade with N's compose.production.yaml and image
 #                                      (`migrate versions`, `migrate upgrade --from --dry-run`,
 #                                      `migrate upgrade --from`, `up`); smoke.sh verify (old
 #                                      password and token, saved search, secrets, search,
@@ -226,17 +226,27 @@ images_present() {
 # Docker Compose
 ############################
 
-# dc DIR ARGS...: docker compose with DIR's compose.yaml and the check's .env.
+# The production layout (one service per role) of a Compose bundle in DIR: compose.production.yaml,
+# or compose.yaml in releases from before it got that name.
+compose_file() {
+  if [ -f "$1/compose.production.yaml" ]; then
+    echo "$1/compose.production.yaml"
+  else
+    echo "$1/compose.yaml"
+  fi
+}
+
+# dc DIR ARGS...: docker compose with DIR's production layout and the check's .env.
 dc() {
   local dir=$1
   shift
-  docker compose -p "$PROJECT" --env-file "$W/compose/.env" -f "$dir/compose.yaml" "$@"
+  docker compose -p "$PROJECT" --env-file "$W/compose/.env" -f "$(compose_file "$dir")" "$@"
 }
 
 compose_down() {
   local dir
   for dir in "$W/compose/to" "$W/compose/from"; do
-    if [ -f "$dir/compose.yaml" ]; then
+    if [ -f "$(compose_file "$dir")" ]; then
       dc "$dir" --profile '*' down -v --remove-orphans >/dev/null 2>&1 && return
     fi
   done
@@ -271,7 +281,7 @@ SOURCEGULL_REPO_MEMORY_LIMIT=2g
 EOF
   local network=${PROJECT}_default
 
-  log "N-2: $(git log -1 --format='%h %s' "$from") with its compose.yaml"
+  log "N-2: $(git log -1 --format='%h %s' "$from") with its Compose files"
   t=$SECONDS
   dc "$C/from" up -d --wait --wait-timeout 300
   echo "up in $((SECONDS - t)) s"

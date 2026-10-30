@@ -87,7 +87,7 @@
             "type": "prometheus",
             "uid": "${datasource}"
           },
-          "expr": "sum by (method, status) (rate(sourcegull_blob_requests_total{role=\"blob\"}[5m]))",
+          "expr": "sum by (method, status) (rate(sourcegull_blob_requests_total{role=~\"blob|all\"}[5m]))",
           "legendFormat": "{{method}} {{status}}",
           "range": true,
           "refId": "A"
@@ -160,7 +160,7 @@
             "type": "prometheus",
             "uid": "${datasource}"
           },
-          "expr": "(sum(rate(sourcegull_blob_requests_total{role=\"blob\",status=~\"5..\"}[10m])) or 0 * sum(rate(sourcegull_blob_requests_total{role=\"blob\"}[10m])))\n/ sum(rate(sourcegull_blob_requests_total{role=\"blob\"}[10m]))",
+          "expr": "(sum(rate(sourcegull_blob_requests_total{role=~\"blob|all\",status=~\"5..\"}[10m])) or 0 * sum(rate(sourcegull_blob_requests_total{role=~\"blob|all\"}[10m])))\n/ sum(rate(sourcegull_blob_requests_total{role=~\"blob|all\"}[10m]))",
           "legendFormat": "__auto",
           "range": true,
           "refId": "A"
@@ -225,7 +225,7 @@
             "type": "prometheus",
             "uid": "${datasource}"
           },
-          "expr": "histogram_quantile(0.9, sum by (le, method) (rate(sourcegull_blob_request_duration_seconds_bucket{role=\"blob\"}[5m])))",
+          "expr": "histogram_quantile(0.9, sum by (le, method) (rate(sourcegull_blob_request_duration_seconds_bucket{role=~\"blob|all\"}[5m])))",
           "legendFormat": "{{method}}",
           "range": true,
           "refId": "A"
@@ -307,7 +307,7 @@
             "type": "prometheus",
             "uid": "${datasource}"
           },
-          "expr": "up{role=\"blob\"}",
+          "expr": "up{role=~\"blob|all\"}",
           "legendFormat": "{{instance}}",
           "range": true,
           "refId": "A"

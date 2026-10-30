@@ -1,5 +1,5 @@
 # Development environment (README, "Development"): everything runs in containers, so the only
-# thing the machine needs is Docker. Production Compose is deploy/docker/compose.yaml.
+# thing the machine needs is Docker. The Compose files for installs are in deploy/docker/.
 #
 #   docker compose up              # postgres + sourcegull (built from this checkout) + UI dev server
 #   open http://localhost:5173     # UI with hot reload; API and the embedded UI on :7080

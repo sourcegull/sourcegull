@@ -14,8 +14,9 @@ pub fn alerts(dashboards: &[Dashboard]) -> String {
         "# Alerts\n\n<!-- {GENERATED_NOTICE} -->\n\n\
          Every alert Sourcegull's Prometheus rules can fire, with what to do about it. The rules are \
          generated from `crates/monitoring` into `deploy/docker/prometheus/sourcegull-alerts.yml` \
-         (loaded by the Compose `monitoring` profile) and the Helm chart's `PrometheusRule` \
-         (`metrics.prometheusRule.enabled=true`). See [dashboards.md](dashboards.md) for the panels \
+         (in the Compose bundle, to load into your Prometheus) and the Helm chart's \
+         `PrometheusRule` (`metrics.prometheusRule.enabled=true`); [README.md](README.md) shows \
+         how to set them up. See [dashboards.md](dashboards.md) for the panels \
          they watch.\n\n\
          Each alert is named `sourcegull_<service>_<observable>` and carries the labels `severity` \
          (`warning`: needs a look soon; `critical`: users are affected or will be shortly), \
@@ -63,9 +64,10 @@ pub fn dashboards(dashboards: &[Dashboard]) -> String {
     let mut out = format!(
         "# Dashboards\n\n<!-- {GENERATED_NOTICE} -->\n\n\
          Sourcegull's Grafana dashboards, one per service. They are generated from \
-         `crates/monitoring` into `deploy/docker/grafana/dashboards/` (provisioned by the \
-         Compose `monitoring` profile) and the Helm chart's dashboard ConfigMaps \
-         (`metrics.grafanaDashboards.enabled=true`). Panels with alerts link to \
+         `crates/monitoring` into `deploy/docker/grafana/dashboards/` (in the Compose bundle, to \
+         import into your Grafana) and the Helm chart's dashboard ConfigMaps \
+         (`metrics.grafanaDashboards.enabled=true`); [README.md](README.md) shows how to set them \
+         up. Panels with alerts link to \
          [alerts.md](alerts.md).\n\n"
     );
     for d in dashboards {

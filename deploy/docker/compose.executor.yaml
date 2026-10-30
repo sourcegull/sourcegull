@@ -1,0 +1,30 @@
+# An executor next to compose.yaml: runs auto-indexing jobs and server-side bulk change spec
+# executions as containers on this host's Docker.
+#
+#   docker compose -f compose.yaml -f compose.executor.yaml up -d
+#
+# Set SOURCEGULL_EXECUTOR_TOKEN in .env to the site config's `executors.accessToken`, and
+# DOCKER_GID to the group owning /var/run/docker.sock (`stat -c %g /var/run/docker.sock`).
+# Mounting the socket gives this container control of the host's Docker; use a docker:dind
+# sidecar (DOCKER_HOST=tcp://dind:2375) to keep jobs off the host daemon.
+
+services:
+  executor:
+    image: ${SOURCEGULL_IMAGE:-ghcr.io/sourcegull/sourcegull}:${SOURCEGULL_VERSION:-0.1.0}
+    restart: unless-stopped
+    command: ["executor"]
+    environment:
+      SOURCEGULL_EXECUTOR_FRONTEND_URL: http://sourcegull:7080
+      SOURCEGULL_EXECUTOR_TOKEN: ${SOURCEGULL_EXECUTOR_TOKEN:?set SOURCEGULL_EXECUTOR_TOKEN in .env}
+      SOURCEGULL_EXECUTOR_QUEUES: ${SOURCEGULL_EXECUTOR_QUEUES:-codeintel,batches}
+      SOURCEGULL_EXECUTOR_MAX_JOBS: ${SOURCEGULL_EXECUTOR_MAX_JOBS:-2}
+      SOURCEGULL_EXECUTOR_DOCKER_MEMORY: ${SOURCEGULL_EXECUTOR_DOCKER_MEMORY:-8g}
+      SOURCEGULL_LOG_FORMAT: ${SOURCEGULL_LOG_FORMAT:-json}
+    group_add:
+      - "${DOCKER_GID:-999}"
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+    tmpfs:
+      - /tmp:size=4g
+    depends_on:
+      - sourcegull

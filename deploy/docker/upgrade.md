@@ -6,7 +6,8 @@ a short restart. To skip versions, stop Sourcegull and run a multi-version upgra
 image (see [Upgrading across several versions](#upgrading-across-several-versions)).
 
 Commands run in the directory of the Compose bundle (`sourcegull-compose`, or `deploy/docker` in a
-checkout).
+checkout). They are given for `compose.yaml` (one `sourcegull` container) and, where they differ,
+for the production layout (`compose.production.yaml`, set as `COMPOSE_FILE` in `.env`).
 
 ## Before you upgrade
 
@@ -16,7 +17,8 @@ checkout).
    ```sh
    cd sourcegull-compose
    docker compose exec -T postgres pg_dump -U sourcegull -Fc sourcegull > sourcegull-$(date +%F).dump
-   cp secrets/encryption-keys secrets/encryption-keys.bak
+   docker compose cp sourcegull:/var/opt/sourcegull/keys sourcegull-keys.bak
+   # compose.production.yaml: cp secrets/encryption-keys secrets/encryption-keys.bak
    ```
 
 ## Upgrade: pull → migrate → up
@@ -32,18 +34,22 @@ sed -i 's/^SOURCEGULL_VERSION=.*/SOURCEGULL_VERSION=0.2.0/' .env
 # 2. Pull the new images.
 docker compose pull
 
-# 3. Run the migrations with the new image (one-shot; exits non-zero on failure).
-docker compose run --rm migrate
+# 3. Run the migrations with the new image while the old version keeps serving (one-shot;
+#    exits non-zero on failure).
+docker compose run --rm --no-deps sourcegull migrate up
+# compose.production.yaml: docker compose run --rm migrate
 
 # 4. Recreate the services on the new image.
 docker compose up -d
 
 # 5. Check that everything is healthy.
 docker compose ps
-docker compose run --rm migrate migrate status
+docker compose run --rm --no-deps sourcegull migrate status
+# compose.production.yaml: docker compose run --rm migrate migrate status
 ```
 
-`docker compose up -d` alone also works: `web` and `worker` wait for the `migrate` one-shot to
+`docker compose up -d` alone also works: `sourcegull supervise` applies the migrations when it
+starts, and in the production layout `web` and `worker` wait for the `migrate` one-shot to
 finish successfully (`service_completed_successfully`). Step 3 just surfaces migration errors
 before any running service is replaced.
 
@@ -55,29 +61,30 @@ shipped (drift), applies each version's migrations in order and checks the resul
 
 ```sh
 cd sourcegull-compose
-docker compose stop web worker repo-0
+docker compose stop sourcegull          # compose.production.yaml: stop web worker repo-0
 sed -i 's/^SOURCEGULL_VERSION=.*/SOURCEGULL_VERSION=0.4.0/' .env
 docker compose pull
-docker compose run --rm migrate migrate versions                    # where the database is
-docker compose run --rm migrate migrate upgrade --from 0.2.0 --dry-run   # the plan
-docker compose run --rm migrate migrate upgrade --from 0.2.0 --to 0.4.0
+# compose.production.yaml: `run --rm migrate migrate …` in place of `run --rm --no-deps sourcegull migrate …`
+docker compose run --rm --no-deps sourcegull migrate versions                    # where the database is
+docker compose run --rm --no-deps sourcegull migrate upgrade --from 0.2.0 --dry-run   # the plan
+docker compose run --rm --no-deps sourcegull migrate upgrade --from 0.2.0 --to 0.4.0
 docker compose up -d
 ```
 
-This flow (with a key rotation in the same window) is tested from two releases back:
-`scripts/test/upgrade.sh compose` (`.github/workflows/upgrade.yml`).
+This flow (with a key rotation in the same window) is tested from two releases back with the
+production layout: `scripts/test/upgrade.sh compose` (`.github/workflows/upgrade.yml`).
 
 If the drift check finds differences (manual schema changes, a migration repaired by hand), it
 prints each one with SQL that would fix it and changes nothing. Review and apply the fixes (or
 rerun with `--skip-drift-check` if you know the differences are harmless). Check a running
-installation at any time with `docker compose run --rm migrate migrate drift`; it exits 1 on
-drift.
+installation at any time with `docker compose run --rm --no-deps sourcegull migrate drift`
+(production layout: `docker compose run --rm migrate migrate drift`); it exits 1 on drift.
 
 ## Out-of-band migrations
 
 Some data migrations run in the background after an upgrade (workers run them in batches; the
-site admin **Migrations** page and `docker compose run --rm migrate migrate status` show their
-progress). A release that deprecates such a migration no longer reads the old data format, so
+site admin **Migrations** page and `migrate status` (step 5 above) show their progress). A
+release that deprecates such a migration no longer reads the old data format, so
 `migrate upgrade` and the services refuse to move to it until the migration reaches 100%: upgrade
 to the release before it first, start it and wait. The site admin **Updates** page lists the
 migrations that must finish before the next upgrade.
@@ -86,12 +93,15 @@ migrations that must finish before the next upgrade.
 
 Secrets (code host configs, tokens, credentials, executor secrets, webhook secrets and URLs,
 watch webhook URLs) are encrypted
-with data keys that are wrapped by the key-encryption keys in `secrets/encryption-keys`.
-To rotate:
+with data keys that are wrapped by the key-encryption keys in the key file
+(`/var/opt/sourcegull/keys` in the `sourcegull-data` volume; `secrets/encryption-keys` in the
+production layout). To rotate:
 
 1. Append a new key as the **last** line (the last line is the current key; keep the old one):
 
    ```sh
+   docker compose exec sourcegull bash -c 'echo "k2:$(head -c 32 /dev/urandom | base64)" >> /var/opt/sourcegull/keys'
+   # compose.production.yaml:
    echo "k2:$(openssl rand -base64 32)" >> secrets/encryption-keys
    ```
 
@@ -114,10 +124,12 @@ on the Migrations page so the URLs are plaintext again.
 ## If a migration fails
 
 The old containers keep running on the old version (the schema change is additive). Fix the cause
-shown in the `migrate` logs and run step 3 again. To go back, restore the dump taken above:
+shown in the output of step 3 and run it again. If `sourcegull supervise` fails to migrate on
+start, it exits and Compose restarts it until the migration succeeds; `docker compose logs
+sourcegull` shows the error. To go back, restore the dump taken above:
 
 ```sh
-docker compose stop web worker
+docker compose stop sourcegull          # compose.production.yaml: stop web worker
 docker compose exec -T postgres pg_restore -U sourcegull -d sourcegull --clean --if-exists < sourcegull-YYYY-MM-DD.dump
 sed -i 's/^SOURCEGULL_VERSION=.*/SOURCEGULL_VERSION=<previous>/' .env
 docker compose up -d
@@ -131,11 +143,11 @@ so a major upgrade is a dump and restore.
 
 ```sh
 cd sourcegull-compose
-docker compose stop web worker repo-0
+docker compose stop sourcegull          # compose.production.yaml: stop web worker repo-0
 docker compose exec -T postgres pg_dump -U sourcegull -Fc sourcegull > sourcegull-pg.dump
 docker compose down
 docker volume rm sourcegull_postgres-data   # the dump is now the only copy: keep it
-# Change the postgres image in compose.yaml to the new major version, then:
+# Change the postgres image in the Compose file to the new major version, then:
 docker compose up -d --wait postgres
 docker compose exec -T postgres pg_restore -U sourcegull -d sourcegull --no-owner < sourcegull-pg.dump
 docker compose up -d

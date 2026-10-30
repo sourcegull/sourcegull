@@ -20,7 +20,7 @@ pub fn dashboard() -> Dashboard {
                     Observable::new(
                         "request_rate",
                         "blob requests per second by method and status",
-                        format!(r#"sum by (method, status) (rate({REQUESTS}{{role="blob"}}[5m]))"#),
+                        format!(r#"sum by (method, status) (rate({REQUESTS}{{role=~"blob|all"}}[5m]))"#),
                         Owner::Platform,
                     )
                     .legend("{{method}} {{status}}")
@@ -29,7 +29,7 @@ pub fn dashboard() -> Dashboard {
                     Observable::new(
                         "error_ratio",
                         "share of blob requests answered with 5xx",
-                        ratio(REQUESTS, r#"role="blob""#, r#"status=~"5..""#, "", "10m"),
+                        ratio(REQUESTS, r#"role=~"blob|all""#, r#"status=~"5..""#, "", "10m"),
                         Owner::Platform,
                     )
                     .unit(Unit::Ratio)
@@ -42,7 +42,7 @@ pub fn dashboard() -> Dashboard {
                     Observable::new(
                         "p90_latency",
                         "90th percentile blob request duration by method",
-                        quantile(0.9, "sourcegull_blob_request_duration_seconds", r#"role="blob""#, "method", "5m"),
+                        quantile(0.9, "sourcegull_blob_request_duration_seconds", r#"role=~"blob|all""#, "method", "5m"),
                         Owner::Platform,
                     )
                     .legend("{{method}}")

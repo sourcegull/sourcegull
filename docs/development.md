@@ -11,8 +11,8 @@ scripts/dev logs sourcegull       # the first start compiles the workspace (a fe
 open http://localhost:5173    # UI with hot reload; API and embedded UI on :7080, metrics on :6060
 ```
 
-`compose.yaml` at the repository root is the development setup (production Compose is
-[`deploy/docker/compose.yaml`](../deploy/docker/compose.yaml)). The `sourcegull` service runs
+`compose.yaml` at the repository root is the development setup (the Compose files for installs
+are in [`deploy/docker/`](../deploy/docker/compose.yaml)). The `sourcegull` service runs
 `cargo build -p sourcegull` and then `sourcegull supervise` (encryption keys, migrations, all roles)
 against the `postgres` service. The `ui` service builds the query parser WASM and runs
 `vite dev`, which proxies `/.api` to `sourcegull`. After changing Rust code,
@@ -251,7 +251,7 @@ scans the whole history before it builds.
 ## Releases
 
 Set the version in `Cargo.toml` (`[workspace.package]`, `X.Y.Z-rc.1` for a pre-release), the
-image defaults (`SOURCEGULL_VERSION` in `deploy/docker/compose.yaml` and `.env.example`,
+image defaults (`SOURCEGULL_VERSION` in `deploy/docker/compose*.yaml` and `.env.example`,
 `ARG VERSION` in the Dockerfile) and the chart's `appVersion`, merge to `main`, then run
 **Actions → Release** on `main` with **publish** checked. `.github/workflows/release.yml` runs on
 the self-hosted runner (labels `self-hosted`, `linux`): it scans the history for secrets, checks

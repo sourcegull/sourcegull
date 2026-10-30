@@ -1,102 +1,17 @@
-# Sourcegull on Docker Compose: postgres, migrate, web, worker, blob and one repo
-# node (repo-0). To add repo nodes, copy the repo-0 service and volume as repo-1, … and list every
-# node in SOURCEGULL_REPO_NODES (in .env). Repositories whose node changes are moved to it without
-# downtime (docs/architecture.md, "Repo nodes and rebalancing").
+# Sourcegull on Docker Compose: PostgreSQL and one container running every role.
 #
 #   cd sourcegull-compose           # the release bundle; deploy/docker in a checkout
-#   cp .env.example .env            # then edit the passwords
-#   mkdir -p secrets && printf 'k1:%s\n' "$(openssl rand -base64 32)" > secrets/encryption-keys
-#   chmod 0644 secrets/encryption-keys   # must be readable by UID 10001 in the containers
+#   echo "POSTGRES_PASSWORD=$(openssl rand -hex 24)" > .env
 #   docker compose up -d
 #   open http://localhost:7080      # the first user to sign up becomes site admin
 #
-# Configuration as code: put the site config, resources and global settings files in ./config
-# (mounted at /etc/sourcegull/config) and name them in .env (SOURCEGULL_SITE_CONFIG_FILE,
-# SOURCEGULL_RESOURCES_FILE, SOURCEGULL_GLOBAL_SETTINGS_FILE); see config/resources.example.jsonc.
-# Variables the files reference with ${env:NAME} go in config/secrets.env (git-ignored).
-#
-# Blob store (SCIP uploads, code graph files, search job results): the `blob` service and its
-# volume by default. To use an S3-compatible bucket instead (MinIO, Garage, SeaweedFS, Ceph RGW,
-# Amazon S3), set SOURCEGULL_BLOB_STORE=s3://<bucket>[/<prefix>] and the SOURCEGULL_S3_* variables in
-# .env (see .env.example) and stop the blob service: `docker compose up -d --scale blob=0`. The
-# `minio` profile runs a MinIO next to Sourcegull for that:
-#   docker compose --profile minio up -d
-#
-# Monitoring (Prometheus scraping the internal listeners on :6060, with Sourcegull's alerting rules,
-# and Grafana with Sourcegull's dashboards on http://localhost:3000; see docs/observability/):
-#   docker compose --profile monitoring up -d
-#
-# Upgrades: see upgrade.md (pull -> migrate -> up).
+# Every SOURCEGULL_* variable in .env reaches the server (docs/configuration.md); .env.example
+# lists the common ones. The encryption key file is created on first start at
+# /var/opt/sourcegull/keys in the sourcegull-data volume: back it up (docs/install.md).
+# Executors, S3 blob storage, monitoring and the production layout (compose.production.yaml,
+# one service per role): docs/install.md. Upgrades: upgrade.md.
 
 name: sourcegull
-
-x-sourcegull-image: &sourcegull-image
-  image: ${SOURCEGULL_IMAGE:-ghcr.io/sourcegull/sourcegull}:${SOURCEGULL_VERSION:-0.1.0}
-
-x-sourcegull-common: &sourcegull-common
-  <<: *sourcegull-image
-  restart: unless-stopped
-  read_only: true
-  tmpfs:
-    - /tmp
-  security_opt:
-    - no-new-privileges:true
-  cap_drop:
-    - ALL
-  environment: &sourcegull-env
-    SOURCEGULL_DATABASE_URL: ${SOURCEGULL_DATABASE_URL:?set SOURCEGULL_DATABASE_URL in .env}
-    SOURCEGULL_EXTERNAL_URL: ${SOURCEGULL_EXTERNAL_URL:-http://localhost:7080}
-    # The key file (the encryption-keys secret), or the keys themselves in SOURCEGULL_KEYS: then set
-    # SOURCEGULL_KEYS_FILE= (empty) in .env. Empty values count as unset.
-    SOURCEGULL_KEYS_FILE: ${SOURCEGULL_KEYS_FILE-/run/secrets/encryption-keys}
-    SOURCEGULL_KEYS: ${SOURCEGULL_KEYS:-}
-    # Configuration files, e.g. /etc/sourcegull/config/resources.jsonc.
-    SOURCEGULL_SITE_CONFIG_FILE: ${SOURCEGULL_SITE_CONFIG_FILE:-}
-    SOURCEGULL_RESOURCES_FILE: ${SOURCEGULL_RESOURCES_FILE:-}
-    SOURCEGULL_GLOBAL_SETTINGS_FILE: ${SOURCEGULL_GLOBAL_SETTINGS_FILE:-}
-    SOURCEGULL_LOG_FORMAT: ${SOURCEGULL_LOG_FORMAT:-json}
-    RUST_LOG: ${RUST_LOG:-info}
-    # Database connections per process (main pool, and the worker's own pool next to other
-    # roles); LISTEN and leader leases use a few more outside these pools.
-    SOURCEGULL_DB_MAX_CONNECTIONS: ${SOURCEGULL_DB_MAX_CONNECTIONS:-20}
-    SOURCEGULL_DB_WORKER_MAX_CONNECTIONS: ${SOURCEGULL_DB_WORKER_MAX_CONNECTIONS:-10}
-    # Repo node gRPC addresses. Every service must list them with the same spelling.
-    SOURCEGULL_REPO_NODES: ${SOURCEGULL_REPO_NODES:-http://repo-0:3178}
-    # Blob store: the blob service, or s3://bucket[/prefix] with the SOURCEGULL_S3_* settings.
-    SOURCEGULL_BLOB_STORE: ${SOURCEGULL_BLOB_STORE:-http://blob:6060}
-    SOURCEGULL_S3_ENDPOINT: ${SOURCEGULL_S3_ENDPOINT:-}
-    SOURCEGULL_S3_REGION: ${SOURCEGULL_S3_REGION:-}
-    SOURCEGULL_S3_PATH_STYLE: ${SOURCEGULL_S3_PATH_STYLE:-}
-    SOURCEGULL_S3_CREATE_BUCKET: ${SOURCEGULL_S3_CREATE_BUCKET:-}
-    SOURCEGULL_S3_ACCESS_KEY_ID: ${SOURCEGULL_S3_ACCESS_KEY_ID:-}
-    SOURCEGULL_S3_SECRET_ACCESS_KEY: ${SOURCEGULL_S3_SECRET_ACCESS_KEY:-}
-  # The variables the configuration files reference (${env:NAME}).
-  env_file:
-    - path: ./config/secrets.env
-      required: false
-  secrets:
-    - encryption-keys
-  depends_on:
-    postgres:
-      condition: service_healthy
-    migrate:
-      condition: service_completed_successfully
-
-# The image has no curl/wget, so sourcegull healthchecks use bash's /dev/tcp to GET /readyz on the
-# internal listener and require an HTTP 200 status line.
-x-sourcegull-healthcheck: &sourcegull-healthcheck
-  test:
-    - CMD
-    - bash
-    - -c
-    - >-
-      exec 3<>/dev/tcp/127.0.0.1/6060 &&
-      printf 'GET /readyz HTTP/1.0\r\nHost: localhost\r\n\r\n' >&3 &&
-      head -n 1 <&3 | grep -q ' 200 '
-  interval: 15s
-  timeout: 5s
-  retries: 5
-  start_period: 30s
 
 services:
   postgres:
@@ -107,27 +22,12 @@ services:
       POSTGRES_DB: sourcegull
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?set POSTGRES_PASSWORD in .env}
       POSTGRES_INITDB_ARGS: --encoding=UTF8 --locale=C.UTF-8
-    # Tuning for a small/medium instance; size shared_buffers to ~25% of the container's RAM.
-    command:
-      - postgres
-      - -c
-      - shared_buffers=${POSTGRES_SHARED_BUFFERS:-1GB}
-      - -c
-      - effective_cache_size=${POSTGRES_EFFECTIVE_CACHE_SIZE:-3GB}
-      - -c
-      - work_mem=16MB
-      - -c
-      - maintenance_work_mem=256MB
-      - -c
-      - max_connections=200
-      - -c
-      - random_page_cost=1.1
-      - -c
-      - shared_preload_libraries=pg_stat_statements
-      - -c
-      - pg_stat_statements.track=all
-      - -c
-      - log_min_duration_statement=${POSTGRES_LOG_MIN_DURATION:-1000}
+    # Size shared_buffers to ~25% of the host's RAM.
+    command: >-
+      postgres -c shared_buffers=${POSTGRES_SHARED_BUFFERS:-1GB}
+      -c effective_cache_size=${POSTGRES_EFFECTIVE_CACHE_SIZE:-3GB}
+      -c work_mem=16MB -c maintenance_work_mem=256MB -c max_connections=200
+      -c random_page_cost=1.1 -c shared_preload_libraries=pg_stat_statements
     shm_size: 256mb
     volumes:
       - postgres-data:/var/lib/postgresql
@@ -137,14 +37,12 @@ services:
       timeout: 5s
       retries: 20
       start_period: 10s
-    deploy:
-      resources:
-        limits:
-          memory: ${POSTGRES_MEMORY_LIMIT:-4g}
 
-  migrate:
-    <<: *sourcegull-image
-    restart: "no"
+  # `supervise`: creates the key file if missing, applies migrations, runs every role.
+  sourcegull:
+    image: ${SOURCEGULL_IMAGE:-ghcr.io/sourcegull/sourcegull}:${SOURCEGULL_VERSION:-0.1.0}
+    restart: unless-stopped
+    command: ["supervise"]
     read_only: true
     tmpfs:
       - /tmp
@@ -152,199 +50,39 @@ services:
       - no-new-privileges:true
     cap_drop:
       - ALL
-    command: ["migrate", "up"]
+    env_file:
+      - path: .env
+        required: false
+      # The variables configuration files reference with ${env:NAME}.
+      - path: ./config/secrets.env
+        required: false
     environment:
-      SOURCEGULL_DATABASE_URL: ${SOURCEGULL_DATABASE_URL:?set SOURCEGULL_DATABASE_URL in .env}
+      SOURCEGULL_DATABASE_URL: ${SOURCEGULL_DATABASE_URL:-postgres://sourcegull:${POSTGRES_PASSWORD}@postgres:5432/sourcegull?sslmode=disable}
+      SOURCEGULL_EXTERNAL_URL: ${SOURCEGULL_EXTERNAL_URL:-http://localhost:7080}
       SOURCEGULL_LOG_FORMAT: ${SOURCEGULL_LOG_FORMAT:-json}
-      RUST_LOG: ${RUST_LOG:-info}
+    ports:
+      - "${SOURCEGULL_HTTP_PORT:-7080}:7080"
+    volumes:
+      - sourcegull-data:/var/opt/sourcegull
+      - ./config:/etc/sourcegull/config:ro
+    # The image has no curl: GET /readyz on the internal listener with bash's /dev/tcp.
+    healthcheck:
+      test:
+        - CMD
+        - bash
+        - -c
+        - >-
+          exec 3<>/dev/tcp/127.0.0.1/6060 &&
+          printf 'GET /readyz HTTP/1.0\r\nHost: localhost\r\n\r\n' >&3 &&
+          head -n 1 <&3 | grep -q ' 200 '
+      interval: 15s
+      timeout: 5s
+      retries: 5
+      start_period: 60s
     depends_on:
       postgres:
         condition: service_healthy
 
-  web:
-    <<: *sourcegull-common
-    command: ["run", "--roles=web"]
-    # To run several web replicas, remove the fixed host port and put a reverse proxy
-    # (caddy/traefik) in front: `docker compose up -d --scale web=3`.
-    ports:
-      - "${SOURCEGULL_HTTP_PORT:-7080}:7080"
-    volumes:
-      - web-data:/var/opt/sourcegull
-      - ./config:/etc/sourcegull/config:ro
-    healthcheck: *sourcegull-healthcheck
-    deploy:
-      resources:
-        limits:
-          memory: ${SOURCEGULL_WEB_MEMORY_LIMIT:-2g}
-
-  worker:
-    <<: *sourcegull-common
-    command: ["run", "--roles=worker"]
-    volumes:
-      - worker-data:/var/opt/sourcegull
-      - ./config:/etc/sourcegull/config:ro
-    healthcheck: *sourcegull-healthcheck
-    deploy:
-      resources:
-        limits:
-          memory: ${SOURCEGULL_WORKER_MEMORY_LIMIT:-2g}
-
-  # Repo node: bare repos and index shards on its own volume. The gRPC port (3178) is
-  # unauthenticated and stays on the Compose network; do not publish it.
-  repo-0:
-    <<: *sourcegull-common
-    command: ["run", "--roles=repo"]
-    hostname: repo-0
-    environment:
-      <<: *sourcegull-env
-      SOURCEGULL_REPO_NODE_ADDR: http://repo-0:3178
-    volumes:
-      - repo-0-data:/var/opt/sourcegull
-      - ./config:/etc/sourcegull/config:ro
-    healthcheck: *sourcegull-healthcheck
-    deploy:
-      resources:
-        limits:
-          memory: ${SOURCEGULL_REPO_MEMORY_LIMIT:-8g}
-
-  # repo-1:
-  #   <<: *sourcegull-common
-  #   command: ["run", "--roles=repo"]
-  #   hostname: repo-1
-  #   environment:
-  #     <<: *sourcegull-env
-  #     SOURCEGULL_REPO_NODE_ADDR: http://repo-1:3178
-  #   volumes:
-  #     - repo-1-data:/var/opt/sourcegull
-  #     - ./config:/etc/sourcegull/config:ro
-  #   healthcheck: *sourcegull-healthcheck
-
-  # Blob store: serves its volume to web and worker on the internal port (6060), which
-  # stays on the Compose network. Not needed with an S3 bucket (`--scale blob=0`).
-  blob:
-    <<: *sourcegull-common
-    command: ["run", "--roles=blob"]
-    environment:
-      <<: *sourcegull-env
-      SOURCEGULL_BLOB_STORE: file:///var/opt/sourcegull/blobs
-    volumes:
-      - blob-data:/var/opt/sourcegull
-      - ./config:/etc/sourcegull/config:ro
-    healthcheck: *sourcegull-healthcheck
-    deploy:
-      resources:
-        limits:
-          memory: ${SOURCEGULL_BLOB_MEMORY_LIMIT:-512m}
-
-  # Optional S3-compatible object storage for the blob store (`--profile minio`). The upstream
-  # MinIO images are no longer published; this is the community build of the same server.
-  # Create the bucket with SOURCEGULL_S3_CREATE_BUCKET=true (or the console on 127.0.0.1:9001), and
-  # set in .env:
-  #   SOURCEGULL_BLOB_STORE=s3://sourcegull
-  #   SOURCEGULL_S3_ENDPOINT=http://minio:9000
-  #   SOURCEGULL_S3_ACCESS_KEY_ID=<MINIO_ROOT_USER or an access key>
-  #   SOURCEGULL_S3_SECRET_ACCESS_KEY=<its secret>
-  minio:
-    profiles: ["minio"]
-    image: pgsty/minio:RELEASE.2026-08-04T00-00-00Z
-    restart: unless-stopped
-    # Refuses to start without a password (MinIO would fall back to minioadmin).
-    entrypoint: ["sh", "-c", "test -n \"$$MINIO_ROOT_PASSWORD\" || { echo 'set MINIO_ROOT_PASSWORD in .env' >&2; exit 1; }; exec minio server /data --console-address :9001"]
-    environment:
-      MINIO_ROOT_USER: ${MINIO_ROOT_USER:-sourcegull}
-      MINIO_ROOT_PASSWORD: ${MINIO_ROOT_PASSWORD:-}
-    volumes:
-      - minio-data:/data
-    ports:
-      - "127.0.0.1:${MINIO_CONSOLE_PORT:-9001}:9001"
-    healthcheck:
-      test: ["CMD", "curl", "-fsS", "-o", "/dev/null", "http://127.0.0.1:9000/minio/health/ready"]
-      interval: 10s
-      timeout: 5s
-      retries: 5
-
-  # Executor: runs auto-indexing jobs and server-side bulk change spec executions as
-  # containers on this host's Docker. Set the same
-  # value as `executors.accessToken` in the site config and SOURCEGULL_EXECUTOR_TOKEN in .env, and
-  # DOCKER_GID to the group owning /var/run/docker.sock (`stat -c %g /var/run/docker.sock`).
-  #   docker compose --profile executors up -d
-  # Mounting the socket gives this container control of the host's Docker; use a docker:dind
-  # sidecar (DOCKER_HOST=tcp://dind:2375) to keep jobs off the host daemon.
-  executor:
-    profiles: ["executors"]
-    image: ${SOURCEGULL_IMAGE:-ghcr.io/sourcegull/sourcegull}:${SOURCEGULL_VERSION:-0.1.0}
-    restart: unless-stopped
-    command: ["executor"]
-    environment:
-      SOURCEGULL_EXECUTOR_FRONTEND_URL: http://web:7080
-      SOURCEGULL_EXECUTOR_TOKEN: ${SOURCEGULL_EXECUTOR_TOKEN:-}
-      SOURCEGULL_EXECUTOR_QUEUES: ${SOURCEGULL_EXECUTOR_QUEUES:-codeintel,batches}
-      SOURCEGULL_EXECUTOR_MAX_JOBS: ${SOURCEGULL_EXECUTOR_MAX_JOBS:-2}
-      SOURCEGULL_EXECUTOR_DOCKER_MEMORY: ${SOURCEGULL_EXECUTOR_DOCKER_MEMORY:-8g}
-      SOURCEGULL_LOG_FORMAT: ${SOURCEGULL_LOG_FORMAT:-json}
-    group_add:
-      - "${DOCKER_GID:-999}"
-    volumes:
-      - /var/run/docker.sock:/var/run/docker.sock
-    tmpfs:
-      - /tmp:size=4g
-    depends_on:
-      - web
-
-  prometheus:
-    profiles: ["monitoring"]
-    image: prom/prometheus:v3.5.0
-    restart: unless-stopped
-    command:
-      - --config.file=/etc/prometheus/prometheus.yml
-      - --storage.tsdb.path=/prometheus
-      - --storage.tsdb.retention.time=15d
-    volumes:
-      - ./prometheus/prometheus.yml:/etc/prometheus/prometheus.yml:ro
-      # Generated from crates/monitoring (`sourcegull monitoring generate`).
-      - ./prometheus/sourcegull-alerts.yml:/etc/prometheus/sourcegull-alerts.yml:ro
-      - prometheus-data:/prometheus
-    ports:
-      - "127.0.0.1:${PROMETHEUS_PORT:-9090}:9090"
-    depends_on:
-      - web
-      - worker
-      - repo-0
-
-  # Grafana with the Prometheus data source and Sourcegull's dashboards (folder "Sourcegull") provisioned.
-  # Sign in as admin with GRAFANA_ADMIN_PASSWORD (default `admin`, Grafana asks to change it).
-  grafana:
-    profiles: ["monitoring"]
-    image: grafana/grafana:11.6.0
-    restart: unless-stopped
-    environment:
-      GF_SECURITY_ADMIN_PASSWORD: ${GRAFANA_ADMIN_PASSWORD:-admin}
-      GF_USERS_ALLOW_SIGN_UP: "false"
-      GF_ANALYTICS_REPORTING_ENABLED: "false"
-      GF_ANALYTICS_CHECK_FOR_UPDATES: "false"
-      GF_DASHBOARDS_DEFAULT_HOME_DASHBOARD_PATH: /var/lib/grafana/dashboards/sourcegull/sourcegull-web.json
-    volumes:
-      - ./grafana/provisioning:/etc/grafana/provisioning:ro
-      # Generated from crates/monitoring (`sourcegull monitoring generate`).
-      - ./grafana/dashboards:/var/lib/grafana/dashboards/sourcegull:ro
-      - grafana-data:/var/lib/grafana
-    ports:
-      - "127.0.0.1:${GRAFANA_PORT:-3000}:3000"
-    depends_on:
-      - prometheus
-
-secrets:
-  encryption-keys:
-    # Encryption key file: one `id:base64key` line per key.
-    file: ${SOURCEGULL_KEYS_FILE_HOST:-./secrets/encryption-keys}
-
 volumes:
   postgres-data:
-  web-data:
-  worker-data:
-  prometheus-data:
-  grafana-data:
-  repo-0-data:
-  # repo-1-data:
-  blob-data:
-  minio-data:
+  sourcegull-data:

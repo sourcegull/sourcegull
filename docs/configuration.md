@@ -373,9 +373,9 @@ makes the global settings editable again, starting from the last version.
 - **Helm**: `config.siteConfig`, `config.globalSettings` and `config.resources` in values are
   rendered into a Secret mounted on every Sourcegull pod (or use `config.existingSecret`); the
   variables the files reference go in `extraEnvVars`. See the [chart README](../deploy/helm/sourcegull/README.md#configuration-as-code).
-- **Docker Compose**: put the files in `deploy/docker/config/` (mounted at
-  `/etc/sourcegull/config`), name them in `.env`, and put referenced variables in
-  `config/secrets.env`.
+- **Docker Compose**: put the files in `config/` of the bundle (`deploy/docker/config/` in a
+  checkout; mounted at `/etc/sourcegull/config`), name them in `.env`, and put referenced
+  variables in `config/secrets.env`.
 
 ### Backups
 

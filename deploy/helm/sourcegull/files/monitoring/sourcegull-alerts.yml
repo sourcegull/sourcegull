@@ -5,8 +5,8 @@ groups:
     rules:
       - alert: sourcegull_web_http_5xx_ratio
         expr: |-
-          ((sum(rate(sourcegull_http_requests_total{role="web",route!~"/metrics|/healthz|/readyz",status=~"5.."}[5m])) or 0 * sum(rate(sourcegull_http_requests_total{role="web",route!~"/metrics|/healthz|/readyz"}[5m])))
-           / sum(rate(sourcegull_http_requests_total{role="web",route!~"/metrics|/healthz|/readyz"}[5m])))
+          ((sum(rate(sourcegull_http_requests_total{role=~"web|all",route!~"/metrics|/healthz|/readyz",status=~"5.."}[5m])) or 0 * sum(rate(sourcegull_http_requests_total{role=~"web|all",route!~"/metrics|/healthz|/readyz"}[5m])))
+           / sum(rate(sourcegull_http_requests_total{role=~"web|all",route!~"/metrics|/healthz|/readyz"}[5m])))
             > 0.02
         for: 5m
         labels:
@@ -20,8 +20,8 @@ groups:
           runbook_url: "https://github.com/sourcegull/sourcegull/blob/main/docs/observability/alerts.md#web_http_5xx_ratio"
       - alert: sourcegull_web_http_5xx_ratio
         expr: |-
-          ((sum(rate(sourcegull_http_requests_total{role="web",route!~"/metrics|/healthz|/readyz",status=~"5.."}[5m])) or 0 * sum(rate(sourcegull_http_requests_total{role="web",route!~"/metrics|/healthz|/readyz"}[5m])))
-           / sum(rate(sourcegull_http_requests_total{role="web",route!~"/metrics|/healthz|/readyz"}[5m])))
+          ((sum(rate(sourcegull_http_requests_total{role=~"web|all",route!~"/metrics|/healthz|/readyz",status=~"5.."}[5m])) or 0 * sum(rate(sourcegull_http_requests_total{role=~"web|all",route!~"/metrics|/healthz|/readyz"}[5m])))
+           / sum(rate(sourcegull_http_requests_total{role=~"web|all",route!~"/metrics|/healthz|/readyz"}[5m])))
             > 0.1
         for: 10m
         labels:
@@ -35,7 +35,7 @@ groups:
           runbook_url: "https://github.com/sourcegull/sourcegull/blob/main/docs/observability/alerts.md#web_http_5xx_ratio"
       - alert: sourcegull_web_http_p90_latency
         expr: |-
-          (histogram_quantile(0.9, sum by (le, route) (rate(sourcegull_http_request_duration_seconds_bucket{role="web",route!~"/metrics|/healthz|/readyz|/.api/search/stream|/.api/compute/stream|/.api/blame/.*|/.api/scip/upload|/.api/files/.*|/.executors/.*"}[5m]))))
+          (histogram_quantile(0.9, sum by (le, route) (rate(sourcegull_http_request_duration_seconds_bucket{role=~"web|all",route!~"/metrics|/healthz|/readyz|/.api/search/stream|/.api/compute/stream|/.api/blame/.*|/.api/scip/upload|/.api/files/.*|/.executors/.*"}[5m]))))
             > 5
         for: 15m
         labels:
@@ -49,7 +49,7 @@ groups:
           runbook_url: "https://github.com/sourcegull/sourcegull/blob/main/docs/observability/alerts.md#web_http_p90_latency"
       - alert: sourcegull_web_search_stream_p90_duration
         expr: |-
-          (histogram_quantile(0.9, sum by (le) (rate(sourcegull_http_request_duration_seconds_bucket{role="web",route="/.api/search/stream"}[5m]))))
+          (histogram_quantile(0.9, sum by (le) (rate(sourcegull_http_request_duration_seconds_bucket{role=~"web|all",route="/.api/search/stream"}[5m]))))
             > 20
         for: 15m
         labels:
@@ -63,7 +63,7 @@ groups:
           runbook_url: "https://github.com/sourcegull/sourcegull/blob/main/docs/observability/alerts.md#web_search_stream_p90_duration"
       - alert: sourcegull_web_graphql_p90_duration
         expr: |-
-          (histogram_quantile(0.9, sum by (le) (rate(sourcegull_http_request_duration_seconds_bucket{role="web",route="/.api/graphql"}[5m]))))
+          (histogram_quantile(0.9, sum by (le) (rate(sourcegull_http_request_duration_seconds_bucket{role=~"web|all",route="/.api/graphql"}[5m]))))
             > 5
         for: 15m
         labels:
@@ -77,8 +77,8 @@ groups:
           runbook_url: "https://github.com/sourcegull/sourcegull/blob/main/docs/observability/alerts.md#web_graphql_p90_duration"
       - alert: sourcegull_web_webhook_rejection_ratio
         expr: |-
-          ((sum(rate(sourcegull_http_requests_total{role="web",route=~"/.api/gitlab-webhooks|/.api/webhooks/.*",status!~"2.."}[30m])) or 0 * sum(rate(sourcegull_http_requests_total{role="web",route=~"/.api/gitlab-webhooks|/.api/webhooks/.*"}[30m])))
-           / sum(rate(sourcegull_http_requests_total{role="web",route=~"/.api/gitlab-webhooks|/.api/webhooks/.*"}[30m])))
+          ((sum(rate(sourcegull_http_requests_total{role=~"web|all",route=~"/.api/gitlab-webhooks|/.api/webhooks/.*",status!~"2.."}[30m])) or 0 * sum(rate(sourcegull_http_requests_total{role=~"web|all",route=~"/.api/gitlab-webhooks|/.api/webhooks/.*"}[30m])))
+           / sum(rate(sourcegull_http_requests_total{role=~"web|all",route=~"/.api/gitlab-webhooks|/.api/webhooks/.*"}[30m])))
             > 0.5
         for: 30m
         labels:
@@ -92,7 +92,7 @@ groups:
           runbook_url: "https://github.com/sourcegull/sourcegull/blob/main/docs/observability/alerts.md#web_webhook_rejection_ratio"
       - alert: sourcegull_web_instance_up
         expr: |-
-          (up{role="web"})
+          (up{role=~"web|all"})
             < 1
         for: 5m
         labels:
@@ -108,7 +108,7 @@ groups:
     rules:
       - alert: sourcegull_repo_disk_free_ratio
         expr: |-
-          (min by (instance) (sourcegull_repo_disk_free_bytes{role="repo"} / sourcegull_repo_disk_total_bytes{role="repo"}))
+          (min by (instance) (sourcegull_repo_disk_free_bytes{role=~"repo|all"} / sourcegull_repo_disk_total_bytes{role=~"repo|all"}))
             < 0.15
         for: 10m
         labels:
@@ -122,7 +122,7 @@ groups:
           runbook_url: "https://github.com/sourcegull/sourcegull/blob/main/docs/observability/alerts.md#repo_disk_free_ratio"
       - alert: sourcegull_repo_disk_free_ratio
         expr: |-
-          (min by (instance) (sourcegull_repo_disk_free_bytes{role="repo"} / sourcegull_repo_disk_total_bytes{role="repo"}))
+          (min by (instance) (sourcegull_repo_disk_free_bytes{role=~"repo|all"} / sourcegull_repo_disk_total_bytes{role=~"repo|all"}))
             < 0.05
         for: 5m
         labels:
@@ -136,8 +136,8 @@ groups:
           runbook_url: "https://github.com/sourcegull/sourcegull/blob/main/docs/observability/alerts.md#repo_disk_free_ratio"
       - alert: sourcegull_repo_repo_update_error_ratio
         expr: |-
-          ((sum by (kind) (rate(sourcegull_repo_updates_total{role="repo",outcome="error"}[30m])) or 0 * sum by (kind) (rate(sourcegull_repo_updates_total{role="repo"}[30m])))
-           / sum by (kind) (rate(sourcegull_repo_updates_total{role="repo"}[30m])))
+          ((sum by (kind) (rate(sourcegull_repo_updates_total{role=~"repo|all",outcome="error"}[30m])) or 0 * sum by (kind) (rate(sourcegull_repo_updates_total{role=~"repo|all"}[30m])))
+           / sum by (kind) (rate(sourcegull_repo_updates_total{role=~"repo|all"}[30m])))
             > 0.2
         for: 30m
         labels:
@@ -151,8 +151,8 @@ groups:
           runbook_url: "https://github.com/sourcegull/sourcegull/blob/main/docs/observability/alerts.md#repo_repo_update_error_ratio"
       - alert: sourcegull_repo_repo_update_error_ratio
         expr: |-
-          ((sum by (kind) (rate(sourcegull_repo_updates_total{role="repo",outcome="error"}[30m])) or 0 * sum by (kind) (rate(sourcegull_repo_updates_total{role="repo"}[30m])))
-           / sum by (kind) (rate(sourcegull_repo_updates_total{role="repo"}[30m])))
+          ((sum by (kind) (rate(sourcegull_repo_updates_total{role=~"repo|all",outcome="error"}[30m])) or 0 * sum by (kind) (rate(sourcegull_repo_updates_total{role=~"repo|all"}[30m])))
+           / sum by (kind) (rate(sourcegull_repo_updates_total{role=~"repo|all"}[30m])))
             > 0.8
         for: 30m
         labels:
@@ -194,7 +194,7 @@ groups:
           runbook_url: "https://github.com/sourcegull/sourcegull/blob/main/docs/observability/alerts.md#repo_repos_corrupted"
       - alert: sourcegull_repo_index_queue_length
         expr: |-
-          (max by (instance) (sourcegull_index_queue_length{role="repo"}))
+          (max by (instance) (sourcegull_index_queue_length{role=~"repo|all"}))
             > 500
         for: 60m
         labels:
@@ -208,8 +208,8 @@ groups:
           runbook_url: "https://github.com/sourcegull/sourcegull/blob/main/docs/observability/alerts.md#repo_index_queue_length"
       - alert: sourcegull_repo_index_error_ratio
         expr: |-
-          ((sum(rate(sourcegull_index_updates_total{role="repo",outcome="error"}[30m])) or 0 * sum(rate(sourcegull_index_updates_total{role="repo"}[30m])))
-           / sum(rate(sourcegull_index_updates_total{role="repo"}[30m])))
+          ((sum(rate(sourcegull_index_updates_total{role=~"repo|all",outcome="error"}[30m])) or 0 * sum(rate(sourcegull_index_updates_total{role=~"repo|all"}[30m])))
+           / sum(rate(sourcegull_index_updates_total{role=~"repo|all"}[30m])))
             > 0.2
         for: 30m
         labels:
@@ -237,7 +237,7 @@ groups:
           runbook_url: "https://github.com/sourcegull/sourcegull/blob/main/docs/observability/alerts.md#repo_repo_moves_failed"
       - alert: sourcegull_repo_instance_up
         expr: |-
-          (up{role="repo"})
+          (up{role=~"repo|all"})
             < 1
         for: 5m
         labels:
@@ -369,7 +369,7 @@ groups:
           runbook_url: "https://github.com/sourcegull/sourcegull/blob/main/docs/observability/alerts.md#worker_oob_migration_errors"
       - alert: sourcegull_worker_instance_up
         expr: |-
-          (up{role="worker"})
+          (up{role=~"worker|all"})
             < 1
         for: 5m
         labels:
@@ -414,8 +414,8 @@ groups:
           runbook_url: "https://github.com/sourcegull/sourcegull/blob/main/docs/observability/alerts.md#executor_queue_oldest_queued"
       - alert: sourcegull_executor_api_5xx_ratio
         expr: |-
-          ((sum(rate(sourcegull_http_requests_total{role="web",route=~"/.executors/.*",status=~"5.."}[15m])) or 0 * sum(rate(sourcegull_http_requests_total{role="web",route=~"/.executors/.*"}[15m])))
-           / sum(rate(sourcegull_http_requests_total{role="web",route=~"/.executors/.*"}[15m])))
+          ((sum(rate(sourcegull_http_requests_total{role=~"web|all",route=~"/.executors/.*",status=~"5.."}[15m])) or 0 * sum(rate(sourcegull_http_requests_total{role=~"web|all",route=~"/.executors/.*"}[15m])))
+           / sum(rate(sourcegull_http_requests_total{role=~"web|all",route=~"/.executors/.*"}[15m])))
             > 0.05
         for: 15m
         labels:
@@ -431,8 +431,8 @@ groups:
     rules:
       - alert: sourcegull_blob_error_ratio
         expr: |-
-          ((sum(rate(sourcegull_blob_requests_total{role="blob",status=~"5.."}[10m])) or 0 * sum(rate(sourcegull_blob_requests_total{role="blob"}[10m])))
-           / sum(rate(sourcegull_blob_requests_total{role="blob"}[10m])))
+          ((sum(rate(sourcegull_blob_requests_total{role=~"blob|all",status=~"5.."}[10m])) or 0 * sum(rate(sourcegull_blob_requests_total{role=~"blob|all"}[10m])))
+           / sum(rate(sourcegull_blob_requests_total{role=~"blob|all"}[10m])))
             > 0.01
         for: 10m
         labels:
@@ -446,8 +446,8 @@ groups:
           runbook_url: "https://github.com/sourcegull/sourcegull/blob/main/docs/observability/alerts.md#blob_error_ratio"
       - alert: sourcegull_blob_error_ratio
         expr: |-
-          ((sum(rate(sourcegull_blob_requests_total{role="blob",status=~"5.."}[10m])) or 0 * sum(rate(sourcegull_blob_requests_total{role="blob"}[10m])))
-           / sum(rate(sourcegull_blob_requests_total{role="blob"}[10m])))
+          ((sum(rate(sourcegull_blob_requests_total{role=~"blob|all",status=~"5.."}[10m])) or 0 * sum(rate(sourcegull_blob_requests_total{role=~"blob|all"}[10m])))
+           / sum(rate(sourcegull_blob_requests_total{role=~"blob|all"}[10m])))
             > 0.1
         for: 10m
         labels:
@@ -461,7 +461,7 @@ groups:
           runbook_url: "https://github.com/sourcegull/sourcegull/blob/main/docs/observability/alerts.md#blob_error_ratio"
       - alert: sourcegull_blob_instance_up
         expr: |-
-          (up{role="blob"})
+          (up{role=~"blob|all"})
             < 1
         for: 5m
         labels:

@@ -7,7 +7,7 @@ run it:
 
 | Option | For | Database |
 |---|---|---|
-| [Docker Compose](#docker-compose) | trying Sourcegull, one host | PostgreSQL service in the Compose file |
+| [Docker Compose](#docker-compose) | one host | PostgreSQL service in the Compose file |
 | [Kubernetes (Helm)](#kubernetes-helm) | larger installs, several repo nodes | external, bundled or CloudNativePG |
 
 Every option needs only PostgreSQL 18; there is no Redis or other service to run. Install from
@@ -23,7 +23,7 @@ Each release publishes, signed by digest (images with an SBOM and build provenan
 | `ghcr.io/sourcegull/sourcegull` | the server and `gull`; what Compose and the Helm chart run |
 | `ghcr.io/sourcegull/gull` | only `gull` and git, for CI jobs ([SCIP uploads](code-navigation.md)) |
 | `oci://ghcr.io/sourcegull/charts/sourcegull` | the [Helm chart](#kubernetes-helm), versioned on its own |
-| `sourcegull-compose.tar.gz` (release asset) | the [Docker Compose](#docker-compose) files: `compose.yaml`, `.env.example`, configuration and monitoring files |
+| `sourcegull-compose.tar.gz` (release asset) | the [Docker Compose](#docker-compose) files: `compose.yaml`, `compose.production.yaml`, extras, `.env.example`, configuration examples, alerting rules and dashboards |
 
 Image tags: `X.Y.Z`, `X.Y` (the newest patch release) and `latest`. The Compose bundle and the
 chart default to the image of their release, so neither needs a build. The release notes show how to check a
@@ -44,45 +44,74 @@ image (cross-compiled, no emulation needed for the Rust build); `--target cli` b
 
 ## Docker Compose
 
-The Compose bundle runs PostgreSQL, a one-shot `migrate` service, `web`, `worker`, one repo node
-(`repo-0`) and a `blob` store, each as its own container with a read-only root file system.
-Download it from the latest release (the same files are in `deploy/docker/` of a checkout):
+The Compose bundle runs PostgreSQL and one `sourcegull` container that runs every role
+(`sourcegull supervise`), with a read-only root file system. On first start it creates the
+encryption key file and applies the migrations. Download it from the latest release (the same
+files are in `deploy/docker/` of a checkout):
 
 ```sh
 curl -fsSL https://github.com/sourcegull/sourcegull/releases/latest/download/sourcegull-compose.tar.gz | tar -xz
 cd sourcegull-compose
-cp .env.example .env            # then change every password
-mkdir -p secrets && printf 'k1:%s\n' "$(openssl rand -base64 32)" > secrets/encryption-keys
-chmod 0644 secrets/encryption-keys   # read by UID 10001 in the containers
+echo "POSTGRES_PASSWORD=$(openssl rand -hex 24)" > .env
 docker compose up -d            # pulls ghcr.io/sourcegull/sourcegull
 ```
 
-Back up `secrets/encryption-keys` together with the database: without it, the stored code host
-tokens and other secrets cannot be decrypted. The keys can also be passed in `SOURCEGULL_KEYS`
-instead of a file ([configuration](configuration.md#keys-in-the-environment)). `.env.example`
-documents every setting, including memory limits and Postgres tuning.
+Open <http://localhost:7080> ([first sign-in](#first-sign-in)). Settings go in `.env`: every
+`SOURCEGULL_*` variable there reaches the server ([configuration](configuration.md)), and
+`.env.example` lists the common ones (external URL, port, Postgres tuning, S3, executors).
+
+Back up the key file together with the database: without it, the stored code host tokens and
+other secrets cannot be decrypted. It lives in the `sourcegull-data` volume:
+
+```sh
+docker compose cp sourcegull:/var/opt/sourcegull/keys ./sourcegull-keys.bak
+```
+
+The keys can also be passed in `SOURCEGULL_KEYS` instead of a file
+([configuration](configuration.md#keys-in-the-environment)).
 
 To configure the instance from files instead of the UI, put the site configuration, global
 settings and resources files in `config/` and name them in `.env`
 ([configuration as code](configuration.md#configuration-as-code));
 `config/resources.example.jsonc` is a starting point.
 
-Optional profiles:
+Optional extra Compose files, added with `-f` (or listed in `COMPOSE_FILE` in `.env`, separated
+by `:`):
 
-- `docker compose --profile executors up -d` starts an [executor](architecture.md#executors) for
-  auto-indexing and server-side bulk changes. It uses the host's Docker socket; set
-  `SOURCEGULL_EXECUTOR_TOKEN` in `.env` to the same value as `executors.accessToken` in the site
-  configuration, and `DOCKER_GID` to the group that owns `/var/run/docker.sock`.
-- `docker compose --profile monitoring up -d` starts Prometheus with Sourcegull's alerting rules and
-  Grafana with its dashboards on <http://localhost:3000> (see [observability](observability/)).
-- `docker compose --profile minio up -d` starts MinIO, for [S3 blob storage](#s3-blob-storage).
+- `docker compose -f compose.yaml -f compose.executor.yaml up -d` starts an
+  [executor](architecture.md#executors) for auto-indexing and server-side bulk changes. It uses
+  the host's Docker socket; set `SOURCEGULL_EXECUTOR_TOKEN` in `.env` to the same value as
+  `executors.accessToken` in the site configuration, and `DOCKER_GID` to the group that owns
+  `/var/run/docker.sock`.
+- `docker compose -f compose.yaml -f compose.minio.yaml up -d` starts MinIO, for
+  [S3 blob storage](#s3-blob-storage).
 
-To add repo nodes, copy the `repo-0` service and its volume as `repo-1`, … and list every node in
-`SOURCEGULL_REPO_NODES` (in `.env`), then `docker compose up -d`. Repositories move to new nodes in
-the background without downtime ([rebalancing](architecture.md#repo-nodes-and-rebalancing)).
+Monitoring: point your Prometheus and Grafana at the instance and load the rules and dashboards
+from the bundle ([monitoring](observability/README.md)).
 
-Upgrades (pull, migrate, up), multi-version upgrades, backups and key rotation are described in
+Upgrades, multi-version upgrades, backups and key rotation are described in
 [upgrade.md](../deploy/docker/upgrade.md), which the bundle includes.
+
+### Production layout
+
+`compose.production.yaml` runs each role in its own container: a one-shot `migrate` service,
+`web`, `worker`, one repo node (`repo-0`) and a `blob` store, each with its own volume and memory
+limit, and an encryption key file you create, mounted as a Compose secret. Use it to give the
+roles their own limits, to restart one without the others, or to run more repo nodes than one:
+
+```sh
+cp .env.example .env            # set POSTGRES_PASSWORD, uncomment COMPOSE_FILE=compose.production.yaml
+mkdir -p secrets && printf 'k1:%s\n' "$(openssl rand -base64 32)" > secrets/encryption-keys
+chmod 0644 secrets/encryption-keys   # read by UID 10001 in the containers
+docker compose up -d
+```
+
+The `executors` and `minio` profiles (`docker compose --profile executors up -d`) take the place
+of the extra files above. To add repo nodes, copy the `repo-0` service and its volume as
+`repo-1`, … and list every node in `SOURCEGULL_REPO_NODES` (in `.env`), then
+`docker compose up -d`. Repositories move to new nodes in the background without downtime
+([rebalancing](architecture.md#repo-nodes-and-rebalancing)). For several hosts, use
+[Helm](#kubernetes-helm).
 
 ## Kubernetes (Helm)
 
@@ -157,7 +186,7 @@ Other settings: `SOURCEGULL_S3_PATH_STYLE` (default `true`; `false` for virtual-
 `SOURCEGULL_S3_CREATE_BUCKET` (create the bucket at startup). The standard `AWS_*` variables are read
 when the `SOURCEGULL_S3_*` ones are not set. Credentials are never taken from the URL.
 
-- Compose: set these in `.env` and stop the blob service with
+- Compose: set these in `.env`. With `compose.production.yaml`, also stop the blob service:
   `docker compose up -d --scale blob=0`.
 - Helm: `blobstore.mode=s3` with `blobstore.s3.*` (bucket, endpoint, and a Secret with the key
   pair in `blobstore.s3.existingSecret`).

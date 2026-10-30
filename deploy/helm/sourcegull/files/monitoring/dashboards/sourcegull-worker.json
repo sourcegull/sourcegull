@@ -2296,7 +2296,7 @@
             "type": "prometheus",
             "uid": "${datasource}"
           },
-          "expr": "up{role=\"worker\"}",
+          "expr": "up{role=~\"worker|all\"}",
           "legendFormat": "{{instance}}",
           "range": true,
           "refId": "A"
