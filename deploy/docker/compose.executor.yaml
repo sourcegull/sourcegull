@@ -10,7 +10,7 @@
 
 services:
   executor:
-    image: ${SOURCEGULL_IMAGE:-ghcr.io/sourcegull/sourcegull}:${SOURCEGULL_VERSION:-0.1.0}
+    image: ${SOURCEGULL_IMAGE:-ghcr.io/sourcegull/sourcegull}:${SOURCEGULL_VERSION:-0.2.0}
     restart: unless-stopped
     command: ["executor"]
     environment:

@@ -203,6 +203,7 @@ use that only on throwaway installs.
 | Chart | Changes |
 |---|---|
 | 0.1.0 | First release |
+| 0.2.0 | Sourcegull 0.2.0; dashboards and alerts also match `role="all"` |
 
 ## Testing the chart
 

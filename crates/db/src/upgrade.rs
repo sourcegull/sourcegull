@@ -60,8 +60,11 @@ macro_rules! release {
     };
 }
 
-/// Released versions, oldest first. None yet: the first release adds `release!("0.1.0", N)`.
-pub const RELEASES: &[Release] = &[];
+/// Released versions, oldest first.
+pub const RELEASES: &[Release] = &[
+    release!("0.1.0", 20261208000001),
+    release!("0.2.0", 20261208000001),
+];
 
 /// The description of the schema of every embedded migration (the version under
 /// development).

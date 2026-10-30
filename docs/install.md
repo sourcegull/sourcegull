@@ -119,7 +119,7 @@ The [chart](../deploy/helm/sourcegull/README.md), published as
 `oci://ghcr.io/sourcegull/charts/sourcegull` (Helm 3.8 or later), deploys `web`, the repo
 nodes as a StatefulSet, `worker`, the blob store, optional executors (Kubernetes runtime: one
 Job per auto-indexing job, one per bulk change step), a migration hook and optional monitoring
-objects. It runs `ghcr.io/sourcegull/sourcegull` at the chart's `appVersion` (`0.1.0`); set
+objects. It runs `ghcr.io/sourcegull/sourcegull` at the chart's `appVersion` (`0.2.0`); set
 `image.registry` and `image.repository` for a mirror or an [image of your own](#building-from-source).
 With no other values the chart runs the bundled database and generates the encryption keys,
 which is enough to evaluate Sourcegull. The size presets come with the chart:
