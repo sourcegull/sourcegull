@@ -9,7 +9,8 @@
 </p>
 
 <p align="center">
-  <a href="docs/install.md">Install</a> ·
+  <a href="#quick-install">Quick install</a> ·
+  <a href="docs/install.md">Production install</a> ·
   <a href="docs/README.md">Documentation</a> ·
   <a href="docs/search.md">Query language</a> ·
   <a href="docs/mcp.md">AI agents (MCP)</a> ·
@@ -89,11 +90,11 @@ dashboards and documented alerts. See [the documentation](docs/README.md).
 - GitLab (gitlab.com and self-managed) has every feature. GitHub (github.com and Enterprise
   Server) and Gitea support repository sync, permission sync, webhooks and sign-in.
 
-## Install
+## Quick install
 
-Download the Compose bundle of the [latest release](https://github.com/sourcegull/sourcegull/releases/latest)
-and start PostgreSQL and Sourcegull with the published image, `ghcr.io/sourcegull/sourcegull`
-(linux/amd64):
+To try Sourcegull or run it for a small team on one host, download the Compose bundle of the
+[latest release](https://github.com/sourcegull/sourcegull/releases/latest) and start PostgreSQL
+and Sourcegull with the published image, `ghcr.io/sourcegull/sourcegull` (linux/amd64):
 
 ```sh
 curl -fsSL https://github.com/sourcegull/sourcegull/releases/latest/download/sourcegull-compose.tar.gz | tar -xz
@@ -106,16 +107,21 @@ Open http://localhost:7080. The first user to sign up becomes the site admin. Ad
 GitHub or Gitea connection under **Site admin → Code host connections**, and repositories start
 cloning and indexing.
 
-For Kubernetes, the [Helm chart](deploy/helm/sourcegull) runs the repo nodes as a StatefulSet and
-executors as Kubernetes Jobs, with KEDA autoscaling and bundled or CloudNativePG PostgreSQL:
+### Production deployments
 
-```sh
-helm install sourcegull oci://ghcr.io/sourcegull/charts/sourcegull \
-  --set externalURL=https://sourcegull.example.com
-```
+[docs/install.md](docs/install.md) is the install guide. For production, use one of these:
 
-[docs/install.md](docs/install.md) covers both, with optional profiles (executors, monitoring,
-MinIO), upgrades and [sizing](deploy/helm/sourcegull/SIZING.md).
+- **Kubernetes (Helm)**, for larger installs and several repo nodes:
+  [install.md → Kubernetes](docs/install.md#kubernetes-helm), with an external PostgreSQL and
+  your own secret, size presets and [sizing](deploy/helm/sourcegull/SIZING.md). Every value is
+  in the [chart README](deploy/helm/sourcegull/README.md).
+- **Docker Compose, production layout** (`compose.production.yaml`, one container per role), for
+  one host: [install.md → Production layout](docs/install.md#production-layout).
+
+Running either one is covered by the docs on
+upgrades ([Compose](deploy/docker/upgrade.md), [Helm](deploy/helm/sourcegull/README.md)),
+[backups](docs/configuration.md#backups), [monitoring](docs/observability/README.md) and
+[configuration as code](docs/configuration.md#configuration-as-code).
 
 ## AI agents (MCP)
 

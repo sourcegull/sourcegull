@@ -2,13 +2,13 @@
 
 Sourcegull ships as one image, `ghcr.io/sourcegull/sourcegull`, which holds the `sourcegull` server
 binary and the `gull` command-line client, for linux/amd64 (for arm64,
-[build from source](#building-from-source)). There are two ways to
-run it:
+[build from source](#building-from-source)). It runs with Docker Compose or on Kubernetes:
 
 | Option | For | Database |
 |---|---|---|
-| [Docker Compose](#docker-compose) | one host | PostgreSQL service in the Compose file |
-| [Kubernetes (Helm)](#kubernetes-helm) | larger installs, several repo nodes | external, bundled or CloudNativePG |
+| [Docker Compose](#docker-compose) | trying Sourcegull, small teams, one host | PostgreSQL service in the Compose file |
+| [Compose, production layout](#production-layout) | production on one host: a container per role | PostgreSQL service in the Compose file |
+| [Kubernetes (Helm)](#kubernetes-helm) | production, larger installs, several repo nodes | external, bundled or CloudNativePG |
 
 Every option needs only PostgreSQL 18; there is no Redis or other service to run. Install from
 a [release](https://github.com/sourcegull/sourcegull/releases): each one publishes the images,
