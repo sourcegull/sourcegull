@@ -4,6 +4,7 @@
 	custom role none can be created.
 -->
 <script lang="ts">
+	import RelatedLinks from '#lib/components/RelatedLinks.svelte';
 	import { onMount } from 'svelte';
 	import ManagedBadge from '#lib/components/ManagedBadge.svelte';
 	import ManagedNotice from '#lib/components/ManagedNotice.svelte';
@@ -107,6 +108,7 @@
 			Roles bundle permissions. Assign them to people on the <a href="/site-admin/users">users</a>
 			page; system roles are built in and cannot be deleted.
 		</p>
+		<RelatedLinks />
 	</div>
 </div>
 {#if error}<div class="alert alert-danger" role="alert">{error}</div>{/if}

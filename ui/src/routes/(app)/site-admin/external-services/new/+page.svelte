@@ -3,6 +3,8 @@
 	resources file owns every connection, the page says so instead of offering the form.
 -->
 <script lang="ts">
+	import RelatedLinks from '#lib/components/RelatedLinks.svelte';
+	import { configSectionURL } from '#lib/admin/related.ts';
 	import { beforeNavigate, goto } from '$app/navigation';
 	import { page } from '$app/state';
 	import { onMount } from 'svelte';
@@ -83,8 +85,11 @@
 				Connect gitlab.com or a self-managed GitLab: enter its URL and an access token, choose which projects to
 				mirror, and test the connection.
 			{/if}
-			The first sync starts as soon as the connection is saved; the token is stored encrypted.
+			The first sync starts as soon as the connection is saved; the token is stored encrypted. To let people
+			sign in with their {label} accounts, add {label} as a sign-in provider under
+			<a href={configSectionURL('auth')}>Authentication &amp; sign-in</a>.
 		</p>
+		<RelatedLinks />
 	</div>
 </div>
 

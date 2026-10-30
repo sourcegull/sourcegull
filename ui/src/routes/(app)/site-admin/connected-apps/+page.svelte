@@ -1,4 +1,5 @@
 <script lang="ts">
+	import RelatedLinks from '#lib/components/RelatedLinks.svelte';
 	import ConnectedApps from '#lib/components/ConnectedApps.svelte';
 </script>
 
@@ -12,6 +13,7 @@
 			the user can allow it again. Turn OAuth sign-in for MCP clients off with
 			<code class="code-inline">mcp.oauth.enabled</code> in the site configuration.
 		</p>
+		<RelatedLinks />
 	</div>
 </div>
 

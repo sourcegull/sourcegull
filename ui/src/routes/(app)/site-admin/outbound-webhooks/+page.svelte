@@ -5,6 +5,7 @@
 	can be added here.
 -->
 <script lang="ts">
+	import RelatedLinks from '#lib/components/RelatedLinks.svelte';
 	import { onMount } from 'svelte';
 	import { formatDate, relativeTime } from '#lib/batches/batch-change.ts';
 	import ManagedBadge from '#lib/components/ManagedBadge.svelte';
@@ -103,6 +104,7 @@
 			secret, and retries failed deliveries with backoff. Delivery logs are kept for
 			<code class="code-inline">webhooks.outbound.logRetention</code>.
 		</p>
+		<RelatedLinks />
 	</div>
 	{#if !exclusive}
 		<div class="page-actions">

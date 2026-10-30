@@ -5,6 +5,7 @@ import {
 	sectionLine,
 	sectionRows,
 	sectionsOf,
+	searchKeys,
 	setCount,
 	stripJsonc,
 	type ConfigSection,
@@ -114,5 +115,20 @@ describe('sections', () => {
 		expect(firstSentence('One `a.b` thing, e.g.\nmore. Second.')).toBe('One `a.b` thing, e.g. more.');
 		expect(firstSentence('No period')).toBe('No period');
 		expect(firstSentence(undefined)).toBe('');
+	});
+});
+
+describe('searchKeys', () => {
+	const sections = sectionsOf(schema, {});
+	it('matches names first, then descriptions and section titles', () => {
+		expect(searchKeys(schema, sections, 'session').map((m) => m.key)).toEqual(['auth.sessionExpiry']);
+		expect(searchKeys(schema, sections, 'AUTH').map((m) => m.key)).toEqual(['auth.public', 'auth.sessionExpiry']);
+		expect(searchKeys(schema, sections, 'anonymous').map((m) => m.key)).toEqual(['auth.public']);
+		expect(searchKeys(schema, sections, 'sign-in valid').map((m) => m.key)).toEqual(['auth.sessionExpiry']);
+		expect(searchKeys(schema, sections, 'url')[0]?.key).toBe('externalURL');
+	});
+	it('returns nothing for an empty query or no match', () => {
+		expect(searchKeys(schema, sections, '  ')).toEqual([]);
+		expect(searchKeys(schema, sections, 'nothing-like-this')).toEqual([]);
 	});
 });

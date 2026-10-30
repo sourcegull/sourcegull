@@ -1,4 +1,5 @@
 <script lang="ts">
+	import RelatedLinks from '#lib/components/RelatedLinks.svelte';
 	import { errorMessage, graphql } from '#lib/graphql.ts';
 	import {
 		SITE_USERS,
@@ -76,6 +77,7 @@
 			Last activity and usage events per user, from this instance's event logs. Event counts update
 			every half hour.
 		</p>
+		<RelatedLinks />
 	</div>
 	<div class="page-actions">
 		<a class="btn btn-secondary" href="/site-admin/analytics">Analytics</a>

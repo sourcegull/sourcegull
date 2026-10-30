@@ -3,6 +3,7 @@
 	shown read-only.
 -->
 <script lang="ts">
+	import RelatedLinks from '#lib/components/RelatedLinks.svelte';
 	import { beforeNavigate, goto } from '$app/navigation';
 	import { page } from '$app/state';
 	import JsoncEditor from '#lib/components/JsoncEditor.svelte';
@@ -91,6 +92,7 @@
 			Changing the configuration queues a full sync. Repositories the new configuration no longer
 			lists are removed after it.
 		</p>
+		<RelatedLinks />
 	</div>
 </div>
 

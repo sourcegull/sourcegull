@@ -2,7 +2,7 @@
 // configuration (groups, exclusions, permissions) and tests it before saving, the JSON editor
 // validates the configuration live, a connection is added (pointing at a closed port, so the
 // save warns and "test connection" reports the problem), the webhook URL and secret are shown
-// and the secret regenerated, "sync now" adds a failed run with its error to the sync history,
+// and the secret regenerated, the next steps (sign-in, permissions) are listed, "sync now" adds a failed run with its error to the sync history,
 // an edit keeps the redacted secrets, and the connection is deleted. Fails on any page or
 // console error. Screenshots go to OUT.
 //
@@ -89,6 +89,12 @@ function step(name) {
 	await page.waitForURL(/\/site-admin\/external-services\/[^/]+$/);
 	await page.waitForSelector('h1:has-text("E2E GitLab")');
 	await page.waitForSelector('.alert-info:has-text("could not reach")');
+
+	step('next steps: sign-in with the host and its repository permissions');
+	await page.waitForSelector('#next-steps:has-text("Next steps")');
+	await page.waitForSelector('.checklist li:has-text("Let people sign in with GitLab") a[href="/site-admin/configuration?section=auth"]');
+	await page.waitForSelector('.checklist li:has-text("Use GitLab repository permissions") a:has-text("Edit connection")');
+	await page.screenshot({ path: `${OUT}/connections-02-next-steps.png`, fullPage: true });
 
 	step('test connection');
 	await page.click('button:has-text("Test connection")');

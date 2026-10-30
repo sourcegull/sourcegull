@@ -1,4 +1,5 @@
 <script lang="ts">
+	import RelatedLinks from '#lib/components/RelatedLinks.svelte';
 	import { onMount } from 'svelte';
 	import { errorMessage, graphql } from '#lib/graphql.ts';
 	import {
@@ -160,6 +161,7 @@
 			<code class="code-inline">authorization</code> block. Explain why a user can or cannot read a
 			repository, and watch the permission sync jobs.
 		</p>
+		<RelatedLinks />
 	</div>
 </div>
 

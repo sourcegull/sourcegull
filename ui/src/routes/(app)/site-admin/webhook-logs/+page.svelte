@@ -3,6 +3,7 @@
 	one (`?connection=<ExternalService ID>`): status, event, the selected headers and the body.
 -->
 <script lang="ts">
+	import RelatedLinks from '#lib/components/RelatedLinks.svelte';
 	import { page } from '$app/state';
 	import { formatDate, relativeTime } from '#lib/batches/batch-change.ts';
 	import { errorMessage, graphql } from '#lib/graphql.ts';
@@ -73,6 +74,7 @@
 			for a week. Secrets are never logged.
 			{#if connection}<a href="/site-admin/webhook-logs">All connections</a>{/if}
 		</p>
+		<RelatedLinks />
 	</div>
 	<div class="page-actions">
 		<button class="btn" type="button" onclick={() => void load()} disabled={loading}>Refresh</button>

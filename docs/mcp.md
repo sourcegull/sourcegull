@@ -106,16 +106,21 @@ request's `Host` header.
 
 **Connect an agent** in the sidebar (`/connect-agent`) has copy-paste setup for Claude Code,
 Cursor, VS Code (Copilot), Windsurf, Codex CLI, Gemini CLI, Zed, JetBrains IDEs, Cline,
-Continue and stdio-only clients. With OAuth sign-in on, it starts with the short form for
-clients that support it:
+Continue and stdio-only clients. With OAuth sign-in on, it first asks how the agent signs in,
+and shows only the steps for that choice:
 
-```sh
-claude mcp add --transport http sourcegull https://sourcegull.example.com/.api/mcp
-```
+- **Through the browser** (the default): the short form for clients that support MCP OAuth,
+  for example
 
-For the others it shows the endpoint URL, creates an access token inline and fills it into
-every snippet, and offers rules for the agent's instructions file, example prompts, a `curl`
-test and the tool list.
+  ```sh
+  claude mcp add --transport http sourcegull https://sourcegull.example.com/.api/mcp
+  ```
+
+- **With an access token**: the endpoint URL, a button that creates a token and fills it into
+  every snippet, the per-agent setup and a `curl` test.
+
+Without OAuth sign-in only the access token steps are shown. Both choices end with rules for
+the agent's instructions file, example prompts and the tool list.
 
 Examples with an access token in `SOURCEGULL_TOKEN`:
 

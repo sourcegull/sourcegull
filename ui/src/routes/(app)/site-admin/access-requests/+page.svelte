@@ -1,4 +1,5 @@
 <script lang="ts">
+	import RelatedLinks from '#lib/components/RelatedLinks.svelte';
 	import { onMount } from 'svelte';
 	import { errorMessage, graphql } from '#lib/graphql.ts';
 	import {
@@ -73,6 +74,7 @@
 			{totalCount} pending. People who asked for an account from the sign-in page; approving one
 			creates the account and gives you a setup link to send them.
 		</p>
+		<RelatedLinks />
 	</div>
 </div>
 

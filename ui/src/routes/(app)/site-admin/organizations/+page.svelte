@@ -1,4 +1,5 @@
 <script lang="ts">
+	import RelatedLinks from '#lib/components/RelatedLinks.svelte';
 	import { onMount } from 'svelte';
 	import { errorMessage, graphql } from '#lib/graphql.ts';
 	import {
@@ -93,6 +94,7 @@
 			{totalCount} total. Organizations share settings, saved searches and bulk changes among their
 			members.
 		</p>
+		<RelatedLinks />
 	</div>
 </div>
 

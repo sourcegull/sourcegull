@@ -12,19 +12,29 @@
 	} from '#lib/admin/overview.ts';
 	import { formatBytes } from '#lib/repos-admin/queries.ts';
 	import { percent, summarize, type StatusEntry } from '#lib/status-messages.ts';
+	import { setupSteps } from '#lib/admin/setup.ts';
+	import SetupChecklist from '#lib/components/SetupChecklist.svelte';
+	import { SITE_CONFIGURATION, type SiteConfigurationResult } from '#lib/queries.ts';
+	import type { PageProps } from './$types';
+
+	let { data }: PageProps = $props();
 
 	let health = $state.raw<SiteAdminHealthResult | null>(null);
 	let counts = $state.raw<SiteAdminCountsResult | null>(null);
 	let healthError = $state<string | null>(null);
 	let countsError = $state<string | null>(null);
 	let loading = $state(true);
+	/** The site configuration document, for the setup checklist; null until loaded or when unreadable. */
+	let siteConfig = $state<string | null>(null);
 
 	async function load(): Promise<void> {
 		loading = true;
-		const [h, c] = await Promise.allSettled([
+		const [h, c, cfg] = await Promise.allSettled([
 			graphql<SiteAdminHealthResult>(SITE_ADMIN_HEALTH),
-			graphql<SiteAdminCountsResult>(SITE_ADMIN_COUNTS)
+			graphql<SiteAdminCountsResult>(SITE_ADMIN_COUNTS),
+			graphql<SiteConfigurationResult>(SITE_CONFIGURATION)
 		]);
+		if (cfg.status === 'fulfilled') siteConfig = cfg.value.site.configuration.effectiveContents;
 		if (h.status === 'fulfilled') {
 			health = h.value;
 			healthError = null;
@@ -41,6 +51,36 @@
 	});
 
 	const summary = $derived(health ? summarize(health.statusMessages) : null);
+
+	/** Shown until every step is done or the admin hides it (remembered in this browser). */
+	const HIDE_SETUP_KEY = 'sourcegull.siteAdmin.hideSetup';
+	let setupHidden = $state(readHidden());
+	function readHidden(): boolean {
+		try {
+			return localStorage.getItem(HIDE_SETUP_KEY) === '1';
+		} catch {
+			return false;
+		}
+	}
+	function hideSetup(): void {
+		setupHidden = true;
+		try {
+			localStorage.setItem(HIDE_SETUP_KEY, '1');
+		} catch {
+			// Hidden for this visit only.
+		}
+	}
+	const setup = $derived(
+		counts && siteConfig !== null
+			? setupSteps({
+					siteConfig,
+					connections: counts.externalServices.totalCount,
+					users: counts.users.totalCount,
+					emailEnabled: data.auth.emailEnabled ?? false
+				})
+			: []
+	);
+	const showSetup = $derived(!setupHidden && setup.some((s) => !s.done));
 	const n = (v: number | undefined) => (v === undefined ? '—' : v.toLocaleString('en-US'));
 
 	const ALERT: Record<StatusEntry['kind'], string> = {
@@ -73,7 +113,7 @@
 			{
 				label: 'Code host connections',
 				value: n(counts?.externalServices.totalCount),
-				detail: 'GitLab connections',
+				detail: 'GitLab, GitHub and Gitea',
 				href: '/site-admin/external-services'
 			},
 			{
@@ -121,6 +161,16 @@
 
 {#if healthError}
 	<div class="alert alert-danger" role="alert">Could not load the instance status: {healthError}</div>
+{/if}
+
+{#if showSetup}
+	<div class="block">
+		<SetupChecklist title="Set up Sourcegull" titleId="setup-title" steps={setup}>
+			{#snippet actions()}
+				<button class="btn btn-link btn-sm" type="button" onclick={hideSetup}>Hide</button>
+			{/snippet}
+		</SetupChecklist>
+	</div>
 {/if}
 
 <section aria-labelledby="health-title" class="block">
