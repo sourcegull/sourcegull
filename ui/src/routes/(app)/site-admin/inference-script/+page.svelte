@@ -1,4 +1,5 @@
 <script lang="ts">
+	import RelatedLinks from '#lib/components/RelatedLinks.svelte';
 	import type {
 		CodeIntelligenceInferenceScriptQuery,
 		InferAutoIndexJobsForRepoQuery,
@@ -88,6 +89,7 @@
 			<code class="code-inline">codeIntelAutoIndexing.enabled</code> in the
 			<a href="/site-admin/configuration">site configuration</a>.
 		</p>
+		<RelatedLinks />
 	</div>
 </div>
 {#if error}

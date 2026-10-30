@@ -5,9 +5,10 @@
 	regenerating the secret are left to the file.
 -->
 <script lang="ts">
+	import RelatedLinks from '#lib/components/RelatedLinks.svelte';
 	import { goto } from '$app/navigation';
 	import { page } from '$app/state';
-	import { onDestroy } from 'svelte';
+	import { onDestroy, onMount } from 'svelte';
 	import { formatDate, relativeTime } from '#lib/batches/batch-change.ts';
 	import ManagedNotice from '#lib/components/ManagedNotice.svelte';
 	import {
@@ -33,6 +34,9 @@
 		type SyncJob
 	} from '#lib/connections/queries.ts';
 	import { errorMessage, graphql } from '#lib/graphql.ts';
+	import { connectionNextSteps } from '#lib/admin/setup.ts';
+	import SetupChecklist from '#lib/components/SetupChecklist.svelte';
+	import { SITE_CONFIGURATION, type SiteConfigurationResult } from '#lib/queries.ts';
 
 	const JOBS_PAGE = 20;
 	const POLL_MS = 3000;
@@ -59,6 +63,23 @@
 	let copied = $state<string | null>(null);
 
 	let timer: ReturnType<typeof setTimeout> | undefined;
+
+	/** The site configuration, to tell whether people can sign in with this connection's host. */
+	let siteConfig = $state<string | null>(null);
+	onMount(async () => {
+		try {
+			siteConfig = (await graphql<SiteConfigurationResult>(SITE_CONFIGURATION)).site.configuration.effectiveContents;
+		} catch {
+			// Without it the next steps are not shown.
+		}
+	});
+	const nextSteps = $derived(
+		service && siteConfig !== null
+			? connectionNextSteps(siteConfig, service).map((s) =>
+					s.id === 'permissions' ? { ...s, href: service?.managedBy ? '' : editURL } : s
+				)
+			: []
+	);
 
 	async function load(nodeId: string, quiet = false): Promise<void> {
 		if (!quiet) loading = true;
@@ -201,6 +222,7 @@
 		<div>
 			<h1>{service.displayName}</h1>
 			<p class="page-description">{host} · {service.url}</p>
+			<RelatedLinks />
 		</div>
 		<div class="page-actions">
 			<button class="btn" type="button" onclick={testConnection} disabled={checking}>
@@ -285,6 +307,12 @@
 			</div>
 		{/if}
 	</section>
+
+	{#if nextSteps.some((s) => !s.done)}
+		<div class="section">
+			<SetupChecklist title="Next steps" titleId="next-steps" steps={nextSteps} />
+		</div>
+	{/if}
 
 	<section class="card section webhook">
 		<div class="card-header"><h2>Webhook</h2></div>

@@ -4,6 +4,7 @@
 	settings and logs.
 -->
 <script lang="ts">
+	import RelatedLinks from '#lib/components/RelatedLinks.svelte';
 	import { goto } from '$app/navigation';
 	import { page } from '$app/state';
 	import OutboundWebhookForm from '#lib/admin/OutboundWebhookForm.svelte';
@@ -103,6 +104,7 @@
 				created {formatDate(hook.createdAt)}{hook.createdBy ? ` by ${hook.createdBy.username}` : ''} · updated
 				{relativeTime(hook.updatedAt)}{hook.updatedBy ? ` by ${hook.updatedBy.username}` : ''}
 			</p>
+			<RelatedLinks />
 		</div>
 		{#if !hook.managedBy}
 			<div class="page-actions">

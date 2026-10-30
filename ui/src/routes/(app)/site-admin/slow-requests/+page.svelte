@@ -3,6 +3,7 @@
 	`observability.logSlowGraphQLRequests` / `observability.logSlowSearches`, newest first.
 -->
 <script lang="ts">
+	import RelatedLinks from '#lib/components/RelatedLinks.svelte';
 	import { formatDate, relativeTime } from '#lib/batches/batch-change.ts';
 	import { errorMessage, graphql } from '#lib/graphql.ts';
 	import {
@@ -62,6 +63,7 @@
 			(milliseconds, site configuration; unset turns the log off). The newest 1,024 are kept; each is
 			also written to the server log.
 		</p>
+		<RelatedLinks />
 	</div>
 	<div class="page-actions">
 		<button class="btn" type="button" onclick={() => void load()} disabled={loading}>Refresh</button>

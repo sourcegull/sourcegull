@@ -3,6 +3,7 @@
 	instead of offering the form.
 -->
 <script lang="ts">
+	import RelatedLinks from '#lib/components/RelatedLinks.svelte';
 	import type { CreateOutboundWebhookMutation } from '#lib/graphql-types.ts';
 	import { goto } from '$app/navigation';
 	import { onMount } from 'svelte';
@@ -45,6 +46,7 @@
 		<p class="page-description">
 			Sourcegull posts the selected events to this URL as JSON, signed with the secret.
 		</p>
+		<RelatedLinks />
 	</div>
 </div>
 

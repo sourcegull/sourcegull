@@ -41,6 +41,10 @@
 		oauth = await oauthAvailable();
 	});
 
+	/** How the agent signs in: through the browser (OAuth) or with an access token. */
+	let method = $state<'oauth' | 'token'>('oauth');
+	const useToken = $derived(!oauth || method === 'token');
+
 	let selected = $state('claude-code');
 	const guides = $derived(agentGuides(url, token ?? TOKEN_PLACEHOLDER));
 	const guide = $derived(guides.find((g) => g.id === selected) ?? guides[0]!);
@@ -89,12 +93,40 @@
 	</div>
 
 	{#if oauth}
-		<section aria-labelledby="oauth">
-			<div class="section-header"><h2 id="oauth">Agents that sign in through the browser</h2></div>
+		<fieldset class="methods">
+			<legend><h2>How should the agent sign in?</h2></legend>
+			<p class="muted">Choose one. Either way the agent sees only the repositories you can.</p>
+			<label class="method" class:active={method === 'oauth'}>
+				<input type="radio" name="method" value="oauth" bind:group={method} />
+				<span>
+					<strong>Through the browser</strong> <span class="badge">Recommended</span>
+					<span class="small muted method-text">
+						For Claude Code, VS Code and Cursor. Add only the server URL; the agent opens the browser for you to
+						allow access. No token to copy, store or rotate.
+					</span>
+				</span>
+			</label>
+			<label class="method" class:active={method === 'token'}>
+				<input type="radio" name="method" value="token" bind:group={method} />
+				<span>
+					<strong>With an access token</strong>
+					<span class="small muted method-text">
+						For other agents, CI jobs and scripts, or when the agent can't open a browser. You create a token and
+						put it in the agent's configuration.
+					</span>
+				</span>
+			</label>
+		</fieldset>
+	{/if}
+
+	{#if !useToken}
+		<section aria-labelledby="step-oauth">
+			<div class="section-header">
+				<h2 id="step-oauth"><span class="step">1</span> Add Sourcegull to your agent</h2>
+			</div>
 			<p class="muted">
-				Agents that support MCP OAuth need only the URL: the first time they connect, they open the browser,
-				you sign in and allow access. Manage these under
-				<a href="/user/settings/connected-apps">Connected apps</a>. For other agents, follow the steps below.
+				The first time the agent connects, it opens the browser: sign in and allow access. You can see and revoke
+				the agents you allowed under <a href="/user/settings/connected-apps">Connected apps</a>.
 			</p>
 			{#each oauthSnippets(url) as s (s.title)}
 				<div class="snippet-block">
@@ -104,85 +136,90 @@
 					{#if s.note}<p class="hint small muted">{s.note}</p>{/if}
 				</div>
 			{/each}
+			<p class="small muted">
+				Agent not listed, or it doesn't open the browser?
+				<button class="btn btn-link" type="button" onclick={() => (method = 'token')}>Use an access token</button>
+				instead.
+			</p>
+		</section>
+	{:else}
+		<section aria-labelledby="step-url">
+			<div class="section-header"><h2 id="step-url"><span class="step">1</span> MCP server URL</h2></div>
+			<p class="muted">Streamable HTTP transport. Authenticate with an access token in the Authorization header.</p>
+			<CopyField value={url} label="MCP server URL" />
+		</section>
+
+		<section aria-labelledby="step-token">
+			<div class="section-header"><h2 id="step-token"><span class="step">2</span> Access token</h2></div>
+			{#if token}
+				<div class="alert alert-success" role="status">
+					<strong>Copy your token now. You won't be able to see it again.</strong> It is filled into every snippet
+					below until you leave this page.
+					<CopyField value={token} label="Access token" />
+				</div>
+			{:else if user}
+				<p class="muted">
+					Creates a token with your access, noted "Sourcegull MCP ({guide.label})". Manage or revoke it under
+					<a href="/user/settings/tokens">Access tokens</a>.
+				</p>
+				<div class="toolbar">
+					<button class="btn btn-primary" type="button" onclick={createToken} disabled={creating}>
+						{creating ? 'Creating…' : 'Create access token'}
+					</button>
+				</div>
+				{#if tokenError}<div class="alert alert-danger" role="alert">{tokenError}</div>{/if}
+			{:else}
+				<p class="muted">
+					<a href="/sign-in?returnTo=/connect-agent">Sign in</a> to create an access token; the snippets use
+					<code class="code-inline">{TOKEN_PLACEHOLDER}</code> until then.
+				</p>
+			{/if}
+			<div class="alert alert-warning">
+				The token acts as you: anyone who has it can read all code you can. Keep it out of committed files (the
+				snippets read it from <code class="code-inline">{TOKEN_ENV}</code> or a secret prompt where the agent
+				supports that) and delete it when you no longer need it.
+			</div>
+		</section>
+
+		<section aria-labelledby="step-agent">
+			<div class="section-header"><h2 id="step-agent"><span class="step">3</span> Configure your agent</h2></div>
+			<div class="tabs agent-tabs" role="tablist" aria-label="Agent">
+				{#each guides as g, i (g.id)}
+					<button
+						class="tab"
+						type="button"
+						role="tab"
+						id="agent-tab-{g.id}"
+						aria-selected={g.id === guide.id}
+						aria-controls="agent-panel"
+						tabindex={g.id === guide.id ? 0 : -1}
+						onclick={() => (selected = g.id)}
+						onkeydown={(e) => onTabKey(e, i)}
+					>
+						{g.label}
+					</button>
+				{/each}
+			</div>
+			<div id="agent-panel" role="tabpanel" aria-labelledby="agent-tab-{guide.id}" class="panel">
+				{#if guide.intro}<p>{guide.intro}</p>{/if}
+				{#each guide.snippets as s (s.title)}
+					<div class="snippet-block">
+						<h3>{s.title}</h3>
+						<p class="where small muted">{s.where}</p>
+						<CodeSnippet code={s.code} label="{guide.label}: {s.title}" />
+						{#if s.note}<p class="hint small muted">{s.note}</p>{/if}
+					</div>
+				{/each}
+				<p class="small muted">
+					Formats change between releases; see the
+					<a href={guide.docs} target="_blank" rel="noopener noreferrer">{guide.label} MCP documentation</a>.
+				</p>
+			</div>
 		</section>
 	{/if}
 
-	<section aria-labelledby="step-url">
-		<div class="section-header"><h2 id="step-url"><span class="step">1</span> MCP server URL</h2></div>
-		<p class="muted">Streamable HTTP transport. Authenticate with an access token in the Authorization header.</p>
-		<CopyField value={url} label="MCP server URL" />
-	</section>
-
-	<section aria-labelledby="step-token">
-		<div class="section-header"><h2 id="step-token"><span class="step">2</span> Access token</h2></div>
-		{#if token}
-			<div class="alert alert-success" role="status">
-				<strong>Copy your token now. You won't be able to see it again.</strong> It is filled into every snippet
-				below until you leave this page.
-				<CopyField value={token} label="Access token" />
-			</div>
-		{:else if user}
-			<p class="muted">
-				Creates a token with your access, noted "Sourcegull MCP ({guide.label})". Manage or revoke it under
-				<a href="/user/settings/tokens">Access tokens</a>.
-			</p>
-			<div class="toolbar">
-				<button class="btn btn-primary" type="button" onclick={createToken} disabled={creating}>
-					{creating ? 'Creating…' : 'Create access token'}
-				</button>
-			</div>
-			{#if tokenError}<div class="alert alert-danger" role="alert">{tokenError}</div>{/if}
-		{:else}
-			<p class="muted">
-				<a href="/sign-in?returnTo=/connect-agent">Sign in</a> to create an access token; the snippets use
-				<code class="code-inline">{TOKEN_PLACEHOLDER}</code> until then.
-			</p>
-		{/if}
-		<div class="alert alert-warning">
-			The token acts as you: anyone who has it can read all code you can. Keep it out of committed files (the
-			snippets read it from <code class="code-inline">{TOKEN_ENV}</code> or a secret prompt where the agent
-			supports that) and delete it when you no longer need it.
-		</div>
-	</section>
-
-	<section aria-labelledby="step-agent">
-		<div class="section-header"><h2 id="step-agent"><span class="step">3</span> Configure your agent</h2></div>
-		<div class="tabs agent-tabs" role="tablist" aria-label="Agent">
-			{#each guides as g, i (g.id)}
-				<button
-					class="tab"
-					type="button"
-					role="tab"
-					id="agent-tab-{g.id}"
-					aria-selected={g.id === guide.id}
-					aria-controls="agent-panel"
-					tabindex={g.id === guide.id ? 0 : -1}
-					onclick={() => (selected = g.id)}
-					onkeydown={(e) => onTabKey(e, i)}
-				>
-					{g.label}
-				</button>
-			{/each}
-		</div>
-		<div id="agent-panel" role="tabpanel" aria-labelledby="agent-tab-{guide.id}" class="panel">
-			{#if guide.intro}<p>{guide.intro}</p>{/if}
-			{#each guide.snippets as s (s.title)}
-				<div class="snippet-block">
-					<h3>{s.title}</h3>
-					<p class="where small muted">{s.where}</p>
-					<CodeSnippet code={s.code} label="{guide.label}: {s.title}" />
-					{#if s.note}<p class="hint small muted">{s.note}</p>{/if}
-				</div>
-			{/each}
-			<p class="small muted">
-				Formats change between releases; see the
-				<a href={guide.docs} target="_blank" rel="noopener noreferrer">{guide.label} MCP documentation</a>.
-			</p>
-		</div>
-	</section>
-
 	<section aria-labelledby="step-rules">
-		<div class="section-header"><h2 id="step-rules"><span class="step">4</span> Tell the agent when to use Sourcegull</h2></div>
+		<div class="section-header"><h2 id="step-rules"><span class="step">{useToken ? 4 : 2}</span> Tell the agent when to use Sourcegull</h2></div>
 		<p class="muted">
 			Paste into <code class="code-inline">CLAUDE.md</code>, <code class="code-inline">AGENTS.md</code>,
 			<code class="code-inline">.cursor/rules</code>, <code class="code-inline">.github/copilot-instructions.md</code>
@@ -204,16 +241,18 @@
 		</ul>
 	</section>
 
-	<section aria-labelledby="verify">
-		<div class="section-header"><h2 id="verify">Test the connection</h2></div>
-		{#each tests as s (s.title)}
-			<div class="snippet-block">
-				<h3>{s.title}</h3>
-				<CodeSnippet code={s.code} label="test: {s.title}" />
-				{#if s.note}<p class="hint small muted">{s.note}</p>{/if}
-			</div>
-		{/each}
-	</section>
+	{#if useToken}
+		<section aria-labelledby="verify">
+			<div class="section-header"><h2 id="verify">Test the connection</h2></div>
+			{#each tests as s (s.title)}
+				<div class="snippet-block">
+					<h3>{s.title}</h3>
+					<CodeSnippet code={s.code} label="test: {s.title}" />
+					{#if s.note}<p class="hint small muted">{s.note}</p>{/if}
+				</div>
+			{/each}
+		</section>
+	{/if}
 
 	<section aria-labelledby="tools">
 		<div class="section-header"><h2 id="tools">Available tools</h2></div>
@@ -237,8 +276,50 @@
 	.connect {
 		max-width: 56rem;
 	}
-	section + section {
+	section + section,
+	.methods + section {
 		margin-top: var(--space-8);
+	}
+	.methods {
+		border: none;
+		padding: 0;
+		margin: 0;
+		display: grid;
+		grid-template-columns: repeat(auto-fit, minmax(min(100%, 18rem), 1fr));
+		gap: var(--space-3);
+	}
+	.methods legend {
+		padding: 0;
+	}
+	.methods legend h2 {
+		margin: 0 0 var(--space-1);
+	}
+	.methods > p {
+		grid-column: 1 / -1;
+		margin: 0;
+	}
+	.method {
+		display: flex;
+		align-items: flex-start;
+		gap: var(--space-2);
+		padding: var(--space-3) var(--space-4);
+		border: 1px solid var(--color-border);
+		border-radius: var(--radius);
+		cursor: pointer;
+	}
+	.method:hover {
+		background: var(--color-bg-subtle);
+	}
+	.method.active {
+		border-color: var(--color-primary);
+		box-shadow: 0 0 0 1px var(--color-primary);
+	}
+	.method input {
+		margin-top: 0.2rem;
+	}
+	.method-text {
+		display: block;
+		margin-top: var(--space-1);
 	}
 	.section-header h2 {
 		display: flex;

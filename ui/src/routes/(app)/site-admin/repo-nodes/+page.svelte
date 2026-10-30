@@ -1,4 +1,5 @@
 <script lang="ts">
+	import RelatedLinks from '#lib/components/RelatedLinks.svelte';
 	import type { RetryFailedRepoMovesMutation } from '#lib/graphql-types.ts';
 	import { onMount } from 'svelte';
 	import { errorMessage, graphql } from '#lib/graphql.ts';
@@ -76,6 +77,7 @@
 			Repo nodes store the repositories and their search index shards. Repository sizes are as last
 			measured after a fetch; disk space and shard sizes are read from each node now.
 		</p>
+		<RelatedLinks />
 	</div>
 	<div class="page-actions">
 		<button class="btn btn-secondary" type="button" disabled={loading} onclick={() => void load()}

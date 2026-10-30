@@ -3,6 +3,7 @@
 	first. Off unless the site configuration sets `outboundRequestLogLimit`.
 -->
 <script lang="ts">
+	import RelatedLinks from '#lib/components/RelatedLinks.svelte';
 	import { onMount } from 'svelte';
 	import { formatDate, relativeTime } from '#lib/batches/batch-change.ts';
 	import { errorMessage, graphql } from '#lib/graphql.ts';
@@ -65,6 +66,7 @@
 			log keeps the newest <code class="code-inline">outboundRequestLogLimit</code> requests (site
 			configuration); with the default of 0 nothing is logged.
 		</p>
+		<RelatedLinks />
 	</div>
 	<div class="page-actions">
 		<button class="btn" type="button" onclick={() => void load()} disabled={loading}>Refresh</button>

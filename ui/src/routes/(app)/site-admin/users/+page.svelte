@@ -1,4 +1,5 @@
 <script lang="ts">
+	import RelatedLinks from '#lib/components/RelatedLinks.svelte';
 	import { onMount } from 'svelte';
 	import { goto } from '$app/navigation';
 	import { page } from '$app/state';
@@ -204,6 +205,7 @@
 			{totalCount} total. Promote site admins and assign roles; roles grant permissions on the
 			<a href="/site-admin/roles">roles</a> page.
 		</p>
+		<RelatedLinks />
 	</div>
 </div>
 

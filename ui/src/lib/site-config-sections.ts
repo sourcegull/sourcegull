@@ -177,3 +177,33 @@ export function sectionRows(
 export function setCount(section: ConfigSection, doc: Record<string, unknown> | null): number {
 	return doc ? section.keys.filter((k) => Object.hasOwn(doc, k)).length : 0;
 }
+
+/** A key found by `searchKeys`. */
+export interface KeyMatch {
+	key: string;
+	section: ConfigSection;
+	/** First sentence of the key's description. */
+	description: string;
+}
+
+/**
+ * The keys whose name, description or section title contain every word of `query` (ignoring
+ * case), keys whose name matches first; at most `limit`.
+ */
+export function searchKeys(schema: SiteConfigSchema, sections: ConfigSection[], query: string, limit = 20): KeyMatch[] {
+	const words = query.toLowerCase().split(/\s+/).filter(Boolean);
+	if (words.length === 0) return [];
+	const byName: KeyMatch[] = [];
+	const byText: KeyMatch[] = [];
+	for (const section of sections) {
+		for (const key of section.keys) {
+			const description = schema.properties?.[key]?.description ?? '';
+			const name = key.toLowerCase();
+			const text = `${name} ${description} ${section.title}`.toLowerCase();
+			if (!words.every((w) => text.includes(w))) continue;
+			const match = { key, section, description: firstSentence(description) };
+			(words.every((w) => name.includes(w)) ? byName : byText).push(match);
+		}
+	}
+	return [...byName, ...byText].slice(0, limit);
+}

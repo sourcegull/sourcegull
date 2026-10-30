@@ -7,6 +7,8 @@
 	import JsoncEditor from '#lib/components/JsoncEditor.svelte';
 	import AuthProvidersEditor from '#lib/components/site-config/AuthProvidersEditor.svelte';
 	import ConfigField from '#lib/components/site-config/ConfigField.svelte';
+	import RelatedLinks from '#lib/components/RelatedLinks.svelte';
+	import { relatedForSection } from '#lib/admin/related.ts';
 	import type { DeclaredConfigFile } from '#lib/declared-config.ts';
 	import { errorMessage, graphql } from '#lib/graphql.ts';
 	import { parseJsonc, setAt } from '#lib/jsonc-edit.ts';
@@ -25,6 +27,7 @@
 		sectionLine,
 		sectionRows,
 		sectionsOf,
+		searchKeys,
 		setCount,
 		type ConfigSection,
 		type SiteConfigSchema
@@ -97,6 +100,24 @@
 	function setValue(path: ConfigPath, value: unknown): void {
 		contents = setAt(contents, path, value);
 		notice = null;
+	}
+
+	/** The settings search: keys by name or description. */
+	let keyQuery = $state('');
+	const keyMatches = $derived(schema ? searchKeys(schema, sections, keyQuery) : []);
+
+	/** Opens the section of `key` and brings its field (or, in the JSON view, the section) into view. */
+	async function revealKey(section: ConfigSection, key: string): Promise<void> {
+		keyQuery = '';
+		reveal(section);
+		if (view !== 'settings') return;
+		await tick();
+		const id = key === 'auth.providers' ? 'providers-title' : 'cfg-' + key.replace(/[^\w-]/g, '_');
+		const el = document.getElementById(id) ?? document.getElementById('settings-title');
+		el?.scrollIntoView({ block: 'center' });
+		if (el instanceof HTMLInputElement || el instanceof HTMLSelectElement || el instanceof HTMLTextAreaElement) {
+			el.focus({ preventScroll: true });
+		}
 	}
 
 	/** Selects `section` and, in the JSON view, scrolls the editor to where it starts. */
@@ -329,47 +350,83 @@
 		aria-labelledby={view === 'settings' ? 'tab-settings' : 'tab-json'}
 	>
 		{#if sections.length > 0}
-			<div class="nav-select field">
-				<label class="label" for="section-select">Section</label>
-				<select
-					id="section-select"
-					class="input"
-					value={selected?.id ?? ''}
-					onchange={(e) => {
-						const s = sections.find((x) => x.id === (e.currentTarget as HTMLSelectElement).value);
-						if (s) reveal(s);
-					}}
-				>
-					{#if !selected}<option value="">Jump to a section…</option>{/if}
-					{#each sections as section (section.id)}
-						<option value={section.id}>{section.title}</option>
-					{/each}
-				</select>
+			<div class="side">
+				<div class="key-search">
+					<label class="visually-hidden" for="key-search">Find a setting</label>
+					<input
+						id="key-search"
+						class="input"
+						type="search"
+						placeholder="Find a setting…"
+						autocomplete="off"
+						bind:value={keyQuery}
+						onkeydown={(e) => {
+							const first = keyMatches[0];
+							if (e.key === 'Enter' && first) void revealKey(first.section, first.key);
+							if (e.key === 'Escape') keyQuery = '';
+						}}
+					/>
+				</div>
+				{#if keyQuery.trim()}
+					<nav class="sections key-results" aria-label="Matching settings">
+						{#if keyMatches.length === 0}
+							<p class="muted small">No setting matches “{keyQuery.trim()}”.</p>
+						{:else}
+							<ul>
+								{#each keyMatches as m (m.key)}
+									<li>
+										<button type="button" class="section" onclick={() => revealKey(m.section, m.key)}>
+											<span class="section-title"><code>{m.key}</code></span>
+											<span class="section-description">{m.section.title}{m.description ? ` · ${m.description}` : ''}</span>
+										</button>
+									</li>
+								{/each}
+							</ul>
+						{/if}
+					</nav>
+				{:else}
+					<div class="nav-select field">
+						<label class="label" for="section-select">Section</label>
+						<select
+							id="section-select"
+							class="input"
+							value={selected?.id ?? ''}
+							onchange={(e) => {
+								const s = sections.find((x) => x.id === (e.currentTarget as HTMLSelectElement).value);
+								if (s) reveal(s);
+							}}
+						>
+							{#if !selected}<option value="">Jump to a section…</option>{/if}
+							{#each sections as section (section.id)}
+								<option value={section.id}>{section.title}</option>
+							{/each}
+						</select>
+					</div>
+					<nav class="sections" aria-label="Configuration sections">
+						<ul>
+							{#each sections as section (section.id)}
+								{@const count = setCount(section, parsed)}
+								{@const problems = sectionIssues(section)}
+								<li>
+									<button
+										type="button"
+										class="section"
+										class:active={section.id === selected?.id}
+										aria-current={section.id === selected?.id ? 'true' : undefined}
+										onclick={() => reveal(section)}
+									>
+										<span class="section-title">
+											{section.title}
+											{#if count > 0}<span class="count" title="Keys set in the document">{count}</span>{/if}
+											{#if problems > 0}<span class="badge badge-danger" title="Validation problems">{problems}</span>{/if}
+										</span>
+										<span class="section-description">{section.description}</span>
+									</button>
+								</li>
+							{/each}
+						</ul>
+					</nav>				{/if}
 			</div>
-			<nav class="sections" aria-label="Configuration sections">
-				<ul>
-					{#each sections as section (section.id)}
-						{@const count = setCount(section, parsed)}
-						{@const problems = sectionIssues(section)}
-						<li>
-							<button
-								type="button"
-								class="section"
-								class:active={section.id === selected?.id}
-								aria-current={section.id === selected?.id ? 'true' : undefined}
-								onclick={() => reveal(section)}
-							>
-								<span class="section-title">
-									{section.title}
-									{#if count > 0}<span class="count" title="Keys set in the document">{count}</span>{/if}
-									{#if problems > 0}<span class="badge badge-danger" title="Validation problems">{problems}</span>{/if}
-								</span>
-								<span class="section-description">{section.description}</span>
-							</button>
-						</li>
-					{/each}
-				</ul>
-			</nav>
 		{/if}
 		<div class="main">
 			{#if view === 'settings'}
@@ -385,6 +442,7 @@
 						<div class="settings-head">
 							<h2 id="settings-title">{selected.title}</h2>
 							<p class="muted">{selected.description}</p>
+							<RelatedLinks links={relatedForSection(selected.id)} />
 						</div>
 						{#each fields as field (field.key)}
 							{#if field.key === 'auth.providers'}
@@ -415,6 +473,7 @@
 								None of these keys is in the document, so the defaults apply. Add a key to change it.
 							{/if}
 						</p>
+						<RelatedLinks links={relatedForSection(selected.id)} />
 						{#if parsed === null}
 							<p class="muted">The document has a syntax error; values are shown once it parses.</p>
 						{/if}
@@ -487,17 +546,30 @@
 		.layout.with-nav {
 			grid-template-columns: minmax(0, 1fr);
 		}
-		.sections {
+		.sections:not(.key-results) {
 			display: none;
 		}
 		.nav-select {
 			display: flex;
 			margin-bottom: 0;
 		}
+		.side {
+			position: static;
+		}
 	}
-	.sections {
+	.side {
 		position: sticky;
 		top: calc(var(--nav-height) + var(--space-4));
+		display: flex;
+		flex-direction: column;
+		gap: var(--space-3);
+		min-width: 0;
+	}
+	.key-results p {
+		margin: 0;
+	}
+	.key-results code {
+		overflow-wrap: anywhere;
 	}
 	.sections ul {
 		list-style: none;

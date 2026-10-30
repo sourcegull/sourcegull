@@ -203,6 +203,12 @@ admins instead, and no other first user is.
 Set `externalURL` in **Site admin → Site configuration** (or `SOURCEGULL_EXTERNAL_URL`) before you
 configure OAuth sign-in or webhooks: callback and webhook URLs are built from it.
 
+Until you hide it, **Site admin → Overview** shows a setup checklist: set the external URL,
+connect a code host, add a sign-in provider, set up email and invite people. Each open step
+links to the page or settings section that completes it. After you save a code host connection,
+its page lists **Next steps** for that host: a sign-in provider for the same URL, and an
+[`authorization` block](permissions.md#repository-permissions) for its repository permissions.
+
 ## Connecting GitLab
 
 Add a connection under **Site admin → Code host connections**. The **Settings** tab is a form:

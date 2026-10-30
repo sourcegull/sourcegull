@@ -8,7 +8,11 @@ Sourcegull is configured in three places:
   **Site admin → Site configuration**, for instance-wide behaviour (sign-in, permissions,
   search, executors, email, …). Changes apply without a restart, except
   `gitMaxConcurrentClones` (read when a repo node starts) and
-  `insights.query.worker.concurrency` (read when a worker starts).
+  `insights.query.worker.concurrency` (read when a worker starts). The page is split into sections;
+  `/site-admin/configuration?section=<id>` opens one (`general`, `auth`, `permissions`, `repositories`,
+  `search`, `codeIntel`, `batchChanges`, `insights`, `notifications`, `observability`). Each
+  section links the admin pages it controls, and those pages link back under **Related** in
+  their header. **Find a setting** above the sections searches key names and descriptions.
 - **Settings**: JSONC documents per user, per organization and global, merged into each user's
   effective settings.
 

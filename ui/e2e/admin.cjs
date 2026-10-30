@@ -1,7 +1,9 @@
 // Browser check of the identity and permissions admin pages: access
 // requests (request, approve, set the password, sign in), users and their roles, custom roles,
-// "why can X see Y", sync now and the job history, access tokens, and the phone layout of
-// each page. Fails on any page or console error. Screenshots go to OUT.
+// related links between admin pages and their settings, the settings search, the overview's
+// setup checklist, the sign-in choice of "Connect an agent", "why can X see Y", sync now and the
+// job history, access tokens, and the phone layout of each page. Fails on any page or console
+// error. Screenshots go to OUT.
 //
 // Run it with scripts/test/e2e-ui.sh, after ui/e2e/search.cjs has signed up the admin and with
 // the repository it sets up.
@@ -100,6 +102,43 @@ function step(name) {
 	await admin.waitForSelector(`${row} .badge:has-text("${ROLE}")`);
 	await admin.screenshot({ path: `${OUT}/a04-users.png` });
 
+	step('related links: users to the sign-in settings and back');
+	await admin.click('nav[aria-label="Related pages"] a:has-text("Authentication & sign-in settings")');
+	await admin.waitForURL(/\/site-admin\/configuration\?section=auth$/);
+	await admin.waitForSelector('#settings-title:has-text("Authentication & sign-in")');
+	await admin.click('.settings-head nav[aria-label="Related pages"] a:text-is("Users")');
+	await admin.waitForURL(/\/site-admin\/users$/);
+	await admin.goto(`${BASE}/site-admin/external-services/new`);
+	await admin.waitForSelector('.page-description a:has-text("Authentication & sign-in")');
+
+	step('find a setting by name');
+	await admin.goto(`${BASE}/site-admin/configuration`);
+	await admin.fill('#key-search', 'session expiry');
+	await admin.click('nav[aria-label="Matching settings"] button:has-text("auth.sessionExpiry")');
+	await admin.waitForSelector('#settings-title:has-text("Authentication & sign-in")');
+	if ((await admin.inputValue('#key-search')) !== '') fail('the settings search was not cleared');
+
+	step('setup checklist on the overview, and hiding it');
+	await admin.goto(`${BASE}/site-admin`);
+	await admin.waitForSelector('#setup-title:has-text("Set up Sourcegull")');
+	await admin.waitForSelector('.checklist a:has-text("Add connection")');
+	await admin.screenshot({ path: `${OUT}/a04-overview-setup.png` });
+	await admin.click('.checklist button:has-text("Hide")');
+	await admin.waitForSelector('#setup-title', { state: 'detached' });
+	await admin.reload();
+	await admin.waitForSelector('#health-title', { state: 'attached' });
+	if (await admin.$('#setup-title')) fail('the hidden setup checklist came back');
+
+	step('connect an agent: browser sign-in or an access token, not both');
+	await admin.goto(`${BASE}/connect-agent`);
+	await admin.waitForSelector('legend:has-text("How should the agent sign in?")');
+	if (await admin.isVisible('#step-token')) fail('the token steps show with browser sign-in chosen');
+	await admin.screenshot({ path: `${OUT}/a04-connect-agent-oauth.png`, fullPage: true });
+	await admin.check('input[name="method"][value="token"]');
+	await admin.waitForSelector('#step-token');
+	if (await admin.isVisible('#step-oauth')) fail('the browser sign-in steps show with a token chosen');
+	await admin.screenshot({ path: `${OUT}/a04-connect-agent-token.png`, fullPage: true });
+
 	step('explain why the user can see the repository; sync now and the job history');
 	await admin.goto(`${BASE}/site-admin/permissions`);
 	await admin.fill('#explain-user', bob);
@@ -142,7 +181,7 @@ function step(name) {
 	step('mobile layout of the admin, tokens and contexts pages');
 	await admin.setViewportSize({ width: 390, height: 844 });
 	const pages = ['users', 'roles', 'permissions', 'access-requests', 'configuration'].map((p) => `/site-admin/${p}`);
-	for (const path of [...pages, '/user/settings/tokens', '/contexts']) {
+	for (const path of ['/site-admin', ...pages, '/user/settings/tokens', '/contexts', '/connect-agent']) {
 		await admin.goto(`${BASE}${path}`);
 		await admin.waitForSelector('h1');
 		await admin.waitForTimeout(300);

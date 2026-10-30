@@ -1,4 +1,5 @@
 <script lang="ts">
+	import RelatedLinks from '#lib/components/RelatedLinks.svelte';
 	import { onDestroy, onMount } from 'svelte';
 	import { errorMessage, graphql } from '#lib/graphql.ts';
 	import { EXECUTORS, type ExecutorNode, type ExecutorsResult } from '#lib/queries.ts';
@@ -60,6 +61,7 @@
 			Executors run auto-indexing jobs in containers. They connect to this instance with the token
 			set in <code class="code-inline">executors.accessToken</code>.
 		</p>
+		<RelatedLinks />
 	</div>
 	<div class="page-actions">
 		<span class="badge">{totalCount} seen in the last day</span>

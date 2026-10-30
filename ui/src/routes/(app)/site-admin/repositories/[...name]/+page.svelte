@@ -1,4 +1,5 @@
 <script lang="ts">
+	import RelatedLinks from '#lib/components/RelatedLinks.svelte';
 	import { page } from '$app/state';
 	import { errorMessage, graphql } from '#lib/graphql.ts';
 	import { emptyRepoMessage } from '#lib/repo/queries.ts';
@@ -82,6 +83,7 @@
 	<div class="title">
 		<h1 class="mono name">{name}</h1>
 		<p class="page-description">Mirror and text search index of this repository on its repo node.</p>
+		<RelatedLinks />
 	</div>
 	{#if repo}
 		<div class="page-actions">

@@ -1,4 +1,5 @@
 <script lang="ts">
+	import RelatedLinks from '#lib/components/RelatedLinks.svelte';
 	import PoliciesView from '#lib/codeintel/PoliciesView.svelte';
 	import RankingStatus from '#lib/codeintel/RankingStatus.svelte';
 </script>
@@ -13,6 +14,7 @@
 			order search results. <a href="/site-admin/code-graph/coverage">Index coverage</a> shows which
 			repositories have a current precise index.
 		</p>
+		<RelatedLinks />
 	</div>
 </div>
 

@@ -5,6 +5,7 @@
 	secrets the resources file owns are read-only, and when it owns them all none can be added.
 -->
 <script lang="ts">
+	import RelatedLinks from '#lib/components/RelatedLinks.svelte';
 	import { onMount } from 'svelte';
 	import ManagedBadge from '#lib/components/ManagedBadge.svelte';
 	import ManagedNotice from '#lib/components/ManagedNotice.svelte';
@@ -188,7 +189,10 @@
 </script>
 
 <div class="page-header">
-	<h1>Executor secrets</h1>
+	<div>
+		<h1>Executor secrets</h1>
+		<RelatedLinks />
+	</div>
 	{#if !creating && !exclusive}
 		<button class="btn btn-primary" type="button" onclick={() => (creating = true)}>Add secret</button>
 	{/if}

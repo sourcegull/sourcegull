@@ -1,4 +1,5 @@
 <script lang="ts">
+	import RelatedLinks from '#lib/components/RelatedLinks.svelte';
 	import { errorMessage, graphql } from '#lib/graphql.ts';
 	import { SYNC_TEAMS_FROM_GITLAB_GROUPS, type SyncTeamsResult } from '#lib/orgs/queries.ts';
 
@@ -25,6 +26,7 @@
 	<div>
 		<h1>Teams</h1>
 		<p class="page-description">Teams group users for code ownership. They can be synced from GitLab groups.</p>
+		<RelatedLinks />
 	</div>
 	<div class="page-actions">
 		<a class="btn" href="/teams">Browse teams</a>

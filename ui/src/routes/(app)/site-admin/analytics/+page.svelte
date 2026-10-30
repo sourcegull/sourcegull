@@ -1,4 +1,5 @@
 <script lang="ts">
+	import RelatedLinks from '#lib/components/RelatedLinks.svelte';
 	import { errorMessage, graphql } from '#lib/graphql.ts';
 	import StatChart from '#lib/analytics/StatChart.svelte';
 	import {
@@ -60,6 +61,7 @@
 			Usage of this instance from its own event logs; nothing is sent anywhere. Updated every half
 			hour (last: {formatDate(a?.updatedAt ?? null)}). Dates are UTC.
 		</p>
+		<RelatedLinks />
 	</div>
 	<div class="page-actions">
 		<a class="btn btn-secondary" href="/site-admin/analytics/users">User activity</a>

@@ -1,4 +1,5 @@
 <script lang="ts">
+	import RelatedLinks from '#lib/components/RelatedLinks.svelte';
 	import { onMount } from 'svelte';
 	import { errorMessage, graphql } from '#lib/graphql.ts';
 	import {
@@ -84,6 +85,7 @@
 			back to search-based results. Policies are on the
 			<a href="/site-admin/code-graph">Code graph policies</a> page.
 		</p>
+		<RelatedLinks />
 	</div>
 </div>
 

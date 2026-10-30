@@ -4,6 +4,7 @@
 	the resources file owns can be synced, not edited; when it owns them all, none can be added.
 -->
 <script lang="ts">
+	import RelatedLinks from '#lib/components/RelatedLinks.svelte';
 	import { onMount } from 'svelte';
 	import { formatDate, relativeTime } from '#lib/batches/batch-change.ts';
 	import ManagedBadge from '#lib/components/ManagedBadge.svelte';
@@ -72,6 +73,7 @@
 			Each connection mirrors the repositories its configuration lists from a GitLab, GitHub or
 			Gitea instance and keeps them in sync.
 		</p>
+		<RelatedLinks />
 	</div>
 	{#if !exclusive}
 		<div class="page-actions">

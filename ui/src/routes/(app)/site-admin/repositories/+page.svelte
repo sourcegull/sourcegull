@@ -1,4 +1,5 @@
 <script lang="ts">
+	import RelatedLinks from '#lib/components/RelatedLinks.svelte';
 	import { onMount } from 'svelte';
 	import { page } from '$app/state';
 	import { errorMessage, graphql } from '#lib/graphql.ts';
@@ -190,6 +191,7 @@
 			Clone, fetch and index status of every repository. Disk usage per repo node is on the
 			<a href="/site-admin/repo-nodes">repo nodes</a> page.
 		</p>
+		<RelatedLinks />
 	</div>
 	<div class="page-actions">
 		{#if stats}

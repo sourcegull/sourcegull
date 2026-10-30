@@ -5,6 +5,7 @@
 	code host when added and never shown again.
 -->
 <script lang="ts">
+	import RelatedLinks from '#lib/components/RelatedLinks.svelte';
 	import { onMount } from 'svelte';
 	import { errorMessage, graphql } from '#lib/graphql.ts';
 	import { formatDate } from './batch-change.ts';
@@ -103,7 +104,10 @@
 </script>
 
 <div class="page-header">
-	<h1>Bulk changes</h1>
+	<div>
+		<h1>Bulk changes</h1>
+		<RelatedLinks />
+	</div>
 </div>
 
 <h2 class="section">Code host tokens</h2>
