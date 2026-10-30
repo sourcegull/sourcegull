@@ -364,25 +364,34 @@ Sourcegull mirrors repositories from github.com and GitHub Enterprise Server (3.
 **Site admin → Code host connections → Add connection**, pick **GitHub**. The form has:
 
 - **GitHub URL** and **Authentication**: a **personal access token** or a **GitHub App**.
-  *How to create the token* links to your instance's token pages: a fine-grained token with
-  read-only **Contents** and **Metadata** access to the repositories, or a classic token with
-  the `repo` scope (no scope for public repositories only). For a GitHub App, see
-  [below](#github-app-authentication).
+  *How to create the token* links to your instance's token pages. A classic token with the
+  `repo` scope (no scope for public repositories only) reads the user's repositories and those
+  of every organization the user belongs to. A fine-grained token (read-only **Contents** and
+  **Metadata**) gives narrower access but reads the repositories of one resource owner only, a
+  user or one organization; to mirror several owners with fine-grained tokens, add a
+  connection per owner. For a GitHub App, see [below](#github-app-authentication).
 - **Repositories to mirror**: every repository the token's user owns, collaborates on or
   reaches through an organization (with a GitHub App, every repository of the installation);
-  selected organizations and repositories; or repository search queries. **Exclusions** skip repositories by name, by regular expression, archived
-  repositories and forks.
+  selected organizations and repositories; or repository search queries. The third option
+  also takes organizations and repositories, and mirrors them together: for example the query
+  `affiliated` and the organization `acme` mirror the token user's repositories and acme's.
+  **Exclusions** skip repositories by name, by regular expression, archived repositories and
+  forks.
 - **Advanced**: clone over HTTPS or SSH, request budget (5,000 per hour by default, GitHub's
   limit for a personal token), repository name pattern, TLS certificate.
 
 **Test connection** shows the GitHub user the token belongs to and, for a classic token, its
-scopes.
+scopes. It also checks every organization, repository and search query of the connection the
+way a sync reads them, and fails when one does not exist, is a user account listed as an
+organization, cannot be read by the token or is not a valid search. It warns when a search
+query matches nothing, and when a fine-grained token is used to reach organizations.
 
 ```jsonc
 {
   "url": "https://github.com",
-  "token": "github_pat_...",
-  // Every repository of these organizations that the token can read.
+  "token": "ghp_...",
+  // Every repository of these organizations that the token can read (organizations only;
+  // the token user's own repositories come from "affiliated").
   "orgs": ["acme"],
   // Single repositories, as owner/name.
   "repos": ["other-org/tool"],

@@ -213,6 +213,74 @@ async fn check_reports_account_scopes_and_warnings() {
 }
 
 #[tokio::test]
+async fn check_rejects_selection_entries_a_sync_would_fail_on() {
+    let m = mock().await;
+    let s = source(
+        &m,
+        r#", "orgs": ["acme", "octocat", "ghost"], "repos": ["acme/api", "acme/nope"],
+            "repositoryQuery": ["affiliated", "invalid:x", "org:acme"]"#,
+    );
+    let CodeHostError::Config(problems) = s.check().await.unwrap_err() else {
+        panic!("expected a configuration error");
+    };
+    assert!(
+        problems.contains(r#""octocat" is a user account, not an organization"#),
+        "{problems}"
+    );
+    assert!(
+        problems.contains(r#"organization "ghost" does not exist"#),
+        "{problems}"
+    );
+    assert!(
+        problems.contains(r#"repository "acme/nope" does not exist"#),
+        "{problems}"
+    );
+    assert!(
+        problems.contains(r#"search query "invalid:x" is invalid: Validation Failed"#),
+        "{problems}"
+    );
+    assert!(
+        !problems.contains("acme/api") && !problems.contains("org:acme"),
+        "{problems}"
+    );
+
+    let fine = source(
+        &m,
+        r#", "orgs": ["acme"], "repos": ["other/tool"], "repositoryQuery": ["org:acme", "zzz"]"#,
+    );
+    let report = fine.check().await.unwrap();
+    assert!(
+        report
+            .warnings
+            .iter()
+            .any(|w| w == r#"search query "zzz" matches no repositories"#),
+        "{:?}",
+        report.warnings
+    );
+}
+
+#[tokio::test]
+async fn check_warns_that_a_fine_grained_token_reaches_no_other_organizations() {
+    let m = mock().await;
+    m.with(|s| s.scopes = None);
+    let fine_grained = |extra: &str| {
+        let s = source(&m, extra);
+        async move { s.check().await.unwrap().warnings }
+    };
+    let warned = |w: &Vec<String>| w.iter().any(|w| w.contains("fine-grained token"));
+    assert!(warned(
+        &fine_grained(r#", "repositoryQuery": ["affiliated"]"#).await
+    ));
+    assert!(warned(&fine_grained(r#", "orgs": ["acme"]"#).await));
+    assert!(!warned(&fine_grained(r#", "repos": ["acme/api"]"#).await));
+
+    m.with(|s| s.scopes = Some(vec!["repo".into()]));
+    assert!(!warned(
+        &fine_grained(r#", "repositoryQuery": ["affiliated"]"#).await
+    ));
+}
+
+#[tokio::test]
 async fn waits_out_the_primary_rate_limit() {
     let m = mock().await;
     m.with(|s| s.rate_limited = 2);

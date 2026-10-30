@@ -169,23 +169,18 @@
 						repository the token can read can be mirrored, so a dedicated machine user is a good choice.
 					</li>
 					<li>
-						Open
-						<a href={fineGrainedTokenURL(url)} target="_blank" rel="noopener noreferrer"
-							>Settings › Developer settings › Fine-grained tokens</a
-						>
-						and create a token:
-						<ul>
-							<li>Resource owner: the user or organization whose repositories to mirror.</li>
-							<li>Repository access: all repositories, or the ones to mirror.</li>
-							<li>
-								Repository permissions: <code class="code-inline">Contents</code> and
-								<code class="code-inline">Metadata</code>, read-only.
-							</li>
-						</ul>
-						Or create a
+						Create a
 						<a href={classicTokenURL(url)} target="_blank" rel="noopener noreferrer">classic token</a>
-						with the <code class="code-inline">repo</code> scope (no scope for public repositories only). A classic
-						token reaches every organization its user belongs to; a fine-grained one only its resource owner.
+						with the <code class="code-inline">repo</code> scope (no scope for public repositories only). It reads the
+						user's own repositories and those of every organization the user belongs to, which is what
+						<em>Every repository the token's user owns…</em> below lists.
+					</li>
+					<li>
+						Or, to limit access, create a
+						<a href={fineGrainedTokenURL(url)} target="_blank" rel="noopener noreferrer">fine-grained token</a>
+						with read-only <code class="code-inline">Contents</code> and <code class="code-inline">Metadata</code>
+						permissions. A fine-grained token reads the repositories of one resource owner only (your account
+						or one organization): to mirror several, add a connection per owner.
 					</li>
 					<li>Copy the token into the field below. GitHub shows it only once.</li>
 					<li>
@@ -200,7 +195,7 @@
 					class="input mono"
 					type="password"
 					autocomplete="off"
-					placeholder={tokenStored ? 'Stored token kept; type a new one to replace it' : 'github_pat_…'}
+					placeholder={tokenStored ? 'Stored token kept; type a new one to replace it' : 'ghp_…'}
 					value={tokenStored || token === PLACEHOLDER_TOKEN ? '' : token}
 					{disabled}
 					oninput={(e) => setToken(value(e).trim())}

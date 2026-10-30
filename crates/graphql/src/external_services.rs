@@ -16,7 +16,7 @@ use std::time::Duration;
 use async_graphql::{Context, Enum, ID, InputObject, Object, Result, SimpleObject, Union};
 use chrono::{DateTime, Utc};
 use serde_json::json;
-use sourcegull_codehost::CheckReport;
+use sourcegull_codehost::{CheckReport, CodeHostError};
 use sourcegull_config::ConfigError;
 use sourcegull_db::{ExternalServiceUpdate, NewExternalService, SyncJobRecord, SyncReason};
 use sourcegull_services::relay::{EXTERNAL_SERVICE_KIND, marshal_id, unmarshal_int_id};
@@ -721,6 +721,8 @@ async fn check_report(
         .map_err(|e| format!("could not check the connection: {e}"))?;
     match tokio::time::timeout(CHECK_TIMEOUT, source.check()).await {
         Ok(Ok(report)) => Ok(report),
+        // The code host answered, but the configuration names something it does not have.
+        Ok(Err(e @ CodeHostError::Config(_))) => Err(e.to_string()),
         Ok(Err(e)) => Err(format!("could not reach the code host: {e}")),
         Err(_) => Err("could not reach the code host: timed out".to_owned()),
     }

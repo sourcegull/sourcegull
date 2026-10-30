@@ -98,6 +98,21 @@ pub struct User {
     pub login: String,
 }
 
+/// `GET /users/{login}`: a user or an organization.
+#[derive(Debug, Clone, PartialEq, Eq, Deserialize)]
+pub struct Account {
+    pub login: String,
+    /// `User` or `Organization`.
+    #[serde(rename = "type")]
+    pub kind: String,
+}
+
+impl Account {
+    pub fn is_organization(&self) -> bool {
+        self.kind.eq_ignore_ascii_case("organization")
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;

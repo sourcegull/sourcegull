@@ -222,6 +222,7 @@ impl MockGitHub {
                 axum::routing::post(access_token),
             )
             .route("/api/v3/user/repos", get(user_repos))
+            .route("/api/v3/users/{login}", get(account))
             .route("/api/v3/orgs/{org}/repos", get(org_repos))
             .route("/api/v3/repos/{owner}/{name}", get(get_repo))
             .route(
@@ -574,6 +575,34 @@ async fn collaborators(
     page(&s, &uri, &params, items)
 }
 
+/// `GET /users/:login`: the token user and [`MockState::users`] are users, other owners of
+/// repositories organizations.
+async fn account(
+    State(state): Shared,
+    headers: HeaderMap,
+    uri: Uri,
+    Path(login): Path<String>,
+) -> Response {
+    let mut s = state.lock().unwrap_or_else(PoisonError::into_inner);
+    if let Some(r) = admit(&mut s, &headers, &uri) {
+        return r;
+    }
+    let kind = if s.login.eq_ignore_ascii_case(&login)
+        || s.users.iter().any(|u| u.login.eq_ignore_ascii_case(&login))
+    {
+        "User"
+    } else if s
+        .repos
+        .iter()
+        .any(|r| owner(r).eq_ignore_ascii_case(&login))
+    {
+        "Organization"
+    } else {
+        return not_found();
+    };
+    axum::Json(json!({"login": login, "type": kind})).into_response()
+}
+
 async fn org_repos(
     State(state): Shared,
     headers: HeaderMap,
@@ -678,6 +707,13 @@ async fn search_repos(
         return r;
     }
     let q = params.get("q").cloned().unwrap_or_default();
+    if q.contains("invalid:") {
+        return (
+            StatusCode::UNPROCESSABLE_ENTITY,
+            r#"{"message":"Validation Failed"}"#,
+        )
+            .into_response();
+    }
     let items: Vec<Value> = s
         .repos
         .iter()
