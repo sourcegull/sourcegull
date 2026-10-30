@@ -49,39 +49,45 @@
 	{/if}
 {/snippet}
 
-<div class="page-header"><h1>Settings reference</h1></div>
-<p class="muted">
-	Settings are JSON with comments. They apply in a cascade: global settings (Site admin), then each
-	organization's, then the user's own; later ones override earlier ones key by key. Keys not listed
-	here are kept as they are and passed to the UI. The JSON Schema is at
-	<a href={SETTINGS_SCHEMA_URL} target="_blank" rel="noopener">{SETTINGS_SCHEMA_URL}</a>.
-</p>
+<div class="page">
+	<div class="page-header">
+		<div>
+			<h1>Settings reference</h1>
+			<p class="page-description">
+				Settings are JSON with comments. They apply in a cascade: global settings (Site admin), then each
+				organization's, then the user's own; later ones override earlier ones key by key. Keys not listed
+				here are kept as they are and passed to the UI. The JSON Schema is at
+				<a href={SETTINGS_SCHEMA_URL} target="_blank" rel="noopener">{SETTINGS_SCHEMA_URL}</a>.
+			</p>
+		</div>
+	</div>
 
-{#if error}<div class="alert alert-danger" role="alert">{error}</div>{/if}
+	{#if error}<div class="alert alert-danger" role="alert">{error}</div>{/if}
 
-<div class="table-scroll">
-	<table class="table" aria-busy={loading}>
-		<thead>
-			<tr>
-				<th scope="col">Key</th>
-				<th scope="col">Type</th>
-				<th scope="col">Default</th>
-				<th scope="col">Description</th>
-			</tr>
-		</thead>
-		<tbody>
-			{#each settings as row (row.key)}
-				<tr id={row.key}>
-					<td><code>{row.key}</code></td>
-					<td>{row.type}</td>
-					<td>{#if row.default !== null}<code>{row.default}</code>{:else}<span class="muted">—</span>{/if}</td>
-					<td>{@render details(row)}</td>
+	<div class="table-scroll">
+		<table class="table" aria-busy={loading}>
+			<thead>
+				<tr>
+					<th scope="col">Key</th>
+					<th scope="col">Type</th>
+					<th scope="col">Default</th>
+					<th scope="col">Description</th>
 				</tr>
-			{:else}
-				<tr><td colspan="4" class="muted">{loading ? 'Loading…' : 'No settings documented.'}</td></tr>
-			{/each}
-		</tbody>
-	</table>
+			</thead>
+			<tbody>
+				{#each settings as row (row.key)}
+					<tr id={row.key}>
+						<td><code>{row.key}</code></td>
+						<td>{row.type}</td>
+						<td>{#if row.default !== null}<code>{row.default}</code>{:else}<span class="muted">—</span>{/if}</td>
+						<td>{@render details(row)}</td>
+					</tr>
+				{:else}
+					<tr><td colspan="4" class="muted">{loading ? 'Loading…' : 'No settings documented.'}</td></tr>
+				{/each}
+			</tbody>
+		</table>
+	</div>
 </div>
 
 <style>
