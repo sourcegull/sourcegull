@@ -202,6 +202,7 @@ use that only on throwaway installs.
 
 | Chart | Changes |
 |---|---|
+| 0.1.1 | Sourcegull 0.1.1 |
 | 0.1.0 | First release |
 
 ## Testing the chart

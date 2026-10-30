@@ -5135,7 +5135,7 @@ dependencies = [
 
 [[package]]
 name = "sourcegull"
-version = "0.1.0"
+version = "0.1.1"
 dependencies = [
  "anyhow",
  "async-trait",
@@ -5214,7 +5214,7 @@ dependencies = [
 
 [[package]]
 name = "sourcegull-analytics"
-version = "0.1.0"
+version = "0.1.1"
 dependencies = [
  "anyhow",
  "chrono",
@@ -5232,7 +5232,7 @@ dependencies = [
 
 [[package]]
 name = "sourcegull-analytics-graphql"
-version = "0.1.0"
+version = "0.1.1"
 dependencies = [
  "async-graphql",
  "chrono",
@@ -5243,7 +5243,7 @@ dependencies = [
 
 [[package]]
 name = "sourcegull-authn"
-version = "0.1.0"
+version = "0.1.1"
 dependencies = [
  "async-trait",
  "chrono",
@@ -5262,7 +5262,7 @@ dependencies = [
 
 [[package]]
 name = "sourcegull-authz"
-version = "0.1.0"
+version = "0.1.1"
 dependencies = [
  "anyhow",
  "async-trait",
@@ -5294,7 +5294,7 @@ dependencies = [
 
 [[package]]
 name = "sourcegull-autoindex"
-version = "0.1.0"
+version = "0.1.1"
 dependencies = [
  "anyhow",
  "async-trait",
@@ -5325,7 +5325,7 @@ dependencies = [
 
 [[package]]
 name = "sourcegull-batches"
-version = "0.1.0"
+version = "0.1.1"
 dependencies = [
  "base64 0.22.1",
  "chrono",
@@ -5349,7 +5349,7 @@ dependencies = [
 
 [[package]]
 name = "sourcegull-batches-graphql"
-version = "0.1.0"
+version = "0.1.1"
 dependencies = [
  "async-graphql",
  "chrono",
@@ -5376,7 +5376,7 @@ dependencies = [
 
 [[package]]
 name = "sourcegull-batches-reconciler"
-version = "0.1.0"
+version = "0.1.1"
 dependencies = [
  "anyhow",
  "async-trait",
@@ -5407,7 +5407,7 @@ dependencies = [
 
 [[package]]
 name = "sourcegull-batches-resolver"
-version = "0.1.0"
+version = "0.1.1"
 dependencies = [
  "anyhow",
  "async-trait",
@@ -5440,7 +5440,7 @@ dependencies = [
 
 [[package]]
 name = "sourcegull-batches-steps"
-version = "0.1.0"
+version = "0.1.1"
 dependencies = [
  "async-trait",
  "base64 0.22.1",
@@ -5463,7 +5463,7 @@ dependencies = [
 
 [[package]]
 name = "sourcegull-batches-template"
-version = "0.1.0"
+version = "0.1.1"
 dependencies = [
  "proptest",
  "regex",
@@ -5474,7 +5474,7 @@ dependencies = [
 
 [[package]]
 name = "sourcegull-blobstore"
-version = "0.1.0"
+version = "0.1.1"
 dependencies = [
  "async-trait",
  "axum",
@@ -5498,7 +5498,7 @@ dependencies = [
 
 [[package]]
 name = "sourcegull-cli"
-version = "0.1.0"
+version = "0.1.1"
 dependencies = [
  "anyhow",
  "async-trait",
@@ -5534,7 +5534,7 @@ dependencies = [
 
 [[package]]
 name = "sourcegull-codehost"
-version = "0.1.0"
+version = "0.1.1"
 dependencies = [
  "async-trait",
  "chrono",
@@ -5553,7 +5553,7 @@ dependencies = [
 
 [[package]]
 name = "sourcegull-codehost-gitea"
-version = "0.1.0"
+version = "0.1.1"
 dependencies = [
  "async-trait",
  "axum",
@@ -5581,7 +5581,7 @@ dependencies = [
 
 [[package]]
 name = "sourcegull-codehost-github"
-version = "0.1.0"
+version = "0.1.1"
 dependencies = [
  "async-trait",
  "axum",
@@ -5610,7 +5610,7 @@ dependencies = [
 
 [[package]]
 name = "sourcegull-codehost-gitlab"
-version = "0.1.0"
+version = "0.1.1"
 dependencies = [
  "async-trait",
  "axum",
@@ -5638,7 +5638,7 @@ dependencies = [
 
 [[package]]
 name = "sourcegull-codeintel-graphql"
-version = "0.1.0"
+version = "0.1.1"
 dependencies = [
  "async-graphql",
  "chrono",
@@ -5661,7 +5661,7 @@ dependencies = [
 
 [[package]]
 name = "sourcegull-codeintel-policies"
-version = "0.1.0"
+version = "0.1.1"
 dependencies = [
  "anyhow",
  "async-trait",
@@ -5683,7 +5683,7 @@ dependencies = [
 
 [[package]]
 name = "sourcegull-codeintel-scip"
-version = "0.1.0"
+version = "0.1.1"
 dependencies = [
  "anyhow",
  "async-trait",
@@ -5718,7 +5718,7 @@ dependencies = [
 
 [[package]]
 name = "sourcegull-codeintel-syntactic"
-version = "0.1.0"
+version = "0.1.1"
 dependencies = [
  "tree-sitter",
  "tree-sitter-c",
@@ -5734,7 +5734,7 @@ dependencies = [
 
 [[package]]
 name = "sourcegull-codenav"
-version = "0.1.0"
+version = "0.1.1"
 dependencies = [
  "async-trait",
  "futures",
@@ -5758,7 +5758,7 @@ dependencies = [
 
 [[package]]
 name = "sourcegull-compute"
-version = "0.1.0"
+version = "0.1.1"
 dependencies = [
  "chrono",
  "regex",
@@ -5773,7 +5773,7 @@ dependencies = [
 
 [[package]]
 name = "sourcegull-config"
-version = "0.1.0"
+version = "0.1.1"
 dependencies = [
  "arc-swap",
  "chrono",
@@ -5789,7 +5789,7 @@ dependencies = [
 
 [[package]]
 name = "sourcegull-crypto"
-version = "0.1.0"
+version = "0.1.1"
 dependencies = [
  "aes-gcm",
  "argon2",
@@ -5805,7 +5805,7 @@ dependencies = [
 
 [[package]]
 name = "sourcegull-db"
-version = "0.1.0"
+version = "0.1.1"
 dependencies = [
  "async-trait",
  "chrono",
@@ -5823,7 +5823,7 @@ dependencies = [
 
 [[package]]
 name = "sourcegull-declarative"
-version = "0.1.0"
+version = "0.1.1"
 dependencies = [
  "metrics",
  "serde_json",
@@ -5848,7 +5848,7 @@ dependencies = [
 
 [[package]]
 name = "sourcegull-executor"
-version = "0.1.0"
+version = "0.1.1"
 dependencies = [
  "anyhow",
  "async-graphql",
@@ -5892,7 +5892,7 @@ dependencies = [
 
 [[package]]
 name = "sourcegull-executor-api"
-version = "0.1.0"
+version = "0.1.1"
 dependencies = [
  "base64 0.22.1",
  "chrono",
@@ -5902,7 +5902,7 @@ dependencies = [
 
 [[package]]
 name = "sourcegull-executors-graphql"
-version = "0.1.0"
+version = "0.1.1"
 dependencies = [
  "async-graphql",
  "chrono",
@@ -5916,7 +5916,7 @@ dependencies = [
 
 [[package]]
 name = "sourcegull-feature"
-version = "0.1.0"
+version = "0.1.1"
 dependencies = [
  "anyhow",
  "axum",
@@ -5930,7 +5930,7 @@ dependencies = [
 
 [[package]]
 name = "sourcegull-gitstore"
-version = "0.1.0"
+version = "0.1.1"
 dependencies = [
  "bytes",
  "chrono",
@@ -5955,7 +5955,7 @@ dependencies = [
 
 [[package]]
 name = "sourcegull-graphql"
-version = "0.1.0"
+version = "0.1.1"
 dependencies = [
  "async-graphql",
  "async-trait",
@@ -6029,7 +6029,7 @@ dependencies = [
 
 [[package]]
 name = "sourcegull-graphql-core"
-version = "0.1.0"
+version = "0.1.1"
 dependencies = [
  "async-graphql",
  "chrono",
@@ -6053,7 +6053,7 @@ dependencies = [
 
 [[package]]
 name = "sourcegull-highlight"
-version = "0.1.0"
+version = "0.1.1"
 dependencies = [
  "serde",
  "serde_json",
@@ -6080,7 +6080,7 @@ dependencies = [
 
 [[package]]
 name = "sourcegull-http-api"
-version = "0.1.0"
+version = "0.1.1"
 dependencies = [
  "anyhow",
  "async-trait",
@@ -6145,7 +6145,7 @@ dependencies = [
 
 [[package]]
 name = "sourcegull-http-extract"
-version = "0.1.0"
+version = "0.1.1"
 dependencies = [
  "axum",
  "serde_json",
@@ -6155,7 +6155,7 @@ dependencies = [
 
 [[package]]
 name = "sourcegull-index-format"
-version = "0.1.0"
+version = "0.1.1"
 dependencies = [
  "crc32fast",
  "fst",
@@ -6171,7 +6171,7 @@ dependencies = [
 
 [[package]]
 name = "sourcegull-indexer"
-version = "0.1.0"
+version = "0.1.1"
 dependencies = [
  "gix",
  "lz4_flex",
@@ -6188,7 +6188,7 @@ dependencies = [
 
 [[package]]
 name = "sourcegull-insights"
-version = "0.1.0"
+version = "0.1.1"
 dependencies = [
  "anyhow",
  "async-trait",
@@ -6232,7 +6232,7 @@ dependencies = [
 
 [[package]]
 name = "sourcegull-insights-graphql"
-version = "0.1.0"
+version = "0.1.1"
 dependencies = [
  "async-graphql",
  "base64 0.22.1",
@@ -6251,14 +6251,14 @@ dependencies = [
 
 [[package]]
 name = "sourcegull-languages"
-version = "0.1.0"
+version = "0.1.1"
 dependencies = [
  "thiserror 2.0.21",
 ]
 
 [[package]]
 name = "sourcegull-leader"
-version = "0.1.0"
+version = "0.1.1"
 dependencies = [
  "async-trait",
  "axum",
@@ -6277,7 +6277,7 @@ dependencies = [
 
 [[package]]
 name = "sourcegull-mcp"
-version = "0.1.0"
+version = "0.1.1"
 dependencies = [
  "axum",
  "chrono",
@@ -6314,7 +6314,7 @@ dependencies = [
 
 [[package]]
 name = "sourcegull-monitoring"
-version = "0.1.0"
+version = "0.1.1"
 dependencies = [
  "serde_json",
  "sourcegull-types",
@@ -6322,7 +6322,7 @@ dependencies = [
 
 [[package]]
 name = "sourcegull-monitors"
-version = "0.1.0"
+version = "0.1.1"
 dependencies = [
  "anyhow",
  "async-trait",
@@ -6361,7 +6361,7 @@ dependencies = [
 
 [[package]]
 name = "sourcegull-monitors-graphql"
-version = "0.1.0"
+version = "0.1.1"
 dependencies = [
  "async-graphql",
  "chrono",
@@ -6378,7 +6378,7 @@ dependencies = [
 
 [[package]]
 name = "sourcegull-notebooks"
-version = "0.1.0"
+version = "0.1.1"
 dependencies = [
  "chrono",
  "roaring",
@@ -6395,7 +6395,7 @@ dependencies = [
 
 [[package]]
 name = "sourcegull-notebooks-graphql"
-version = "0.1.0"
+version = "0.1.1"
 dependencies = [
  "async-graphql",
  "chrono",
@@ -6411,7 +6411,7 @@ dependencies = [
 
 [[package]]
 name = "sourcegull-oauth-server"
-version = "0.1.0"
+version = "0.1.1"
 dependencies = [
  "anyhow",
  "axum",
@@ -6439,7 +6439,7 @@ dependencies = [
 
 [[package]]
 name = "sourcegull-observability"
-version = "0.1.0"
+version = "0.1.1"
 dependencies = [
  "metrics",
  "metrics-exporter-prometheus",
@@ -6452,7 +6452,7 @@ dependencies = [
 
 [[package]]
 name = "sourcegull-oobmigration"
-version = "0.1.0"
+version = "0.1.1"
 dependencies = [
  "anyhow",
  "async-trait",
@@ -6471,7 +6471,7 @@ dependencies = [
 
 [[package]]
 name = "sourcegull-outbound-webhooks"
-version = "0.1.0"
+version = "0.1.1"
 dependencies = [
  "anyhow",
  "async-trait",
@@ -6504,7 +6504,7 @@ dependencies = [
 
 [[package]]
 name = "sourcegull-outbound-webhooks-graphql"
-version = "0.1.0"
+version = "0.1.1"
 dependencies = [
  "async-graphql",
  "chrono",
@@ -6520,7 +6520,7 @@ dependencies = [
 
 [[package]]
 name = "sourcegull-own"
-version = "0.1.0"
+version = "0.1.1"
 dependencies = [
  "anyhow",
  "async-trait",
@@ -6548,7 +6548,7 @@ dependencies = [
 
 [[package]]
 name = "sourcegull-own-graphql"
-version = "0.1.0"
+version = "0.1.1"
 dependencies = [
  "async-graphql",
  "chrono",
@@ -6563,7 +6563,7 @@ dependencies = [
 
 [[package]]
 name = "sourcegull-pgqueue"
-version = "0.1.0"
+version = "0.1.1"
 dependencies = [
  "async-trait",
  "chrono",
@@ -6580,7 +6580,7 @@ dependencies = [
 
 [[package]]
 name = "sourcegull-pubsub"
-version = "0.1.0"
+version = "0.1.1"
 dependencies = [
  "sourcegull-testutil",
  "sqlx",
@@ -6590,21 +6590,21 @@ dependencies = [
 
 [[package]]
 name = "sourcegull-query"
-version = "0.1.0"
+version = "0.1.1"
 dependencies = [
  "thiserror 2.0.21",
 ]
 
 [[package]]
 name = "sourcegull-query-wasm"
-version = "0.1.0"
+version = "0.1.1"
 dependencies = [
  "sourcegull-query",
 ]
 
 [[package]]
 name = "sourcegull-ranking"
-version = "0.1.0"
+version = "0.1.1"
 dependencies = [
  "anyhow",
  "chrono",
@@ -6634,7 +6634,7 @@ dependencies = [
 
 [[package]]
 name = "sourcegull-ratelimit"
-version = "0.1.0"
+version = "0.1.1"
 dependencies = [
  "async-trait",
  "chrono",
@@ -6648,7 +6648,7 @@ dependencies = [
 
 [[package]]
 name = "sourcegull-repo-node"
-version = "0.1.0"
+version = "0.1.1"
 dependencies = [
  "anyhow",
  "async-trait",
@@ -6680,7 +6680,7 @@ dependencies = [
 
 [[package]]
 name = "sourcegull-repos"
-version = "0.1.0"
+version = "0.1.1"
 dependencies = [
  "anyhow",
  "async-trait",
@@ -6711,7 +6711,7 @@ dependencies = [
 
 [[package]]
 name = "sourcegull-rpc"
-version = "0.1.0"
+version = "0.1.1"
 dependencies = [
  "prost",
  "protox",
@@ -6726,7 +6726,7 @@ dependencies = [
 
 [[package]]
 name = "sourcegull-saved-searches-graphql"
-version = "0.1.0"
+version = "0.1.1"
 dependencies = [
  "async-graphql",
  "chrono",
@@ -6741,7 +6741,7 @@ dependencies = [
 
 [[package]]
 name = "sourcegull-search"
-version = "0.1.0"
+version = "0.1.1"
 dependencies = [
  "chrono",
  "memchr",
@@ -6760,7 +6760,7 @@ dependencies = [
 
 [[package]]
 name = "sourcegull-search-client"
-version = "0.1.0"
+version = "0.1.1"
 dependencies = [
  "chrono",
  "futures",
@@ -6779,7 +6779,7 @@ dependencies = [
 
 [[package]]
 name = "sourcegull-search-exec"
-version = "0.1.0"
+version = "0.1.1"
 dependencies = [
  "arc-swap",
  "chrono",
@@ -6815,7 +6815,7 @@ dependencies = [
 
 [[package]]
 name = "sourcegull-search-web"
-version = "0.1.0"
+version = "0.1.1"
 dependencies = [
  "async-trait",
  "chrono",
@@ -6839,7 +6839,7 @@ dependencies = [
 
 [[package]]
 name = "sourcegull-searchjobs"
-version = "0.1.0"
+version = "0.1.1"
 dependencies = [
  "anyhow",
  "async-trait",
@@ -6880,7 +6880,7 @@ dependencies = [
 
 [[package]]
 name = "sourcegull-searchjobs-graphql"
-version = "0.1.0"
+version = "0.1.1"
 dependencies = [
  "async-graphql",
  "chrono",
@@ -6895,7 +6895,7 @@ dependencies = [
 
 [[package]]
 name = "sourcegull-services"
-version = "0.1.0"
+version = "0.1.1"
 dependencies = [
  "async-trait",
  "base64 0.22.1",
@@ -6936,7 +6936,7 @@ dependencies = [
 
 [[package]]
 name = "sourcegull-structural"
-version = "0.1.0"
+version = "0.1.1"
 dependencies = [
  "memchr",
  "regex",
@@ -6946,7 +6946,7 @@ dependencies = [
 
 [[package]]
 name = "sourcegull-symbols"
-version = "0.1.0"
+version = "0.1.1"
 dependencies = [
  "memchr",
  "rustc-hash",
@@ -6977,7 +6977,7 @@ dependencies = [
 
 [[package]]
 name = "sourcegull-testutil"
-version = "0.1.0"
+version = "0.1.1"
 dependencies = [
  "sourcegull-gitstore",
  "sourcegull-rpc",
@@ -6992,7 +6992,7 @@ dependencies = [
 
 [[package]]
 name = "sourcegull-types"
-version = "0.1.0"
+version = "0.1.1"
 dependencies = [
  "chrono",
  "globset",
@@ -7005,7 +7005,7 @@ dependencies = [
 
 [[package]]
 name = "sourcegull-web-assets"
-version = "0.1.0"
+version = "0.1.1"
 dependencies = [
  "hex",
  "mime_guess",
