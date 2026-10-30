@@ -223,11 +223,12 @@ export const DEFAULT_GITLAB_CONFIG = `{
 export const DEFAULT_GITHUB_CONFIG = `{
   // The GitHub instance: https://github.com or a GitHub Enterprise Server URL.
   "url": "https://github.com",
-  // A fine-grained personal access token (Contents and Metadata: read), or a classic token
-  // with the repo scope.
+  // A classic token with the repo scope (reaches every organization of its user), or a
+  // fine-grained token (Contents and Metadata: read), which reaches one resource owner only.
   "token": "<access token>",
-  // Which repositories to mirror: "affiliated" (the token user's repositories), "none", or a
-  // repository search query. Organizations go in "orgs", single repositories in "repos".
+  // Which repositories to mirror: "affiliated" (the token user's repositories and those of
+  // its organizations), "none", or a repository search query. Organizations go in "orgs",
+  // single repositories in "repos"; all of them are mirrored together.
   "repositoryQuery": ["affiliated"]
 }
 `;

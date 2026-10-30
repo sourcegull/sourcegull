@@ -32,7 +32,7 @@ use url::Url;
 
 use crate::app::{AppAuth, AppTokens};
 use crate::config::GitHubConnection;
-use crate::types::{Repository, User};
+use crate::types::{Account, Repository, User};
 
 /// Page size requested from list endpoints (GitHub's maximum).
 pub const PER_PAGE: u32 = 100;
@@ -268,6 +268,12 @@ impl GitHubClient {
             .map(|s| url::form_urlencoded::byte_serialize(s.as_bytes()).collect())
             .collect();
         self.get(&format!("repos/{}", path.join("/"))).await
+    }
+
+    /// A user or organization by login.
+    pub async fn account(&self, login: &str) -> Result<Account> {
+        let login: String = url::form_urlencoded::byte_serialize(login.as_bytes()).collect();
+        self.get(&format!("users/{login}")).await
     }
 
     /// One repository by numeric id (stable across renames and transfers).
