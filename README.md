@@ -92,15 +92,13 @@ dashboards and documented alerts. See [the documentation](docs/README.md).
 ## Install
 
 Download the Compose bundle of the [latest release](https://github.com/sourcegull/sourcegull/releases/latest)
-and start the stack (PostgreSQL, `migrate`, `web`, `worker`, one repo node and a blob store) with
-the published image, `ghcr.io/sourcegull/sourcegull` (linux/amd64):
+and start PostgreSQL and Sourcegull with the published image, `ghcr.io/sourcegull/sourcegull`
+(linux/amd64):
 
 ```sh
 curl -fsSL https://github.com/sourcegull/sourcegull/releases/latest/download/sourcegull-compose.tar.gz | tar -xz
 cd sourcegull-compose
-cp .env.example .env            # then change every password
-mkdir -p secrets && printf 'k1:%s\n' "$(openssl rand -base64 32)" > secrets/encryption-keys
-chmod 0644 secrets/encryption-keys
+echo "POSTGRES_PASSWORD=$(openssl rand -hex 24)" > .env
 docker compose up -d
 ```
 

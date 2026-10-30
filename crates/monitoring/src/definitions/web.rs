@@ -8,10 +8,10 @@ use crate::{Dashboard, Group, Observable, Owner, Threshold, Unit};
 const REQUESTS: &str = metric_names::HTTP_REQUESTS_TOTAL;
 const DURATION: &str = metric_names::HTTP_REQUEST_DURATION_SECONDS;
 /// Requests of users and API clients: the web role without the probes and scrapes.
-const WEB: &str = r#"role="web",route!~"/metrics|/healthz|/readyz""#;
+const WEB: &str = r#"role=~"web|all",route!~"/metrics|/healthz|/readyz""#;
 /// Long-lived or bulk routes, left out of the latency panel: streams, uploads, the executor API.
-const LONG: &str = r#"role="web",route!~"/metrics|/healthz|/readyz|/.api/search/stream|/.api/compute/stream|/.api/blame/.*|/.api/scip/upload|/.api/files/.*|/.executors/.*""#;
-const WEBHOOKS: &str = r#"role="web",route=~"/.api/gitlab-webhooks|/.api/webhooks/.*""#;
+const LONG: &str = r#"role=~"web|all",route!~"/metrics|/healthz|/readyz|/.api/search/stream|/.api/compute/stream|/.api/blame/.*|/.api/scip/upload|/.api/files/.*|/.executors/.*""#;
+const WEBHOOKS: &str = r#"role=~"web|all",route=~"/.api/gitlab-webhooks|/.api/webhooks/.*""#;
 
 pub fn dashboard() -> Dashboard {
     Dashboard {
@@ -42,7 +42,7 @@ pub fn dashboard() -> Dashboard {
                         .warning(Threshold::above(0.02).for_minutes(5))
                         .critical(Threshold::above(0.1).for_minutes(10))
                         .next_steps(&[
-                            "Find the failing routes: in Grafana, run `sum by (route, status) (rate(sourcegull_http_requests_total{role=\"web\",status=~\"5..\"}[5m]))`.",
+                            "Find the failing routes: in Grafana, run `sum by (route, status) (rate(sourcegull_http_requests_total{role=~\"web|all\",status=~\"5..\"}[5m]))`.",
                             "Read the web logs for `error` entries around that time (`docker compose logs web`, `kubectl logs -l app.kubernetes.io/component=web`). Failed responses carry an `x-request-id` that appears in the log lines.",
                             "Many 502/503 from GraphQL or search often mean Postgres or the repo nodes are unreachable: check the Postgres and repo dashboards.",
                         ]),
@@ -71,7 +71,7 @@ pub fn dashboard() -> Dashboard {
                     Observable::new(
                         "search_stream_p90_duration",
                         "90th percentile streaming search duration",
-                        quantile(0.9, DURATION, r#"role="web",route="/.api/search/stream""#, "", "5m"),
+                        quantile(0.9, DURATION, r#"role=~"web|all",route="/.api/search/stream""#, "", "5m"),
                         Owner::Search,
                     )
                     .unit(Unit::Seconds)
@@ -85,7 +85,7 @@ pub fn dashboard() -> Dashboard {
                     Observable::new(
                         "search_stream_requests",
                         "streaming searches per second by status",
-                        format!(r#"sum by (status) (rate({REQUESTS}{{role="web",route="/.api/search/stream"}}[5m]))"#),
+                        format!(r#"sum by (status) (rate({REQUESTS}{{role=~"web|all",route="/.api/search/stream"}}[5m]))"#),
                         Owner::Search,
                     )
                     .legend("{{status}}")
@@ -94,7 +94,7 @@ pub fn dashboard() -> Dashboard {
                     Observable::new(
                         "graphql_p90_duration",
                         "90th percentile GraphQL request duration",
-                        quantile(0.9, DURATION, r#"role="web",route="/.api/graphql""#, "", "5m"),
+                        quantile(0.9, DURATION, r#"role=~"web|all",route="/.api/graphql""#, "", "5m"),
                         Owner::Platform,
                     )
                     .unit(Unit::Seconds)

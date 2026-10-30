@@ -87,7 +87,7 @@
             "type": "prometheus",
             "uid": "${datasource}"
           },
-          "expr": "sum by (route) (rate(sourcegull_http_requests_total{role=\"web\",route!~\"/metrics|/healthz|/readyz\"}[5m]))",
+          "expr": "sum by (route) (rate(sourcegull_http_requests_total{role=~\"web|all\",route!~\"/metrics|/healthz|/readyz\"}[5m]))",
           "legendFormat": "{{route}}",
           "range": true,
           "refId": "A"
@@ -160,7 +160,7 @@
             "type": "prometheus",
             "uid": "${datasource}"
           },
-          "expr": "(sum(rate(sourcegull_http_requests_total{role=\"web\",route!~\"/metrics|/healthz|/readyz\",status=~\"5..\"}[5m])) or 0 * sum(rate(sourcegull_http_requests_total{role=\"web\",route!~\"/metrics|/healthz|/readyz\"}[5m])))\n/ sum(rate(sourcegull_http_requests_total{role=\"web\",route!~\"/metrics|/healthz|/readyz\"}[5m]))",
+          "expr": "(sum(rate(sourcegull_http_requests_total{role=~\"web|all\",route!~\"/metrics|/healthz|/readyz\",status=~\"5..\"}[5m])) or 0 * sum(rate(sourcegull_http_requests_total{role=~\"web|all\",route!~\"/metrics|/healthz|/readyz\"}[5m])))\n/ sum(rate(sourcegull_http_requests_total{role=~\"web|all\",route!~\"/metrics|/healthz|/readyz\"}[5m]))",
           "legendFormat": "__auto",
           "range": true,
           "refId": "A"
@@ -229,7 +229,7 @@
             "type": "prometheus",
             "uid": "${datasource}"
           },
-          "expr": "histogram_quantile(0.9, sum by (le, route) (rate(sourcegull_http_request_duration_seconds_bucket{role=\"web\",route!~\"/metrics|/healthz|/readyz|/.api/search/stream|/.api/compute/stream|/.api/blame/.*|/.api/scip/upload|/.api/files/.*|/.executors/.*\"}[5m])))",
+          "expr": "histogram_quantile(0.9, sum by (le, route) (rate(sourcegull_http_request_duration_seconds_bucket{role=~\"web|all\",route!~\"/metrics|/healthz|/readyz|/.api/search/stream|/.api/compute/stream|/.api/blame/.*|/.api/scip/upload|/.api/files/.*|/.executors/.*\"}[5m])))",
           "legendFormat": "{{route}}",
           "range": true,
           "refId": "A"
@@ -311,7 +311,7 @@
             "type": "prometheus",
             "uid": "${datasource}"
           },
-          "expr": "histogram_quantile(0.9, sum by (le) (rate(sourcegull_http_request_duration_seconds_bucket{role=\"web\",route=\"/.api/search/stream\"}[5m])))",
+          "expr": "histogram_quantile(0.9, sum by (le) (rate(sourcegull_http_request_duration_seconds_bucket{role=~\"web|all\",route=\"/.api/search/stream\"}[5m])))",
           "legendFormat": "__auto",
           "range": true,
           "refId": "A"
@@ -376,7 +376,7 @@
             "type": "prometheus",
             "uid": "${datasource}"
           },
-          "expr": "sum by (status) (rate(sourcegull_http_requests_total{role=\"web\",route=\"/.api/search/stream\"}[5m]))",
+          "expr": "sum by (status) (rate(sourcegull_http_requests_total{role=~\"web|all\",route=\"/.api/search/stream\"}[5m]))",
           "legendFormat": "{{status}}",
           "range": true,
           "refId": "A"
@@ -445,7 +445,7 @@
             "type": "prometheus",
             "uid": "${datasource}"
           },
-          "expr": "histogram_quantile(0.9, sum by (le) (rate(sourcegull_http_request_duration_seconds_bucket{role=\"web\",route=\"/.api/graphql\"}[5m])))",
+          "expr": "histogram_quantile(0.9, sum by (le) (rate(sourcegull_http_request_duration_seconds_bucket{role=~\"web|all\",route=\"/.api/graphql\"}[5m])))",
           "legendFormat": "__auto",
           "range": true,
           "refId": "A"
@@ -523,7 +523,7 @@
             "type": "prometheus",
             "uid": "${datasource}"
           },
-          "expr": "sum by (route, status) (rate(sourcegull_http_requests_total{role=\"web\",route=~\"/.api/gitlab-webhooks|/.api/webhooks/.*\"}[5m]))",
+          "expr": "sum by (route, status) (rate(sourcegull_http_requests_total{role=~\"web|all\",route=~\"/.api/gitlab-webhooks|/.api/webhooks/.*\"}[5m]))",
           "legendFormat": "{{route}} {{status}}",
           "range": true,
           "refId": "A"
@@ -592,7 +592,7 @@
             "type": "prometheus",
             "uid": "${datasource}"
           },
-          "expr": "(sum(rate(sourcegull_http_requests_total{role=\"web\",route=~\"/.api/gitlab-webhooks|/.api/webhooks/.*\",status!~\"2..\"}[30m])) or 0 * sum(rate(sourcegull_http_requests_total{role=\"web\",route=~\"/.api/gitlab-webhooks|/.api/webhooks/.*\"}[30m])))\n/ sum(rate(sourcegull_http_requests_total{role=\"web\",route=~\"/.api/gitlab-webhooks|/.api/webhooks/.*\"}[30m]))",
+          "expr": "(sum(rate(sourcegull_http_requests_total{role=~\"web|all\",route=~\"/.api/gitlab-webhooks|/.api/webhooks/.*\",status!~\"2..\"}[30m])) or 0 * sum(rate(sourcegull_http_requests_total{role=~\"web|all\",route=~\"/.api/gitlab-webhooks|/.api/webhooks/.*\"}[30m])))\n/ sum(rate(sourcegull_http_requests_total{role=~\"web|all\",route=~\"/.api/gitlab-webhooks|/.api/webhooks/.*\"}[30m]))",
           "legendFormat": "__auto",
           "range": true,
           "refId": "A"
@@ -674,7 +674,7 @@
             "type": "prometheus",
             "uid": "${datasource}"
           },
-          "expr": "up{role=\"web\"}",
+          "expr": "up{role=~\"web|all\"}",
           "legendFormat": "{{instance}}",
           "range": true,
           "refId": "A"

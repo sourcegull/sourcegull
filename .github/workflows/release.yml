@@ -222,7 +222,7 @@ jobs:
         run: |
           tar -czf "$RUNNER_TEMP/sourcegull-compose.tar.gz" \
             --transform 's,^deploy/docker,sourcegull-compose,' \
-            deploy/docker/compose.yaml deploy/docker/.env.example deploy/docker/upgrade.md \
+            deploy/docker/compose*.yaml deploy/docker/.env.example deploy/docker/upgrade.md \
             deploy/docker/config deploy/docker/prometheus deploy/docker/grafana
 
       - uses: sigstore/cosign-installer@v3

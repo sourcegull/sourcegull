@@ -37,7 +37,7 @@ pub(crate) fn instances_up(role: &'static str, next_steps: &'static [&'static st
     Observable::new(
         "instance_up",
         "instances answering Prometheus scrapes",
-        format!("up{{role=\"{role}\"}}"),
+        format!("up{{role=~\"{role}|all\"}}"),
         Owner::Platform,
     )
     .legend("{{instance}}")

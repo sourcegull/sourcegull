@@ -6,7 +6,7 @@
 use super::{EXECUTOR_QUEUES, ratio};
 use crate::{Dashboard, Group, Observable, Owner, Threshold, Unit};
 
-const API: &str = r#"role="web",route=~"/.executors/.*""#;
+const API: &str = r#"role=~"web|all",route=~"/.executors/.*""#;
 
 pub fn dashboard() -> Dashboard {
     let queues = format!(r#"queue=~"{EXECUTOR_QUEUES}""#);

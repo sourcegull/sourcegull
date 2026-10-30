@@ -1,5 +1,7 @@
-# Prometheus config for the `monitoring` Compose profile: scrapes /metrics on the internal
-# listener (:6060) of every Sourcegull service. Add a target per extra repo node (repo-1, …).
+# Example Prometheus config for Sourcegull on Docker Compose (docs/observability/README.md):
+# scrapes /metrics on the internal listener (:6060) and loads Sourcegull's alerting rules.
+# Targets resolve on the Compose network; from elsewhere, publish :6060 as that page shows.
+# The dashboards and alerts select by the `role` label.
 global:
   scrape_interval: 15s
   evaluation_interval: 15s
@@ -10,34 +12,32 @@ rule_files:
   - /etc/prometheus/sourcegull-alerts.yml
 
 scrape_configs:
-  - job_name: sourcegull-web
-    metrics_path: /metrics
+  # compose.yaml: one process runs every role.
+  - job_name: sourcegull
     static_configs:
-      - targets: ["web:6060"]
+      - targets: ["sourcegull:6060"]
         labels:
-          role: web
+          role: all
 
-  - job_name: sourcegull-worker
-    metrics_path: /metrics
-    static_configs:
-      - targets: ["worker:6060"]
-        labels:
-          role: worker
-
-  - job_name: sourcegull-blob
-    metrics_path: /metrics
-    static_configs:
-      - targets: ["blob:6060"]
-        labels:
-          role: blob
-
-  - job_name: sourcegull-repo
-    metrics_path: /metrics
-    static_configs:
-      - targets: ["repo-0:6060"]
-        labels:
-          role: repo
-
-  - job_name: prometheus
-    static_configs:
-      - targets: ["localhost:9090"]
+  # compose.production.yaml: one service per role (remove the job above). Add a target per
+  # extra repo node (repo-1, …).
+  # - job_name: sourcegull-web
+  #   static_configs:
+  #     - targets: ["web:6060"]
+  #       labels:
+  #         role: web
+  # - job_name: sourcegull-worker
+  #   static_configs:
+  #     - targets: ["worker:6060"]
+  #       labels:
+  #         role: worker
+  # - job_name: sourcegull-blob
+  #   static_configs:
+  #     - targets: ["blob:6060"]
+  #       labels:
+  #         role: blob
+  # - job_name: sourcegull-repo
+  #   static_configs:
+  #     - targets: ["repo-0:6060"]
+  #       labels:
+  #         role: repo

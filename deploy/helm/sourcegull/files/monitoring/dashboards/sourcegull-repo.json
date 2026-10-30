@@ -95,7 +95,7 @@
             "type": "prometheus",
             "uid": "${datasource}"
           },
-          "expr": "min by (instance) (sourcegull_repo_disk_free_bytes{role=\"repo\"} / sourcegull_repo_disk_total_bytes{role=\"repo\"})",
+          "expr": "min by (instance) (sourcegull_repo_disk_free_bytes{role=~\"repo|all\"} / sourcegull_repo_disk_total_bytes{role=~\"repo|all\"})",
           "legendFormat": "{{instance}}",
           "range": true,
           "refId": "A"
@@ -160,7 +160,7 @@
             "type": "prometheus",
             "uid": "${datasource}"
           },
-          "expr": "min by (instance) (sourcegull_repo_disk_free_bytes{role=\"repo\"})",
+          "expr": "min by (instance) (sourcegull_repo_disk_free_bytes{role=~\"repo|all\"})",
           "legendFormat": "{{instance}}",
           "range": true,
           "refId": "A"
@@ -238,7 +238,7 @@
             "type": "prometheus",
             "uid": "${datasource}"
           },
-          "expr": "sum by (kind, outcome) (rate(sourcegull_repo_updates_total{role=\"repo\"}[5m]))",
+          "expr": "sum by (kind, outcome) (rate(sourcegull_repo_updates_total{role=~\"repo|all\"}[5m]))",
           "legendFormat": "{{kind}} {{outcome}}",
           "range": true,
           "refId": "A"
@@ -311,7 +311,7 @@
             "type": "prometheus",
             "uid": "${datasource}"
           },
-          "expr": "(sum by (kind) (rate(sourcegull_repo_updates_total{role=\"repo\",outcome=\"error\"}[30m])) or 0 * sum by (kind) (rate(sourcegull_repo_updates_total{role=\"repo\"}[30m])))\n/ sum by (kind) (rate(sourcegull_repo_updates_total{role=\"repo\"}[30m]))",
+          "expr": "(sum by (kind) (rate(sourcegull_repo_updates_total{role=~\"repo|all\",outcome=\"error\"}[30m])) or 0 * sum by (kind) (rate(sourcegull_repo_updates_total{role=~\"repo|all\"}[30m])))\n/ sum by (kind) (rate(sourcegull_repo_updates_total{role=~\"repo|all\"}[30m]))",
           "legendFormat": "{{kind}}",
           "range": true,
           "refId": "A"
@@ -376,7 +376,7 @@
             "type": "prometheus",
             "uid": "${datasource}"
           },
-          "expr": "histogram_quantile(0.9, sum by (le, kind) (rate(sourcegull_repo_update_duration_seconds_bucket{role=\"repo\"}[15m])))",
+          "expr": "histogram_quantile(0.9, sum by (le, kind) (rate(sourcegull_repo_update_duration_seconds_bucket{role=~\"repo|all\"}[15m])))",
           "legendFormat": "{{kind}}",
           "range": true,
           "refId": "A"
@@ -804,7 +804,7 @@
             "type": "prometheus",
             "uid": "${datasource}"
           },
-          "expr": "max by (instance) (sourcegull_index_queue_length{role=\"repo\"})",
+          "expr": "max by (instance) (sourcegull_index_queue_length{role=~\"repo|all\"})",
           "legendFormat": "{{instance}}",
           "range": true,
           "refId": "A"
@@ -869,7 +869,7 @@
             "type": "prometheus",
             "uid": "${datasource}"
           },
-          "expr": "sum by (outcome) (rate(sourcegull_index_updates_total{role=\"repo\"}[5m]))",
+          "expr": "sum by (outcome) (rate(sourcegull_index_updates_total{role=~\"repo|all\"}[5m]))",
           "legendFormat": "{{outcome}}",
           "range": true,
           "refId": "A"
@@ -938,7 +938,7 @@
             "type": "prometheus",
             "uid": "${datasource}"
           },
-          "expr": "(sum(rate(sourcegull_index_updates_total{role=\"repo\",outcome=\"error\"}[30m])) or 0 * sum(rate(sourcegull_index_updates_total{role=\"repo\"}[30m])))\n/ sum(rate(sourcegull_index_updates_total{role=\"repo\"}[30m]))",
+          "expr": "(sum(rate(sourcegull_index_updates_total{role=~\"repo|all\",outcome=\"error\"}[30m])) or 0 * sum(rate(sourcegull_index_updates_total{role=~\"repo|all\"}[30m])))\n/ sum(rate(sourcegull_index_updates_total{role=~\"repo|all\"}[30m]))",
           "legendFormat": "__auto",
           "range": true,
           "refId": "A"
@@ -1003,7 +1003,7 @@
             "type": "prometheus",
             "uid": "${datasource}"
           },
-          "expr": "histogram_quantile(0.9, sum by (le) (rate(sourcegull_index_build_duration_seconds_bucket{role=\"repo\"}[30m])))",
+          "expr": "histogram_quantile(0.9, sum by (le) (rate(sourcegull_index_build_duration_seconds_bucket{role=~\"repo|all\"}[30m])))",
           "legendFormat": "__auto",
           "range": true,
           "refId": "A"
@@ -1276,7 +1276,7 @@
             "type": "prometheus",
             "uid": "${datasource}"
           },
-          "expr": "sum by (outcome) (rate(sourcegull_repo_moves_total{role=\"repo\"}[5m]))",
+          "expr": "sum by (outcome) (rate(sourcegull_repo_moves_total{role=~\"repo|all\"}[5m]))",
           "legendFormat": "{{outcome}}",
           "range": true,
           "refId": "A"
@@ -1341,7 +1341,7 @@
             "type": "prometheus",
             "uid": "${datasource}"
           },
-          "expr": "sum by (instance) (rate(sourcegull_repo_move_bytes_total{role=\"repo\"}[5m]))",
+          "expr": "sum by (instance) (rate(sourcegull_repo_move_bytes_total{role=~\"repo|all\"}[5m]))",
           "legendFormat": "{{instance}}",
           "range": true,
           "refId": "A"
@@ -1492,7 +1492,7 @@
             "type": "prometheus",
             "uid": "${datasource}"
           },
-          "expr": "up{role=\"repo\"}",
+          "expr": "up{role=~\"repo|all\"}",
           "legendFormat": "{{instance}}",
           "range": true,
           "refId": "A"
