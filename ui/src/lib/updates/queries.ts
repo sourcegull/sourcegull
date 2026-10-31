@@ -28,12 +28,6 @@ export interface SchemaDriftSummary {
 
 export type UpgradeReadinessResult = UpgradeReadinessQuery;
 
-/** Sourcegull's own version from `productVersion` (`5.3.0+sourcegull.0.1.0` → `0.1.0`). */
-export function sourcegullVersion(productVersion: string): string {
-	const i = productVersion.indexOf('+sourcegull.');
-	return i < 0 ? productVersion : productVersion.slice(i + '+sourcegull.'.length);
-}
-
 /** All fix statements of a drift report, one per line, to copy into psql. */
 export function allStatements(drift: SchemaDriftSummary[]): string {
 	return drift.flatMap((d) => d.statements ?? []).join('\n');

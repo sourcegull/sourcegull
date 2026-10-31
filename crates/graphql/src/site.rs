@@ -24,9 +24,6 @@ pub fn site_id() -> ID {
     ID(marshal_string_id("Site", "site"))
 }
 
-/// The API version reported to clients, which gate features on it.
-pub const COMPATIBLE_VERSION: &str = "5.3.0";
-
 /// The site (singleton).
 pub struct Site;
 
@@ -78,13 +75,9 @@ impl Site {
         crate::settings::cascade(ctx, sourcegull_types::SettingsSubject::Global).await
     }
 
-    /// The version clients check for features: the API version (command-line clients gate batch
-    /// changes features on it), with Sourcegull's version as build metadata.
+    /// Sourcegull's version.
     async fn product_version(&self) -> String {
-        format!(
-            "{COMPATIBLE_VERSION}+sourcegull.{}",
-            env!("CARGO_PKG_VERSION")
-        )
+        env!("CARGO_PKG_VERSION").to_owned()
     }
 
     /// The site configuration (site admins only).

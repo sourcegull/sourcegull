@@ -623,12 +623,7 @@ async fn cli_operations() {
             json!({}),
         )
         .await;
-    assert!(
-        data["site"]["productVersion"]
-            .as_str()
-            .unwrap()
-            .starts_with("5.")
-    );
+    assert_eq!(data["site"]["productVersion"], env!("CARGO_PKG_VERSION"));
     let data = env
         .ok(
             alice,
