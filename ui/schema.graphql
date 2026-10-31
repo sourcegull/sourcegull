@@ -9298,8 +9298,7 @@ type Site implements SettingsSubject {
 	"""
 	settingsCascade: SettingsCascade!
 	"""
-	The version clients check for features: the API version (command-line clients gate batch
-	changes features on it), with Sourcegull's version as build metadata.
+	Sourcegull's version.
 	"""
 	productVersion: String!
 	"""

@@ -4,7 +4,6 @@
 	import {
 		UPGRADE_READINESS,
 		allStatements,
-		sourcegullVersion,
 		type UpgradeReadinessResult
 	} from '#lib/updates/queries.ts';
 	import { percent } from '#lib/updates/migrations.ts';
@@ -52,7 +51,7 @@
 	<dl class="card facts">
 		<div>
 			<dt>Sourcegull</dt>
-			<dd class="mono">{sourcegullVersion(result.productVersion)}</dd>
+			<dd class="mono">{result.productVersion}</dd>
 		</div>
 		{#if readiness.schemaVersion}
 			<div>
