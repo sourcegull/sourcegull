@@ -300,6 +300,7 @@ async fn merged_routes_share_state_and_middleware() {
 #[test]
 fn csp_allows_the_bootstrap_script_only_by_hash() {
     let csp = sourcegull_http_api::content_security_policy();
+    let csp = csp.to_str().unwrap();
     assert!(csp.contains("frame-ancestors 'none'"));
     let script_src = csp
         .split(';')

@@ -1,7 +1,5 @@
 //! The embedded web UI: static files with ETag revalidation and the SPA fallback.
 
-use std::sync::LazyLock;
-
 use axum::Json;
 use axum::body::Body;
 use axum::http::{HeaderMap, HeaderValue, Method, StatusCode, Uri, header};
@@ -98,22 +96,50 @@ fn etag_matches(if_none_match: &str, etag: &str) -> bool {
 /// hash. `'wasm-unsafe-eval'` lets the search query parser (`/query.wasm`) compile; it allows
 /// WebAssembly only, not `eval`. Inline styles are allowed because CodeMirror injects `<style>`
 /// elements at runtime.
-pub fn content_security_policy() -> &'static str {
-    static CSP: LazyLock<String> = LazyLock::new(|| {
+///
+/// A release binary embeds the UI, so the policy is computed once. A debug binary reads `ui/build`
+/// from disk on every request, and `npm run build` writes a new inline script, so the policy is
+/// recomputed whenever `index.html` changes (keyed by its `ETag`).
+pub fn content_security_policy() -> HeaderValue {
+    #[cfg(not(debug_assertions))]
+    {
+        static CSP: std::sync::LazyLock<HeaderValue> =
+            std::sync::LazyLock::new(|| policy_header(&sourcegull_web_assets::index_html().bytes));
+        CSP.clone()
+    }
+    #[cfg(debug_assertions)]
+    {
+        static CSP: std::sync::Mutex<Option<(String, HeaderValue)>> = std::sync::Mutex::new(None);
         let index = sourcegull_web_assets::index_html();
-        let html = String::from_utf8_lossy(&index.bytes);
-        let mut script_src = String::from("'self' 'wasm-unsafe-eval'");
-        for script in inline_scripts(&html) {
-            let hash = STANDARD.encode(Sha256::digest(script.as_bytes()));
-            script_src.push_str(&format!(" 'sha256-{hash}'"));
+        let mut cached = CSP.lock().unwrap_or_else(|e| e.into_inner());
+        match &*cached {
+            Some((etag, csp)) if *etag == index.etag => csp.clone(),
+            _ => {
+                let csp = policy_header(&index.bytes);
+                *cached = Some((index.etag, csp.clone()));
+                csp
+            }
         }
-        format!(
-            "default-src 'self'; script-src {script_src}; style-src 'self' 'unsafe-inline'; \
-             img-src 'self' data:; font-src 'self' data:; connect-src 'self'; \
-             object-src 'none'; base-uri 'self'; form-action 'self'; frame-ancestors 'none'"
-        )
-    });
-    &CSP
+    }
+}
+
+fn policy_header(index_html: &[u8]) -> HeaderValue {
+    HeaderValue::from_str(&policy(&String::from_utf8_lossy(index_html)))
+        .expect("the policy is visible ASCII")
+}
+
+/// The policy for an `index.html`: its inline scripts are allowed by hash.
+fn policy(index_html: &str) -> String {
+    let mut script_src = String::from("'self' 'wasm-unsafe-eval'");
+    for script in inline_scripts(index_html) {
+        let hash = STANDARD.encode(Sha256::digest(script.as_bytes()));
+        script_src.push_str(&format!(" 'sha256-{hash}'"));
+    }
+    format!(
+        "default-src 'self'; script-src {script_src}; style-src 'self' 'unsafe-inline'; \
+         img-src 'self' data:; font-src 'self' data:; connect-src 'self'; \
+         object-src 'none'; base-uri 'self'; form-action 'self'; frame-ancestors 'none'"
+    )
 }
 
 /// The bodies of `<script>` elements without a `src` attribute.
@@ -147,6 +173,19 @@ mod tests {
         assert!(etag_matches("\"x\", \"abc\"", "\"abc\""));
         assert!(etag_matches("*", "\"abc\""));
         assert!(!etag_matches("\"abd\"", "\"abc\""));
+    }
+
+    #[test]
+    fn policy_follows_the_inline_script() {
+        let a = policy("<script>start(1)</script>");
+        let b = policy("<script>start(2)</script>");
+        assert_ne!(a, b);
+        let hash = STANDARD.encode(Sha256::digest(b"start(2)"));
+        assert!(b.contains(&format!("'sha256-{hash}'")), "{b}");
+        assert_eq!(
+            content_security_policy(),
+            policy_header(&sourcegull_web_assets::index_html().bytes)
+        );
     }
 
     #[test]

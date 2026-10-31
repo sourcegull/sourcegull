@@ -70,7 +70,7 @@ to the new text showing in the browser, with the default container limits (4 cor
 | Where | How | Time |
 |---|---|---|
 | Vite, `:5173` | nothing: the page updates in place (hot module replacement) | under 0.1 s |
-| Debug backend, `:7080` | `npm run build` in `ui/`, then `scripts/dev restart` | ~18 s |
+| Debug backend, `:7080` | `npm run build` in `ui/`, then reload the page | ~6 s |
 | Production image | `scripts/image-build.sh --test …`, then restart the container | ~4 min |
 
 Use Vite on `:5173` for UI work. It proxies `/.api`, `/.auth`, `/.executors` and `/-/` to the
@@ -79,10 +79,9 @@ backend on `:7080`, so pages show real data. Only Rust changes need the backend 
 
 - The services mount the checkout `docker compose` runs from. To serve a git worktree, run
   `docker compose up -d --no-deps ui sourcegull` from inside it.
-- `:7080` serves the UI that is embedded in the binary. A debug binary reads `ui/build` from disk,
-  but a rebuilt UI still needs a backend restart: the `Content-Security-Policy` header holds
-  the hash of `index.html`'s inline script, computed when the server starts, so until the restart
-  the browser refuses to run the new script and the page stays blank.
+- `:7080` serves the UI that is embedded in the binary. A debug binary reads `ui/build` from disk
+  on every request, so a rebuilt UI shows after a reload. `ui/build` must exist when the binary
+  is compiled; otherwise it embeds a placeholder page until the next build.
 - A test image is only worth building to try the packaged binary, for example on a local
   Kubernetes cluster ([resource limits](#resource-limits)). The UI is embedded in the binary,
   so any UI change recompiles the `sourcegull` crate and relinks it.
