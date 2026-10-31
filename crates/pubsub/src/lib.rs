@@ -13,8 +13,10 @@
 //! notifications are not durable, so a subscriber reloads its state then. Each subscriber should
 //! still poll as a fallback.
 //!
-//! The shared connection is found by the pool's server, database and user, so callers need only
-//! their pool. It is closed when the last subscription is dropped.
+//! The shared connection is found by the pool's database and user, so callers need only their
+//! pool. It follows the pool's server: when that changes (a replicated cluster's new primary,
+//! see `sourcegull_db::cluster`), it reconnects there within [`FOLLOW_INTERVAL`]. It is closed
+//! when the last subscription is dropped.
 
 use std::collections::{HashMap, HashSet};
 use std::sync::{Arc, LazyLock, Mutex, PoisonError, Weak};
@@ -30,6 +32,8 @@ const RETRY_MIN: Duration = Duration::from_secs(1);
 const RETRY_MAX: Duration = Duration::from_secs(30);
 /// Bound on connecting and issuing `LISTEN`.
 const CONNECT_TIMEOUT: Duration = Duration::from_secs(10);
+/// How often the connection checks that it is still on its source pool's server.
+const FOLLOW_INTERVAL: Duration = Duration::from_secs(1);
 /// Events buffered per subscriber; one that falls further behind gets [`Event::Resync`].
 const BUFFER: usize = 1024;
 
@@ -96,10 +100,10 @@ pub fn subscribe(
     channels: &[&str],
 ) -> impl Future<Output = Subscription> + Send + 'static {
     // Nothing borrowed is kept, so callers can pass temporaries.
-    let options = (*pool.connect_options()).clone();
+    let source = pool.clone();
     let channels: HashSet<String> = channels.iter().map(|c| (*c).to_owned()).collect();
     async move {
-        let hub = hub(options);
+        let hub = hub(source);
         let (ack, done) = oneshot::channel();
         if hub
             .commands
@@ -135,19 +139,19 @@ enum Command {
 /// Live hubs by database. Entries die with their last subscription.
 static HUBS: LazyLock<Mutex<HashMap<String, Weak<Hub>>>> = LazyLock::new(Default::default);
 
+/// The server is left out: a pool following a replicated cluster's primary changes host, and
+/// keeps its hub.
 fn hub_key(o: &PgConnectOptions) -> String {
     format!(
-        "{}:{}:{:?}/{}/{}",
-        o.get_host(),
-        o.get_port(),
+        "{:?}/{}/{}",
         o.get_socket(),
         o.get_database().unwrap_or_default(),
         o.get_username()
     )
 }
 
-fn hub(options: PgConnectOptions) -> Arc<Hub> {
-    let key = hub_key(&options);
+fn hub(source: PgPool) -> Arc<Hub> {
+    let key = hub_key(&source.connect_options());
     let mut hubs = HUBS.lock().unwrap_or_else(PoisonError::into_inner);
     hubs.retain(|_, hub| hub.strong_count() > 0);
     // A hub whose task is gone (it ran on a runtime that has shut down) is replaced.
@@ -159,7 +163,7 @@ fn hub(options: PgConnectOptions) -> Arc<Hub> {
     let (commands, rx) = mpsc::unbounded_channel();
     let (events, _) = broadcast::channel(BUFFER);
     let connected = Arc::new(std::sync::atomic::AtomicBool::new(false));
-    tokio::spawn(run_hub(options, rx, events.clone(), connected.clone()));
+    tokio::spawn(run_hub(source, rx, events.clone(), connected.clone()));
     let hub = Arc::new(Hub {
         commands,
         events,
@@ -172,15 +176,19 @@ fn hub(options: PgConnectOptions) -> Arc<Hub> {
 /// Owns the connection: listens on every channel asked for, forwards notifications and
 /// reconnects with backoff. Ends when every subscription is dropped.
 async fn run_hub(
-    options: PgConnectOptions,
+    source: PgPool,
     mut commands: mpsc::UnboundedReceiver<Command>,
     events: broadcast::Sender<Event>,
     connected: Arc<std::sync::atomic::AtomicBool>,
 ) {
-    let name = format!(
-        "{}:listen",
-        options.get_application_name().unwrap_or("sourcegull")
-    );
+    let listen_options = || {
+        let options = (*source.connect_options()).clone();
+        let name = format!(
+            "{}:listen",
+            options.get_application_name().unwrap_or("sourcegull")
+        );
+        options.application_name(&name)
+    };
     // A one-connection pool only because `PgListener` wants one; it is never shared.
     let pool = PgPoolOptions::new()
         .max_connections(1)
@@ -188,7 +196,9 @@ async fn run_hub(
         .acquire_timeout(CONNECT_TIMEOUT)
         .idle_timeout(None)
         .max_lifetime(None)
-        .connect_lazy_with(options.application_name(&name));
+        .connect_lazy_with(listen_options());
+    let mut follow = tokio::time::interval(FOLLOW_INTERVAL);
+    follow.set_missed_tick_behavior(tokio::time::MissedTickBehavior::Delay);
     let mut channels: HashSet<String> = HashSet::new();
     let mut listener: Option<PgListener> = None;
     let mut retry = RETRY_MIN;
@@ -243,6 +253,22 @@ async fn run_hub(
                     }
                 }
                 set_connected(&listener);
+            }
+            _ = follow.tick() => {
+                let wanted = listen_options();
+                let current = pool.connect_options();
+                if (wanted.get_host(), wanted.get_port()) != (current.get_host(), current.get_port()) {
+                    tracing::info!(
+                        host = wanted.get_host(),
+                        "database server changed; moving the notification listener"
+                    );
+                    pool.set_connect_options(wanted);
+                    if listener.take().is_some() {
+                        next_attempt = Instant::now();
+                        retry = RETRY_MIN;
+                    }
+                    set_connected(&listener);
+                }
             }
             () = tokio::time::sleep_until(next_attempt), if listener.is_none() && !channels.is_empty() => {
                 listener = connect(&pool, &channels, &events, &mut retry, &mut next_attempt).await;
@@ -309,7 +335,9 @@ mod tests {
             PgConnectOptions::from_str("postgres://u:other@h:5432/a?application_name=x").unwrap();
         let b = PgConnectOptions::from_str("postgres://u:p@h:5432/b").unwrap();
         let c = PgConnectOptions::from_str("postgres://v:p@h:5432/a").unwrap();
+        let moved = PgConnectOptions::from_str("postgres://u:p@h2:5433/a").unwrap();
         assert_eq!(hub_key(&a), hub_key(&a2));
+        assert_eq!(hub_key(&a), hub_key(&moved));
         assert_ne!(hub_key(&a), hub_key(&b));
         assert_ne!(hub_key(&a), hub_key(&c));
     }

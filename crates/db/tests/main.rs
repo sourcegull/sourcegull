@@ -2,6 +2,7 @@
 //! A new file under `tests/` must be declared here.
 
 mod admin_logs;
+mod cluster;
 mod db;
 mod executor_secrets;
 mod external_accounts;

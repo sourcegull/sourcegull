@@ -22,6 +22,7 @@
 //! [`sourcegull_pgqueue`] shape; their stores enqueue and list, and workers run them with
 //! `sourcegull_pgqueue::Queue`.
 
+pub mod cluster;
 mod db;
 mod error;
 mod fence;
