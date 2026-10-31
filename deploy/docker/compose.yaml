@@ -40,7 +40,7 @@ services:
 
   # `supervise`: creates the key file if missing, applies migrations, runs every role.
   sourcegull:
-    image: ${SOURCEGULL_IMAGE:-ghcr.io/sourcegull/sourcegull}:${SOURCEGULL_VERSION:-0.2.0}
+    image: ${SOURCEGULL_IMAGE:-ghcr.io/sourcegull/sourcegull}:${SOURCEGULL_VERSION:-0.3.0}
     restart: unless-stopped
     command: ["supervise"]
     read_only: true

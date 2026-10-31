@@ -28,8 +28,8 @@ cd sourcegull-compose
 
 # 1. Take the new release's Compose files (extracted over the old ones; the bundle holds no
 #    .env, secrets/ or files of yours in config/), and point the stack at the new version.
-curl -fsSL https://github.com/sourcegull/sourcegull/releases/download/v0.2.0/sourcegull-compose.tar.gz | tar -xz -C ..
-sed -i 's/^SOURCEGULL_VERSION=.*/SOURCEGULL_VERSION=0.2.0/' .env
+curl -fsSL https://github.com/sourcegull/sourcegull/releases/download/v0.3.0/sourcegull-compose.tar.gz | tar -xz -C ..
+sed -i 's/^SOURCEGULL_VERSION=.*/SOURCEGULL_VERSION=0.3.0/' .env
 
 # 2. Pull the new images.
 docker compose pull

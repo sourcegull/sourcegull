@@ -24,7 +24,7 @@
 name: sourcegull
 
 x-sourcegull-image: &sourcegull-image
-  image: ${SOURCEGULL_IMAGE:-ghcr.io/sourcegull/sourcegull}:${SOURCEGULL_VERSION:-0.2.0}
+  image: ${SOURCEGULL_IMAGE:-ghcr.io/sourcegull/sourcegull}:${SOURCEGULL_VERSION:-0.3.0}
 
 x-sourcegull-common: &sourcegull-common
   <<: *sourcegull-image
@@ -265,7 +265,7 @@ services:
   # sidecar (DOCKER_HOST=tcp://dind:2375) to keep jobs off the host daemon.
   executor:
     profiles: ["executors"]
-    image: ${SOURCEGULL_IMAGE:-ghcr.io/sourcegull/sourcegull}:${SOURCEGULL_VERSION:-0.2.0}
+    image: ${SOURCEGULL_IMAGE:-ghcr.io/sourcegull/sourcegull}:${SOURCEGULL_VERSION:-0.3.0}
     restart: unless-stopped
     command: ["executor"]
     environment:

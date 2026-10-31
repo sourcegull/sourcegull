@@ -122,7 +122,7 @@ FROM debian:${DEBIAN_SUITE}-slim AS cli
 RUN apt-get update \
  && apt-get install -y --no-install-recommends ca-certificates git \
  && rm -rf /var/lib/apt/lists/* /var/cache/apt/archives/* /var/log/apt /var/log/dpkg.log
-ARG VERSION=0.2.0
+ARG VERSION=0.3.0
 LABEL org.opencontainers.image.title="sourcegull-cli" \
       org.opencontainers.image.description="The gull command-line client" \
       org.opencontainers.image.licenses="Apache-2.0" \
@@ -152,7 +152,7 @@ RUN groupadd --system --gid 10001 sourcegull \
 COPY --from=builder /out/sourcegull /usr/local/bin/sourcegull
 COPY --from=builder /out/gull /usr/local/bin/gull
 
-ARG VERSION=0.2.0
+ARG VERSION=0.3.0
 ARG REVISION=unknown
 LABEL org.opencontainers.image.title="sourcegull" \
       org.opencontainers.image.description="Self-hosted code intelligence platform" \

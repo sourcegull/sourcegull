@@ -204,6 +204,7 @@ use that only on throwaway installs.
 |---|---|
 | 0.1.0 | First release |
 | 0.2.0 | Sourcegull 0.2.0; dashboards and alerts also match `role="all"` |
+| 0.2.1 | Sourcegull 0.3.0 |
 
 ## Testing the chart
 

@@ -64,6 +64,7 @@ macro_rules! release {
 pub const RELEASES: &[Release] = &[
     release!("0.1.0", 20261208000001),
     release!("0.2.0", 20261208000001),
+    release!("0.3.0", 20261208000001),
 ];
 
 /// The description of the schema of every embedded migration (the version under
