@@ -122,7 +122,6 @@ pub fn internal_router(state: AppState) -> Router {
 /// authentication with the CSRF check ([`authenticate`](crate::authenticate)).
 pub fn finish(routes: Router<AppState>, state: AppState) -> Router {
     let request_id = HeaderName::from_static(REQUEST_ID_HEADER);
-    let csp = HeaderValue::from_static(assets::content_security_policy());
     let stack = ServiceBuilder::new()
         .layer(SetRequestIdLayer::new(request_id.clone(), MakeRequestUuid))
         .layer(TraceLayer::new_for_http().make_span_with(make_span))
@@ -141,7 +140,7 @@ pub fn finish(routes: Router<AppState>, state: AppState) -> Router {
         ))
         .layer(SetResponseHeaderLayer::if_not_present(
             header::CONTENT_SECURITY_POLICY,
-            csp,
+            |_: &Response<_>| Some(assets::content_security_policy()),
         ))
         // The default predicate already excludes text/event-stream, images, gRPC and bodies
         // under 32 bytes.
