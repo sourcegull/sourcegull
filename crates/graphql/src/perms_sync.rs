@@ -439,6 +439,23 @@ fn sign_in_provider<'a>(
     })
 }
 
+/// `User.permissionsSyncInProgress`; false for site admins who read every repository anyway.
+/// The caller checks access.
+pub(crate) async fn user_sync_in_progress(
+    ctx: &Context<'_>,
+    user: &sourcegull_types::User,
+) -> Result<bool> {
+    let svc = services(ctx)?;
+    if user.site_admin && !svc.config.load().value.authz_enforce_for_site_admins {
+        return Ok(false);
+    }
+    svc.db
+        .perms_sync_jobs()
+        .user_sync_in_progress(user.id)
+        .await
+        .map_err(db_error)
+}
+
 /// `User.permissionsInfo` (site admins only).
 pub(crate) async fn user_permissions_info(
     ctx: &Context<'_>,

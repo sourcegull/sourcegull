@@ -733,3 +733,72 @@ async fn code_host_sign_ins_needed() {
     let other = "query { user(username: \"alice\") { codeHostSignInsNeeded { reason } } }";
     assert_eq!(env.code(bob, other, json!({})).await, "FORBIDDEN");
 }
+
+#[tokio::test]
+async fn permissions_sync_in_progress() {
+    let Some(env) = setup().await else { return };
+    const QUERY: &str = "{ currentUser { permissionsSyncInProgress } }";
+    let in_progress = |data: &Value| data["currentUser"]["permissionsSyncInProgress"].clone();
+    let job = |state: &'static str, reason: &'static str| {
+        let db = env.db.clone();
+        let alice = env.alice;
+        async move {
+            sourcegull_db::sqlx::query(
+                "INSERT INTO permission_sync_jobs (state, user_id, reason) VALUES ($1, $2, $3)",
+            )
+            .bind(state)
+            .bind(alice)
+            .bind(reason)
+            .execute(db.pool())
+            .await
+            .unwrap();
+        }
+    };
+    assert_eq!(
+        in_progress(&env.ok(env.alice, QUERY, json!({})).await),
+        json!(false)
+    );
+
+    // A finished sync is not in progress.
+    job("completed", "user_signed_in").await;
+    assert_eq!(
+        in_progress(&env.ok(env.alice, QUERY, json!({})).await),
+        json!(false)
+    );
+
+    // Any queued sync counts while the user has never been synced.
+    job("queued", "scheduled").await;
+    assert_eq!(
+        in_progress(&env.ok(env.alice, QUERY, json!({})).await),
+        json!(true)
+    );
+
+    // Once synced, only the sync a sign-in queued counts.
+    env.db
+        .perms_sync_jobs()
+        .mark_user_synced(env.alice)
+        .await
+        .unwrap();
+    assert_eq!(
+        in_progress(&env.ok(env.alice, QUERY, json!({})).await),
+        json!(false)
+    );
+    job("processing", "user_signed_in").await;
+    assert_eq!(
+        in_progress(&env.ok(env.alice, QUERY, json!({})).await),
+        json!(true)
+    );
+
+    // Site admins read everything, so their syncs never hide repositories; others may not ask.
+    let admin_query = "query { user(username: \"alice\") { permissionsSyncInProgress } }";
+    assert_eq!(
+        env.ok(env.admin, admin_query, json!({})).await["user"]["permissionsSyncInProgress"],
+        json!(true)
+    );
+    assert_eq!(
+        in_progress(&env.ok(env.admin, QUERY, json!({})).await),
+        json!(false)
+    );
+    let bob = user(&env.db, "bob").await;
+    assert_eq!(env.code(bob, admin_query, json!({})).await, "FORBIDDEN");
+}

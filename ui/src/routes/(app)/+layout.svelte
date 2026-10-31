@@ -8,6 +8,7 @@
 	import CodeHostSignInBanner from '#lib/components/CodeHostSignInBanner.svelte';
 	import Icon from '#lib/components/Icon.svelte';
 	import { mainNav } from '#lib/components/nav.ts';
+	import PermissionsSyncBanner from '#lib/components/PermissionsSyncBanner.svelte';
 	import StatusMessagesNavItem from '#lib/components/StatusMessagesNavItem.svelte';
 	import UserMenu from '#lib/components/UserMenu.svelte';
 	import Wordmark from '#lib/components/Wordmark.svelte';
@@ -140,6 +141,7 @@
 
 		{#if data.auth.user}
 			<CodeHostSignInBanner />
+			<PermissionsSyncBanner />
 		{/if}
 
 		<main id="main" tabindex="-1">

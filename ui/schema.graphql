@@ -10168,6 +10168,11 @@ type User implements TeamMember & Namespace & SettingsSubject & Node {
 	"""
 	codeHostSignInsNeeded: [CodeHostSignIn!]!
 	"""
+	Whether a permissions sync that may change which repositories the user sees is queued or
+	running, such as the one their sign-in started (the user themself or site admins only).
+	"""
+	permissionsSyncInProgress: Boolean!
+	"""
 	When the user's code host permissions were last synced (site admins only).
 	"""
 	permissionsInfo: UserPermissionsInfo!

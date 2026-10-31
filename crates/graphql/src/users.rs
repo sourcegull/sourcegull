@@ -258,6 +258,13 @@ impl UserNode {
         crate::perms_sync::user_code_host_sign_ins(ctx, self.0.id).await
     }
 
+    /// Whether a permissions sync that may change which repositories the user sees is queued or
+    /// running, such as the one their sign-in started (the user themself or site admins only).
+    async fn permissions_sync_in_progress(&self, ctx: &Context<'_>) -> Result<bool> {
+        require_self_or_site_admin(ctx, self.0.id)?;
+        crate::perms_sync::user_sync_in_progress(ctx, &self.0).await
+    }
+
     /// When the user's code host permissions were last synced (site admins only).
     async fn permissions_info(
         &self,
