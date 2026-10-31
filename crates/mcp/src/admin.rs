@@ -5,9 +5,6 @@
 
 use sourcegull_services::{AppState, SiteConfigSource};
 
-/// Where the user docs for changing settings with an agent are.
-const DOCS_URL: &str = "https://github.com/sourcegull/sourcegull/blob/main/docs/configuration.md#changing-settings-with-an-agent";
-
 /// Which configuration comes from files instead of the database.
 #[derive(Debug, Default, Clone, PartialEq, Eq)]
 pub(crate) struct Sources {
@@ -110,7 +107,7 @@ pub(crate) fn instructions(base: &str, s: &Sources) -> String {
     }
     out.push_str(&format!(
         "\nThe schema is introspectable; the site configuration schema is at \
-         `{base}/.api/site-config-schema`. Details: {DOCS_URL}"
+         `{base}/.api/site-config-schema`."
     ));
     out
 }
@@ -129,6 +126,11 @@ mod tests {
         assert!(text.contains("updateSiteConfiguration"));
         assert!(text.contains("overwriteSettings"));
         assert!(!text.contains("from files"));
+        assert!(text.contains("https://sg.example.com/.api/site-config-schema"));
+        assert!(
+            !text.contains("github.com"),
+            "only this instance is referenced"
+        );
     }
 
     #[test]
