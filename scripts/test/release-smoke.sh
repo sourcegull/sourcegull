@@ -2,10 +2,13 @@
 # Smoke test of a built image, for any platform Docker can run (another architecture needs QEMU
 # registered on the host):
 # Postgres in a container and `supervise` (migrations, then every role); waits for /readyz and
-# loads the sign-up page. The release workflow runs it before pushing.
+# loads the sign-up page, then compares the migrated schema with a version's description
+# (`migrate drift`). The release workflow runs it before pushing.
 #
 # Usage: scripts/test/release-smoke.sh <image> [platform]   e.g. linux/arm64
 #   SMOKE_TIMEOUT  seconds to wait for /readyz (default 300; emulation is slow)
+#   SMOKE_VERSION  version whose schema description the database must match (default: the
+#                  version the database is at)
 set -euo pipefail
 IMAGE=${1:?usage: release-smoke.sh <image> [platform]}
 PLATFORM=${2:-}
@@ -59,4 +62,10 @@ echo "ready: /readyz"
 page=$(curl_ -f http://sourcegull:7080/sign-up)
 grep -q '<html' <<<"$page" || { echo "/sign-up did not return the web UI" >&2; exit 1; }
 echo "ok: /sign-up"
+
+drift=(migrate drift)
+[ -n "${SMOKE_VERSION:-}" ] && drift+=(--version "$SMOKE_VERSION")
+docker run --rm ${PLAT[@]+"${PLAT[@]}"} --network "$NET" -e SOURCEGULL_DATABASE_URL="$DB" \
+  -e SOURCEGULL_KEYS="$KEYS" "$IMAGE" "${drift[@]}"
+echo "ok: ${drift[*]}"
 echo "smoke test passed: $IMAGE ${PLATFORM:-native}"
