@@ -242,6 +242,11 @@ projects the same way. Site admins can see each user's and repository's permissi
 history, and trigger a sync, under Site admin → Repository permissions and on the user and
 repository pages. The `permissions.sync*` keys tune the schedule.
 
+Every sign-in queues a sync of that user ahead of other syncs. Until it finishes, a user who
+signs in for the first time sees only the repositories everyone can read, so Sourcegull shows a
+banner on every page while it runs ("Syncing your repository permissions from your code host"),
+then offers to reload the page.
+
 **Gitea** connections take the same `authorization` block. Private and internal repositories
 (internal: marked internal, or owned by a limited organization or user) become readable only by
 the Sourcegull users who can read their code on Gitea:

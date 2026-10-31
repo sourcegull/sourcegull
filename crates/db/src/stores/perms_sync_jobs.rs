@@ -317,6 +317,21 @@ impl PermsSyncJobStore {
         )
     }
 
+    /// Whether a sync of `user` is queued or running that may change what they can see right
+    /// now: one queued by their sign-in, or any while they have never been synced.
+    pub async fn user_sync_in_progress(&self, user: UserId) -> Result<bool> {
+        Ok(sqlx::query_scalar(
+            "SELECT EXISTS (
+                 SELECT 1 FROM permission_sync_jobs
+                  WHERE user_id = $1 AND state IN ('queued', 'processing')
+                    AND (reason = 'user_signed_in'
+                         OR NOT EXISTS (SELECT 1 FROM user_permissions_sync WHERE user_id = $1)))",
+        )
+        .bind(user)
+        .fetch_one(&self.pool)
+        .await?)
+    }
+
     /// Runs matching `filter`, newest first.
     pub async fn list(&self, filter: &ListPermsSyncJobs) -> Result<Vec<PermsSyncJobRecord>> {
         let (user, repo) = subject_ids(filter.subject);

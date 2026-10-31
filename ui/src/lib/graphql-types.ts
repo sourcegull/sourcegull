@@ -1027,6 +1027,11 @@ export type CodeHostSignInsNeededQueryVariables = Exact<{ [key: string]: never; 
 
 export type CodeHostSignInsNeededQuery = { currentUser: { codeHostSignInsNeeded: Array<{ serviceType: string, serviceID: string, displayName: string, reason: CodeHostSignInReason, authenticationURL: string | null }> } | null };
 
+export type PermissionsSyncInProgressQueryVariables = Exact<{ [key: string]: never; }>;
+
+
+export type PermissionsSyncInProgressQuery = { currentUser: { permissionsSyncInProgress: boolean } | null };
+
 export type AccountEmailsQueryVariables = Exact<{ [key: string]: never; }>;
 
 
