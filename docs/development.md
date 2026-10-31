@@ -62,6 +62,34 @@ never deletes old builds from `target/`, so run `scripts/dev prune` now and then
 can be changed with `SOURCEGULL_HTTP_PORT`, `SOURCEGULL_UI_PORT`, `SOURCEGULL_INTERNAL_PORT`,
 `SOURCEGULL_PG_PORT` and `SOURCEGULL_APP_PORT` (in the environment or a `.env` file).
 
+### Seeing a UI change
+
+Three ways to see a UI change, from fastest to slowest. Times are from saving a one-line change
+to the new text showing in the browser, with the default container limits (4 cores):
+
+| Where | How | Time |
+|---|---|---|
+| Vite, `:5173` | nothing: the page updates in place (hot module replacement) | under 0.1 s |
+| Debug backend, `:7080` | `npm run build` in `ui/`, then `scripts/dev restart` | ~18 s |
+| Production image | `scripts/image-build.sh --test …`, then restart the container | ~4 min |
+
+Use Vite on `:5173` for UI work. It proxies `/.api`, `/.auth`, `/.executors` and `/-/` to the
+backend on `:7080`, so pages show real data. Only Rust changes need the backend restarted
+(`scripts/dev restart`).
+
+- The services mount the checkout `docker compose` runs from. To serve a git worktree, run
+  `docker compose up -d --no-deps ui sourcegull` from inside it.
+- `:7080` serves the UI that is embedded in the binary. A debug binary reads `ui/build` from disk,
+  but a rebuilt UI still needs a backend restart: the `Content-Security-Policy` header holds
+  the hash of `index.html`'s inline script, computed when the server starts, so until the restart
+  the browser refuses to run the new script and the page stays blank.
+- A test image is only worth building to try the packaged binary, for example on a local
+  Kubernetes cluster ([resource limits](#resource-limits)). The UI is embedded in the binary,
+  so any UI change recompiles the `sourcegull` crate and relinks it.
+- Vite accepts only `localhost` names and IP addresses as the host. A browser in another
+  container (headless checks) must use the `ui` container's IP address, not `http://ui:5173`:
+  `docker inspect -f '{{(index .NetworkSettings.Networks "sourcegull-dev_default").IPAddress}}' sourcegull-dev-ui-1`.
+
 ### Development GitLab
 
 Tests use a mock GitLab API (`sourcegull_codehost_gitlab::testing`). To try Sourcegull against a real
