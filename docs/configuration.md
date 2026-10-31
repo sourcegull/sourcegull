@@ -153,6 +153,55 @@ The **settings reference** page at `/help/settings` lists every setting with its
 allowed values and description; the editor's starting document links to it. The schema is
 served at `/.api/settings-schema`.
 
+## Changing settings with an agent
+
+The [MCP tools](mcp.md) are read-only: an agent connected to Sourcegull cannot change the
+instance through them. That keeps the tools that read code (which may hold instructions written
+by anyone) away from the instance's configuration. When a site admin's agent connects, the
+server instructions tell it where changes are made instead:
+
+- **Files.** What comes from `SOURCEGULL_SITE_CONFIG_FILE`, `SOURCEGULL_GLOBAL_SETTINGS_FILE` or
+  `SOURCEGULL_RESOURCES_FILE` is changed in those files (the instructions name the ones in use),
+  checked with `sourcegull config check` and rolled out as usual
+  ([configuration as code](#configuration-as-code)). An agent working in the deployment's
+  repository can propose the change as a merge request.
+- **The GraphQL API**, for everything else, with an [access token](permissions.md#access-tokens)
+  of the admin. Tokens from the MCP browser sign-in do not work there.
+
+For the API route, create a token under **User settings → Access tokens** with a short expiry
+and put it in the environment of the shell the agent runs commands in, not in the conversation:
+
+```sh
+export SOURCEGULL_ADMIN_TOKEN=<token>
+```
+
+The agent then reads and saves documents with the version it read, so a concurrent edit makes
+the save fail instead of being overwritten:
+
+```sh
+api() {
+  curl -sS https://sourcegull.example.com/.api/graphql \
+    -H "Authorization: token $SOURCEGULL_ADMIN_TOKEN" -H 'Content-Type: application/json' -d "$1"
+}
+
+# Site configuration: the version and the document (secrets show as "REDACTED")
+api '{"query":"{ site { configuration { id effectiveContents validationMessages } } }"}'
+
+# Save the edited document; "REDACTED" left in place keeps the stored secret
+api "$(jq -n --arg input "$(cat site-config.jsonc)" --argjson id 42 \
+  '{query: "mutation($id: Int!, $input: String!) { updateSiteConfiguration(lastID: $id, input: $input) }",
+    variables: {id: $id, input: $input}}')"
+
+# Global settings: the subject ID and version, then a save
+api '{"query":"{ site { id latestSettings { id contents } } }"}'
+api "$(jq -n --arg subject "<site id>" --arg contents "$(cat settings.jsonc)" --argjson id 7 \
+  '{query: "mutation($subject: ID!, $id: Int, $contents: String!) { settingsMutation(input: {subject: $subject, lastID: $id}) { overwriteSettings(contents: $contents) { empty { alwaysNil } } } }",
+    variables: {subject: $subject, id: $id, contents: $contents}}')"
+```
+
+The schema can be introspected, and the site configuration's JSON Schema is at
+`/.api/site-config-schema`. Revoke the token when the work is done.
+
 ## Encryption keys
 
 Secrets in the database (code host tokens, OAuth credentials, executor secrets, webhook secrets

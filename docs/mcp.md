@@ -9,7 +9,9 @@ commit, with a hint when output was cut.
 
 ## Tools
 
-All tools are read-only.
+All tools are read-only. A site admin's agent is told in the server instructions how to change
+the instance instead: in the configuration files, or through the GraphQL API with an access token
+([changing settings with an agent](configuration.md#changing-settings-with-an-agent)).
 
 | Tool | Does |
 |---|---|

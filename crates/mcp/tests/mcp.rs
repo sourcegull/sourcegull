@@ -357,6 +357,53 @@ async fn transport_and_auth() {
 }
 
 #[tokio::test]
+async fn admin_instructions_point_to_the_api_or_the_files() {
+    let Some(env) = setup().await else { return };
+    let instructions = async |token: &str| {
+        let v = env
+            .rpc(
+                token,
+                "initialize",
+                json!({ "protocolVersion": "2025-06-18" }),
+            )
+            .await;
+        v["result"]["instructions"].as_str().unwrap().to_owned()
+    };
+
+    let text = instructions(&env.alice).await;
+    assert!(text.contains("find_symbols"));
+    assert!(!text.contains("site admin"), "{text}");
+
+    let text = instructions(&env.admin).await;
+    assert!(text.contains("find_symbols"));
+    assert!(text.contains("site admin"), "{text}");
+    assert!(text.contains("/.api/graphql"), "{text}");
+    assert!(text.contains("SOURCEGULL_ADMIN_TOKEN"), "{text}");
+    assert!(text.contains("updateSiteConfiguration"), "{text}");
+    assert!(text.contains("overwriteSettings"), "{text}");
+
+    // Global settings from a file: the agent is sent to the file, not the mutation.
+    Db::from_pool(env._t.pool.clone())
+        .declared()
+        .record_applied(
+            sourcegull_db::GLOBAL_SETTINGS_SOURCE,
+            "/etc/sourcegull/global-settings.jsonc",
+            &[],
+            false,
+            b"x",
+        )
+        .await
+        .unwrap();
+    let text = instructions(&env.admin).await;
+    assert!(
+        text.contains("SOURCEGULL_GLOBAL_SETTINGS_FILE, `/etc/sourcegull/global-settings.jsonc`"),
+        "{text}"
+    );
+    assert!(!text.contains("overwriteSettings"), "{text}");
+    assert!(text.contains("updateSiteConfiguration"), "{text}");
+}
+
+#[tokio::test]
 async fn search_and_files() {
     let Some(env) = setup().await else { return };
 

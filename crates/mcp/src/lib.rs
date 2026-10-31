@@ -13,10 +13,14 @@
 //! how to sign the user in. Every tool runs as the caller, so repository permissions apply to
 //! every result; an unreadable repository looks like a missing one.
 //!
+//! `initialize` returns server instructions on how to use the tools; a site admin's also say
+//! where changes to the instance are made, since no tool makes them ([`admin`]).
+//!
 //! The tools ([`tools`]) answer in compact text meant for a model's context: ripgrep-like
 //! search results, numbered file lines, one line per symbol, usage or commit, with a hint
 //! when output was cut.
 
+mod admin;
 mod feature;
 mod format;
 pub mod tools;
@@ -127,7 +131,7 @@ async fn handle(
         Value::Array(batch) if !batch.is_empty() => {
             let mut out = Vec::new();
             for m in batch {
-                if let Some(r) = dispatch(&ctx, m).await {
+                if let Some(r) = dispatch(&ctx, &headers, m).await {
                     out.push(r);
                 }
             }
@@ -137,7 +141,7 @@ async fn handle(
                 json_response(Value::Array(out))
             }
         }
-        m => match dispatch(&ctx, m).await {
+        m => match dispatch(&ctx, &headers, m).await {
             Some(r) => json_response(r),
             None => StatusCode::ACCEPTED.into_response(),
         },
@@ -230,7 +234,7 @@ fn rpc_result(id: Value, result: Value) -> Value {
 }
 
 /// Answers one JSON-RPC message; `None` for notifications and responses.
-async fn dispatch(ctx: &tools::Ctx<'_>, msg: Value) -> Option<Value> {
+async fn dispatch(ctx: &tools::Ctx<'_>, headers: &HeaderMap, msg: Value) -> Option<Value> {
     let Value::Object(mut msg) = msg else {
         return Some(rpc_error(
             Value::Null,
@@ -246,7 +250,10 @@ async fn dispatch(ctx: &tools::Ctx<'_>, msg: Value) -> Option<Value> {
     let id = id?;
     let params = msg.remove("params").unwrap_or(Value::Null);
     Some(match method.as_str() {
-        "initialize" => rpc_result(id, initialize(&params)),
+        "initialize" => {
+            let instructions = instructions(ctx, headers).await;
+            rpc_result(id, initialize(&params, &instructions))
+        }
         "ping" => rpc_result(id, json!({})),
         "tools/list" => rpc_result(id, json!({ "tools": tools::definitions() })),
         "tools/call" => {
@@ -266,7 +273,19 @@ async fn dispatch(ctx: &tools::Ctx<'_>, msg: Value) -> Option<Value> {
     })
 }
 
-fn initialize(params: &Value) -> Value {
+/// The server instructions for the caller: [`INSTRUCTIONS`], plus [`admin::instructions`]
+/// for a site admin.
+async fn instructions(ctx: &tools::Ctx<'_>, headers: &HeaderMap) -> String {
+    if !ctx.actor().is_some_and(|a| a.site_admin) {
+        return INSTRUCTIONS.to_owned();
+    }
+    let state = ctx.state();
+    let base = sourcegull_oauth_server::base_url(state, headers).unwrap_or_default();
+    let sources = admin::Sources::load(state).await;
+    format!("{INSTRUCTIONS}{}", admin::instructions(&base, &sources))
+}
+
+fn initialize(params: &Value, instructions: &str) -> Value {
     let requested = params.get("protocolVersion").and_then(Value::as_str);
     let version = requested
         .filter(|v| PROTOCOL_VERSIONS.contains(v))
@@ -279,7 +298,7 @@ fn initialize(params: &Value) -> Value {
             "title": "Sourcegull code search",
             "version": env!("CARGO_PKG_VERSION"),
         },
-        "instructions": INSTRUCTIONS,
+        "instructions": instructions,
     })
 }
 
@@ -294,9 +313,9 @@ mod tests {
 
     #[test]
     fn negotiates_versions() {
-        let v = initialize(&json!({ "protocolVersion": "2025-03-26" }));
+        let v = initialize(&json!({ "protocolVersion": "2025-03-26" }), INSTRUCTIONS);
         assert_eq!(v["protocolVersion"], "2025-03-26");
-        let v = initialize(&json!({ "protocolVersion": "1999-01-01" }));
+        let v = initialize(&json!({ "protocolVersion": "1999-01-01" }), INSTRUCTIONS);
         assert_eq!(v["protocolVersion"], PROTOCOL_VERSIONS[0]);
         assert!(v["instructions"].as_str().unwrap().contains("search"));
     }

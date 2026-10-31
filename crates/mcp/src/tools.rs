@@ -376,6 +376,14 @@ impl<'a> Ctx<'a> {
         Self { state, actor }
     }
 
+    pub(crate) fn state(&self) -> &'a AppState {
+        self.state
+    }
+
+    pub(crate) fn actor(&self) -> Option<&'a Actor> {
+        self.actor
+    }
+
     /// Runs tool `name`; `None` for an unknown tool.
     pub async fn call(&self, name: &str, args: &Value) -> Option<ToolOutput> {
         let started = std::time::Instant::now();
