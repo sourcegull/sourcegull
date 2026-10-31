@@ -16,6 +16,8 @@ Self-hosted code search and code intelligence for GitLab, in Rust (SvelteKit UI)
 
 ## Conventions
 - Build, test and check in Docker: `scripts/dev test`, `scripts/dev check`, `scripts/dev e2e`.
+- To show a UI change in the browser, use Vite on `:5173` (hot reload, under 0.1 s), not an image
+  build (~4 min); see "Seeing a UI change" in `docs/development.md`.
 - Before starting a task, run `scripts/dev prune` (it prints the size of `target/` before and
   after); cargo never deletes old builds, and a full target volume breaks builds and tests.
 - Never edit files under `crates/db/migrations/` that have been committed; add a new migration.
