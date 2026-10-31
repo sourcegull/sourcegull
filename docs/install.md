@@ -146,7 +146,9 @@ helm install sourcegull oci://ghcr.io/sourcegull/charts/sourcegull \
 
 - Database: `postgresql.mode` is `bundled` (default; one PostgreSQL StatefulSet, for evaluation
   and small installs), `cnpg` (a CloudNativePG cluster) or `external` (with `existingSecret` or
-  `externalDatabase.existingSecret`).
+  `externalDatabase.existingSecret`). For a replicated database, list every host in the URL
+  (`postgres://user:pass@db1:5432,db2:5432/sourcegull`); Sourcegull follows the primary
+  ([Replicated databases](configuration.md#replicated-databases)).
 - Sizing: [SIZING.md](../deploy/helm/sourcegull/SIZING.md) and the small, medium and large presets
   in `examples/`.
 - Workers can autoscale on job queue depth with KEDA (`worker.autoscaling.keda.enabled`).

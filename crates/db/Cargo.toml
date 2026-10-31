@@ -25,7 +25,8 @@ serde = { workspace = true }
 serde_json = { workspace = true }
 thiserror = { workspace = true }
 roaring = { workspace = true }
+tokio = { workspace = true }
+tracing = { workspace = true }
 
 [dev-dependencies]
 sourcegull-testutil = { workspace = true }
-tokio = { workspace = true }

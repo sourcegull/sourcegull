@@ -32,7 +32,7 @@ variables (`SOURCEGULL_*_FILE`) and `SOURCEGULL_KEYS` count as unset when empty.
 | Variable | Default | Meaning |
 |---|---|---|
 | `SOURCEGULL_ROLES` | `all` | Comma-separated roles: `web`, `repo`, `worker`, `blob`, or `all` ([architecture](architecture.md#one-binary-several-roles)). |
-| `SOURCEGULL_DATABASE_URL` | | PostgreSQL URL (required). |
+| `SOURCEGULL_DATABASE_URL` | | PostgreSQL URL (required); may list several hosts of a replicated cluster ([below](#replicated-databases)). |
 | `SOURCEGULL_HTTP_ADDR` | `0.0.0.0:7080` | Public listener of the `web` role: UI, `/.api/*`, `/healthz`, `/readyz`. |
 | `SOURCEGULL_INTERNAL_ADDR` | `0.0.0.0:6060` | Internal listener: `/metrics`, `/healthz`, `/readyz`; with the `blob` role also the blob API that `SOURCEGULL_BLOB_STORE=http://…` points at. |
 | `SOURCEGULL_DATA_DIR` | `/var/opt/sourcegull` | Persistent data. |
@@ -281,6 +281,39 @@ lease it holds (with the Postgres leader backend).
 
 Keep the sum over every process below PostgreSQL's `max_connections`. Connections show up in
 `pg_stat_activity` with `application_name` `sourcegull:<roles>`.
+
+### Replicated databases
+
+For a cluster with a primary and replicas (a managed database's host list, Patroni, repmgr),
+list every host in the URL, as libpq does:
+
+```
+postgres://sourcegull:PASSWORD@db1.example.com:5432,db2.example.com:5432,db3.example.com/sourcegull?sslmode=verify-full
+```
+
+The user, password, database and parameters are shared by all hosts; a host without a port
+uses 5432. With several hosts, Sourcegull connects only to the writable primary (as
+`target_session_attrs=read-write` does in libpq, and that parameter may be given; `primary` means the
+same, other values are rejected). Every process:
+
+- at startup probes all hosts at once and uses the first writable one in URL order;
+- checks the primary every second over one more connection (`application_name`
+  `sourcegull:primary-check`);
+- when that check fails, probes all hosts again and moves to the new primary as soon as one
+  accepts writes. Requests that need a connection meanwhile wait for it (up to 10 seconds)
+  instead of failing; connections to the old primary are closed,
+  and the `LISTEN` and leader-lease connections reconnect to the new one;
+- checks that every new connection is writable, so a demoted primary that is still up is never
+  used.
+
+A switchover usually takes one to two seconds. Queries running on the old primary when it fails
+still fail. Replicas are not used for reads.
+
+A single host name that follows the primary (a cloud provider's read-write endpoint, a
+CloudNativePG `-rw` Service, a VIP) also works, but is only as fast as its DNS or routing
+update. Sourcegull resolves the name for each new connection and keeps no DNS cache of its
+own. Add `?target_session_attrs=read-write` to such a URL, so connections that reach a replica
+before the update are rejected and retried.
 
 ## Database migrations
 

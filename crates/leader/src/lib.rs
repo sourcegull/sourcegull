@@ -116,6 +116,8 @@ pub fn advisory_key(name: &str) -> i64 {
 /// The session all of a [`PgLeaseManager`]'s advisory locks live on.
 struct Session {
     conn: PgConnection,
+    /// The server `conn` is connected to (`host:port`).
+    endpoint: String,
     /// Keys locked on `conn`, one lock each.
     held: HashSet<i64>,
 }
@@ -129,6 +131,9 @@ struct ManagerState {
 
 struct ManagerInner {
     options: PgConnectOptions,
+    /// The pool whose server the session follows (its host changes when a replicated
+    /// cluster's primary does); `None`: always `options`.
+    source: Option<PgPool>,
     state: Mutex<ManagerState>,
     epoch_tx: watch::Sender<u64>,
 }
@@ -148,6 +153,34 @@ impl ManagerInner {
         state.epoch += 1;
         self.epoch_tx.send_replace(state.epoch);
     }
+
+    /// The options to connect with now.
+    fn options(&self) -> PgConnectOptions {
+        match &self.source {
+            Some(pool) => {
+                let o = pool.connect_options();
+                self.options.clone().host(o.get_host()).port(o.get_port())
+            }
+            None => self.options.clone(),
+        }
+    }
+
+    /// Drops the session when the source pool moved to another server (a new primary), so
+    /// leases are not kept on a demoted server.
+    fn follow_source(&self, state: &mut ManagerState) {
+        let moved = state
+            .session
+            .as_ref()
+            .is_some_and(|s| s.endpoint != endpoint(&self.options()));
+        if moved {
+            tracing::warn!("database primary changed; leases on the old primary are lost");
+            self.drop_session(state);
+        }
+    }
+}
+
+fn endpoint(o: &PgConnectOptions) -> String {
+    format!("{}:{}", o.get_host(), o.get_port())
 }
 
 /// Shares one dedicated, unpooled Postgres session among all of a process's
@@ -178,10 +211,15 @@ impl std::fmt::Debug for PgLeaseManager {
 impl PgLeaseManager {
     /// A manager connecting with `options` when a lease first needs it.
     pub fn new(options: PgConnectOptions) -> Self {
+        Self::with_source(options, None)
+    }
+
+    fn with_source(options: PgConnectOptions, source: Option<PgPool>) -> Self {
         let (epoch_tx, _) = watch::channel(0);
         Self {
             inner: Arc::new(ManagerInner {
                 options: options.application_name("sourcegull-leader"),
+                source,
                 state: Mutex::new(ManagerState {
                     session: None,
                     epoch: 0,
@@ -192,9 +230,11 @@ impl PgLeaseManager {
         }
     }
 
-    /// A manager using the same connection settings as `pool` (but its own connection).
+    /// A manager using the same connection settings as `pool` (but its own connection). When
+    /// the pool's server changes (a replicated cluster's new primary), the session moves too
+    /// and the leases held on it are lost.
     pub fn from_pool(pool: &PgPool) -> Self {
-        Self::new((*pool.connect_options()).clone())
+        Self::with_source((*pool.connect_options()).clone(), Some(pool.clone()))
     }
 
     /// Bounds each database round trip of leases made after this (default 5 s).
@@ -249,7 +289,7 @@ impl PgAdvisoryLease {
 
     /// A lease on a session of its own, using the same connection settings as `pool`.
     pub fn from_pool(pool: &PgPool, name: impl Into<String>) -> Self {
-        Self::new((*pool.connect_options()).clone(), name)
+        PgLeaseManager::from_pool(pool).lease(name)
     }
 
     /// Bounds each database round trip (default 5 s).
@@ -293,6 +333,7 @@ impl LeaseBackend for PgAdvisoryLease {
     async fn try_acquire(&self) -> Result<bool, LeaseError> {
         let mut mine = self.epoch.lock().await;
         let mut state = self.manager.state.lock().await;
+        self.manager.follow_source(&mut state);
         if self.holds(*mine, &state) {
             drop(state);
             drop(mine);
@@ -300,11 +341,11 @@ impl LeaseBackend for PgAdvisoryLease {
         }
         *mine = None;
         if state.session.is_none() {
-            let conn = self
-                .bounded(PgConnection::connect_with(&self.manager.options))
-                .await?;
+            let options = self.manager.options();
+            let conn = self.bounded(PgConnection::connect_with(&options)).await?;
             state.session = Some(Session {
                 conn,
+                endpoint: endpoint(&options),
                 held: HashSet::new(),
             });
         }
@@ -337,6 +378,7 @@ impl LeaseBackend for PgAdvisoryLease {
     async fn renew(&self) -> Result<bool, LeaseError> {
         let mut mine = self.epoch.lock().await;
         let mut state = self.manager.state.lock().await;
+        self.manager.follow_source(&mut state);
         if !self.holds(*mine, &state) {
             *mine = None;
             return Ok(false);

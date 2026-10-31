@@ -1,6 +1,7 @@
 //! The connection pool wrapper.
 
 use crate::Result;
+use crate::cluster::{Cluster, Target};
 use sourcegull_crypto::Keyring;
 use sqlx::postgres::{PgConnectOptions, PgPool, PgPoolOptions};
 use std::str::FromStr;
@@ -38,27 +39,55 @@ impl Default for DbOptions {
     }
 }
 
+fn pool_options(opts: &DbOptions, cluster: Option<&Arc<Cluster>>) -> PgPoolOptions {
+    let options = PgPoolOptions::new()
+        .max_connections(opts.max_connections)
+        .min_connections(opts.min_connections)
+        .acquire_timeout(opts.acquire_timeout)
+        .idle_timeout(opts.idle_timeout);
+    match cluster {
+        Some(c) => c.pool_options(options),
+        None => options,
+    }
+}
+
 /// Handle to the main database. Cheap to clone.
 #[derive(Debug, Clone)]
 pub struct Db {
     pool: PgPool,
+    /// Set when the URL names several hosts (or asks for the primary): the pools follow the
+    /// primary (see [`crate::cluster`]).
+    cluster: Option<Arc<Cluster>>,
 }
 
 impl Db {
     /// Connects to `url` (a `postgres://` URL) with the given options.
+    ///
+    /// The URL may list several hosts (`postgres://u:p@h1:5432,h2:5432/db`); the pools then
+    /// connect to whichever is the writable primary and follow it when it changes (see
+    /// [`crate::cluster`]).
     pub async fn connect(url: &str, opts: &DbOptions) -> Result<Self> {
-        let mut connect = PgConnectOptions::from_str(url)?.application_name(&opts.application_name);
+        let target = Target::parse(url)?;
+        let cluster = if target.require_primary {
+            Some(Cluster::connect(target).await?)
+        } else {
+            None
+        };
+        let base = match &cluster {
+            Some(c) => c.primary_options(),
+            None => PgConnectOptions::from_str(url)?,
+        };
+        let mut connect = base.application_name(&opts.application_name);
         if let Some(timeout) = opts.statement_timeout {
             connect = connect.options([("statement_timeout", timeout.as_millis().to_string())]);
         }
-        let pool = PgPoolOptions::new()
-            .max_connections(opts.max_connections)
-            .min_connections(opts.min_connections)
-            .acquire_timeout(opts.acquire_timeout)
-            .idle_timeout(opts.idle_timeout)
+        let pool = pool_options(opts, cluster.as_ref())
             .connect_with(connect)
             .await?;
-        Ok(Self { pool })
+        if let Some(c) = &cluster {
+            c.register(&pool);
+        }
+        Ok(Self { pool, cluster })
     }
 
     /// A second pool on the same database with its own size and `application_name` (e.g. the
@@ -68,18 +97,27 @@ impl Db {
         let connect = (*self.pool.connect_options())
             .clone()
             .application_name(&opts.application_name);
-        let pool = PgPoolOptions::new()
-            .max_connections(opts.max_connections)
-            .min_connections(opts.min_connections)
-            .acquire_timeout(opts.acquire_timeout)
-            .idle_timeout(opts.idle_timeout)
-            .connect_lazy_with(connect);
-        Self { pool }
+        let pool = pool_options(opts, self.cluster.as_ref()).connect_lazy_with(connect);
+        if let Some(c) = &self.cluster {
+            c.register(&pool);
+        }
+        Self {
+            pool,
+            cluster: self.cluster.clone(),
+        }
     }
 
     /// Wraps an existing pool (useful in tests).
     pub fn from_pool(pool: PgPool) -> Self {
-        Self { pool }
+        Self {
+            pool,
+            cluster: None,
+        }
+    }
+
+    /// The replicated cluster the pools follow, when the URL named several hosts.
+    pub fn cluster(&self) -> Option<&Arc<Cluster>> {
+        self.cluster.as_ref()
     }
 
     /// The underlying pool.
