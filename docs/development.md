@@ -250,19 +250,32 @@ scans the whole history before it builds.
 
 ## Releases
 
-Set the version in `Cargo.toml` (`[workspace.package]`, `X.Y.Z-rc.1` for a pre-release), the
-image defaults (`SOURCEGULL_VERSION` in `deploy/docker/compose*.yaml` and `.env.example`,
-`ARG VERSION` in the Dockerfile) and the chart's `appVersion`, merge to `main`, then run
-**Actions → Release** on `main` with **publish** checked. `.github/workflows/release.yml` runs on
-the self-hosted runner (labels `self-hosted`, `linux`): it scans the history for secrets, checks
-the chart (`scripts/test/helm-ct.sh template`), builds
-the linux/amd64 images, runs `scripts/test/release-smoke.sh` and the Gitea browser check against
-the runtime image (`SOURCEGULL_E2E_IMAGE=<image> CHECKS=gitea scripts/dev e2e`),
-then pushes `ghcr.io/sourcegull/sourcegull` and `ghcr.io/sourcegull/gull`, pushes the Helm chart to
-`oci://ghcr.io/sourcegull/charts` when its `version` is not published yet (bump it with any chart
-change, see the chart README), signs them, and creates the `vX.Y.Z` tag and the GitHub release
-with the Compose bundle (`sourcegull-compose.tar.gz`, the files of `deploy/docker/` a host needs)
-attached. Without **publish** it builds and tests only.
+A release is one action: **Actions → Release → Run workflow** on `main`, with the version
+**bump** (minor, patch or major; from a pre-release, any bump gives its release) or an exact
+**version** (`X.Y.Z-rc.1` for a pre-release). `.github/workflows/release.yml` runs on the
+self-hosted runner (labels `self-hosted`, `linux`):
+
+1. scans the history for secrets;
+2. sets the version with `scripts/release-version.sh` and commits it as "Release X.Y.Z" on top
+   of `main`: the workspace version (`Cargo.toml`, `Cargo.lock`), the UI package, `ARG VERSION`
+   in the Dockerfile, `SOURCEGULL_VERSION` in the Compose files, `.env.example` and the upgrade
+   guide, the chart's `appVersion` and a patch bump of its `version` (unless the chart version
+   changed since the previous release already) with a row in the chart README, and, for a
+   release that is not a pre-release, `crates/db/schema/X.Y.Z.json` and its entry in `RELEASES`
+   (`crates/db/src/upgrade.rs`) for `migrate upgrade`;
+3. checks the chart (`scripts/test/helm-ct.sh template`), builds the linux/amd64 images, runs
+   `scripts/test/release-smoke.sh` (which also checks the migrated schema against the new
+   version's description with `migrate drift`) and the Gitea browser check against the runtime
+   image (`SOURCEGULL_E2E_IMAGE=<image> CHECKS=gitea scripts/dev e2e`);
+4. pushes `ghcr.io/sourcegull/sourcegull` and `ghcr.io/sourcegull/gull`, pushes the Helm chart to
+   `oci://ghcr.io/sourcegull/charts` when its `version` is not published yet, and signs them;
+5. pushes the release commit to `main` together with the `vX.Y.Z` tag, and creates the GitHub
+   release with the Compose bundle (`sourcegull-compose.tar.gz`, the files of `deploy/docker/` a
+   host needs) attached.
+
+Nothing is published when `main` moved after the run started; run it again then. With
+**publish** unchecked it runs steps 1 to 3 and pushes nothing. `scripts/release-version.sh
+<bump|version>` makes the same changes in a checkout, to look at them before a release.
 
 Builds reuse a persistent builder on the runner (`sourcegull-release`): its state volume keeps the
 image layers and the cache mounts (cargo's `target/`, named after the Rust version, the crate

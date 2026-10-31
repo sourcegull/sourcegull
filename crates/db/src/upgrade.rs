@@ -12,8 +12,8 @@
 //! (regenerate `current.json` with `SOURCEGULL_UPDATE_SCHEMA=1`), so editing a released migration
 //! fails CI.
 //!
-//! **Releasing version X:** copy `current.json` to `X.json`, add `release!("X", <newest
-//! migration>)` to [`RELEASES`], tag, then bump the workspace version for the next cycle.
+//! **Releasing version X:** `scripts/release-version.sh` (run by the release workflow) copies
+//! `current.json` to `X.json` and adds `release!("X", <newest migration>)` to [`RELEASES`].
 //!
 //! Wherever a version is accepted, a migration number is accepted too (`20261021000001`, or
 //! `0` for an empty database). Unless it is a release boundary it has no description, so drift
