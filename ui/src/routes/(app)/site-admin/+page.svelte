@@ -58,13 +58,8 @@
 			.catch(() => {});
 	});
 
-	const versionTitle = $derived.by(() => {
-		if (!update?.enabled) return 'Release notes of this version';
-		if (update.errorMessage) return `Release notes of this version. The release check failed: ${update.errorMessage}`;
-		return update.updateAvailable
-			? 'Release notes of this version'
-			: 'Release notes of this version. This is the newest release.';
-	});
+	/** When GitHub was last asked, for the release status tooltips. */
+	const checkedAt = $derived(update?.checkedAt ? `Checked ${new Date(update.checkedAt).toLocaleString()}.` : '');
 
 	const summary = $derived(health ? summarize(health.statusMessages) : null);
 
@@ -166,11 +161,6 @@
 		</p>
 	</div>
 	<div class="page-actions">
-		{#if update?.updateAvailable && update.latestVersionURL}
-			<a class="badge badge-success" href={update.latestVersionURL} target="_blank" rel="noopener noreferrer"
-				>v{update.latestVersion} available</a
-			>
-		{/if}
 		{#if health}
 			<a
 				class="badge"
@@ -178,8 +168,23 @@
 					`https://github.com/sourcegull/sourcegull/releases/tag/v${health.site.productVersion}`}
 				target="_blank"
 				rel="noopener noreferrer"
-				title={versionTitle}>v{health.site.productVersion}</a
+				title="Release notes of this version">v{health.site.productVersion}</a
 			>
+		{/if}
+		{#if update?.enabled}
+			{#if update.errorMessage}
+				<span class="badge" title="The release check failed: {update.errorMessage} {checkedAt}">Update check failed</span>
+			{:else if update.updateAvailable && update.latestVersionURL}
+				<a
+					class="badge badge-warning"
+					href={update.latestVersionURL}
+					target="_blank"
+					rel="noopener noreferrer"
+					title="Release notes of the newest release. {checkedAt}">v{update.latestVersion} available</a
+				>
+			{:else if update.latestVersion}
+				<span class="badge badge-success" title="This is the newest release. {checkedAt}">Latest</span>
+			{/if}
 		{/if}
 		<a class="btn btn-secondary" href="/site-admin/configuration">
 			<Icon name="settings" size={16} />Site configuration
