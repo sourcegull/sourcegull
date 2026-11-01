@@ -4,8 +4,8 @@
 </p>
 
 <p align="center">
-  <strong>Fast, self-hosted code search and code intelligence for humans and agents, written in Rust.</strong><br />
-  For GitLab, GitHub and Gitea. Every feature is open source under Apache-2.0, including SSO, SCIM, RBAC and audit logs. There is no paid tier, and there will not be one.
+  <strong>Find code across thousands of repositories in milliseconds, with up to 50× fewer tokens. For you and your agents.</strong><br />
+  Self-hosted code search and code intelligence for GitLab, GitHub and Gitea, written in Rust. Every feature is open source under Apache-2.0, including SSO, SCIM, RBAC and audit logs. There is no paid tier, and there will not be one.
 </p>
 
 <p align="center">
@@ -31,7 +31,10 @@
   </picture>
 </p>
 
-## Fast search
+## Fast search, fewer tokens
+
+Agents connected over [MCP](docs/mcp.md) read only the lines that answer their question, with up
+to 50× fewer tokens than cloning and grepping ([token usage](docs/mcp.md#token-usage)).
 
 Sourcegull uses a trigram index of its own. After a push, only the changed paths are written to a
 delta shard, so new commits are searchable within seconds without rebuilding the repository's
@@ -79,6 +82,7 @@ dashboards and documented alerts. See [the documentation](docs/README.md).
 
 - One Rust binary, and PostgreSQL 18 is its only stateful dependency. Nothing is sent to a
   vendor cloud.
+- No telemetry. Usage analytics stay on the instance.
 - Docker Compose for one host, a Helm chart for Kubernetes. Every release is tested by
   upgrading from the previous one.
 - Repository storage spreads across several repo nodes, which you can add or remove without
@@ -89,6 +93,8 @@ dashboards and documented alerts. See [the documentation](docs/README.md).
   and secrets come from the environment.
 - GitLab (gitlab.com and self-managed) has every feature. GitHub (github.com and Enterprise
   Server) and Gitea support repository sync, permission sync, webhooks and sign-in.
+- Several code hosts at once: connect gitlab.com, a self-managed GitLab, GitHub and Gitea side by
+  side, and one search covers all of them, each with its own permissions.
 
 ## Quick install
 
