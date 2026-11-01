@@ -22,6 +22,13 @@ pub struct SiteConfig {
     #[serde(rename = "externalURL", skip_serializing_if = "Option::is_none")]
     pub external_url: Option<String>,
 
+    /// Check for a newer Sourcegull release. The server asks the GitHub releases API of
+    /// `sourcegull/sourcegull` at most every 12 hours, when a site admin opens Site admin; the
+    /// request carries only Sourcegull's version. Turn it off on instances without internet
+    /// access.
+    #[serde(rename = "updateCheck")]
+    pub update_check: bool,
+
     /// Enabled authentication providers. Several may be enabled at once.
     #[serde(rename = "auth.providers")]
     pub auth_providers: Vec<AuthProvider>,
@@ -520,6 +527,7 @@ impl Default for SiteConfig {
             search_index_always_index: BTreeMap::new(),
             repo_list_update_interval: 1,
             disable_auto_git_updates: false,
+            update_check: true,
             git_update_interval: Vec::new(),
             git_max_concurrent_clones: 5,
             repo_nodes_pinned_repos: BTreeMap::new(),

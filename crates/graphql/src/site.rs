@@ -156,13 +156,11 @@ impl Site {
         ))
     }
 
-    /// Whether the database is ready for an upgrade: schema drift against the version it is
-    /// at (site admins only).
-    async fn upgrade_readiness(
-        &self,
-        ctx: &Context<'_>,
-    ) -> Result<crate::upgrade_readiness::UpgradeReadiness> {
-        crate::upgrade_readiness::upgrade_readiness(ctx).await
+    /// The newest Sourcegull release, when the `updateCheck` site setting allows checking
+    /// (site admins only).
+    async fn update_check(&self, ctx: &Context<'_>) -> Result<crate::update_check::UpdateCheck> {
+        require_site_admin(ctx)?;
+        Ok(crate::update_check::check(services(ctx)?).await)
     }
 }
 

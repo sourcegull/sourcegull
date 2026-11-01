@@ -6369,6 +6369,11 @@ type OutOfBandMigration implements Node {
 	"""
 	applyReverse: Boolean!
 	"""
+	Whether the migration must complete before upgrading to the next minor version: it is
+	deprecated in that version or earlier and not complete.
+	"""
+	requiredBeforeNextUpgrade: Boolean!
+	"""
 	Errors of the migration's recent batches, newest first (at most 100).
 	"""
 	errors: [OutOfBandMigrationError!]!
@@ -8734,36 +8739,6 @@ enum SavedSearchesOrderBy {
 }
 
 """
-One schema difference.
-"""
-type SchemaDriftSummary {
-	"""
-	The object, e.g. `column "repo.name"`.
-	"""
-	name: String!
-	"""
-	What is wrong.
-	"""
-	problem: String!
-	"""
-	What to do about it.
-	"""
-	solution: String!
-	"""
-	The live definition (`-`) against the expected one (`+`), when both exist.
-	"""
-	diff: String
-	"""
-	SQL that would repair it (review before running).
-	"""
-	statements: [String!]
-	"""
-	A link with more help (none yet).
-	"""
-	urlHint: String
-}
-
-"""
 Whether a repository query is valid.
 """
 type ScopedInsightQueryPayload {
@@ -9330,10 +9305,10 @@ type Site implements SettingsSubject {
 	"""
 	users(query: String, siteAdmin: Boolean, username: String, email: String, lastActiveAt: SiteUsersDateRangeInput, deletedAt: SiteUsersDateRangeInput, createdAt: SiteUsersDateRangeInput, eventsCount: SiteUsersNumberRangeInput): SiteUsers!
 	"""
-	Whether the database is ready for an upgrade: schema drift against the version it is
-	at (site admins only).
+	The newest Sourcegull release, when the `updateCheck` site setting allows checking
+	(site admins only).
 	"""
-	upgradeReadiness: UpgradeReadiness!
+	updateCheck: UpdateCheck!
 }
 
 type SiteConfiguration {
@@ -9920,6 +9895,44 @@ enum TreeEntryKind {
 }
 
 """
+The result of the release check.
+"""
+type UpdateCheck {
+	"""
+	Whether checking is enabled (the `updateCheck` site setting).
+	"""
+	enabled: Boolean!
+	"""
+	The running version.
+	"""
+	currentVersion: String!
+	"""
+	The release notes of the running version.
+	"""
+	currentVersionURL: String!
+	"""
+	The newest release, e.g. `0.4.0`; null when off or the check failed.
+	"""
+	latestVersion: String
+	"""
+	The release notes of `latestVersion`.
+	"""
+	latestVersionURL: String
+	"""
+	Whether `latestVersion` is newer than the running version.
+	"""
+	updateAvailable: Boolean!
+	"""
+	When GitHub was last asked; null when off.
+	"""
+	checkedAt: DateTime
+	"""
+	Why the check failed, if it did.
+	"""
+	errorMessage: String
+}
+
+"""
 Input of `updateExternalService`.
 """
 input UpdateExternalServiceInput {
@@ -9971,28 +9984,6 @@ The input of `updateOwnSignalConfigurations`.
 """
 input UpdateSignalConfigurationsInput {
 	configs: [OwnSignalConfigurationUpdate!]!
-}
-
-type UpgradeReadiness {
-	"""
-	Differences between the live schema and the schema of `schemaVersion` (empty when
-	there is no drift, or no version to compare with).
-	"""
-	schemaDrift: [SchemaDriftSummary!]!
-	"""
-	Out-of-band migrations that must complete before upgrading to the next version
-	(deprecated in it or earlier, and not finished).
-	"""
-	requiredOutOfBandMigrations: [OutOfBandMigration!]!
-	"""
-	The version the schema was compared with; null when the database is not at a known
-	version (see `schemaDriftNote`).
-	"""
-	schemaVersion: String
-	"""
-	Why the schema could not be compared, if it could not.
-	"""
-	schemaDriftNote: String
 }
 
 """

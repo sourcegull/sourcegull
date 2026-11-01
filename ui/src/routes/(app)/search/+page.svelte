@@ -12,6 +12,7 @@
 	import SearchResult from '#lib/search/SearchResult.svelte';
 	import QueryText from '#lib/search/QueryText.svelte';
 	import Icon from '#lib/components/Icon.svelte';
+	import MigrationsBanner from '#lib/components/MigrationsBanner.svelte';
 	import {
 		recentQuery,
 		recentSearches,
@@ -408,6 +409,7 @@
 
 {#if !submitted}
 	<div class="home">
+		{#if user?.siteAdmin}<MigrationsBanner />{/if}
 		<div class="hero">
 			<img class="hero-mark" src="/logo.png" alt="" width="88" height="64" />
 			<h1>Search code</h1>

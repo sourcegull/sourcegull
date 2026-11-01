@@ -30,8 +30,8 @@ pub const SITE_CONFIG_SECTIONS: &[ConfigSection] = &[
     ConfigSection {
         id: "general",
         title: "General",
-        description: "The URL users reach this instance at.",
-        keys: &["externalURL"],
+        description: "The URL users reach this instance at, and the check for new releases.",
+        keys: &["externalURL", "updateCheck"],
     },
     ConfigSection {
         id: "auth",

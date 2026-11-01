@@ -5966,6 +5966,7 @@ dependencies = [
  "http-body-util",
  "moka",
  "prost",
+ "reqwest",
  "serde",
  "serde_json",
  "sourcegull",

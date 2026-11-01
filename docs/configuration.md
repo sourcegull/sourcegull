@@ -115,6 +115,7 @@ Frequently used keys:
 | Key | Purpose |
 |---|---|
 | `externalURL` | The URL users reach Sourcegull at; used for OAuth callbacks, webhooks and links in emails. |
+| `updateCheck` | Whether Site admin shows that a newer release is out (default `true`). The server asks the GitHub releases API at most every 12 hours, sending only its version; turn it off without internet access. |
 | `auth.providers`, `auth.public`, `auth.sessionExpiry`, `auth.passwordPolicy`, `auth.lockout`, `auth.rateLimits`, `auth.accessTokens`, `auth.accessRequest`, `auth.allowedIpAddress`, `auth.enableUsernameChanges` | Sign-in and accounts ([permissions](permissions.md)). |
 | `mcp.oauth.enabled`, `mcp.oauth.dynamicClientRegistration`, `mcp.oauth.accessTokenTTL`, `mcp.oauth.refreshTokenTTL`, `mcp.oauth.allowedRedirectHosts` | OAuth sign-in of MCP clients ([MCP](mcp.md#oauth-sign-in)). |
 | `permissions.userMapping`, `authz.enforceForSiteAdmins`, `permissions.sync*` | Repository permissions. |

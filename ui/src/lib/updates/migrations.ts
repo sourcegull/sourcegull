@@ -1,9 +1,9 @@
 /**
- * GraphQL operations of the site admin Migrations page: out-of-band
+ * GraphQL operations of the site admin Migrations page and the home page banner: out-of-band
  * migrations (long-running data migrations such as re-encryption after a key rotation)
  * with their progress and errors, and the direction they run in.
  */
-import type { OutOfBandMigrationsQuery } from '#lib/graphql-types.ts';
+import type { OutOfBandMigrationsQuery, RunningMigrationsQuery } from '#lib/graphql-types.ts';
 
 export const OUT_OF_BAND_MIGRATIONS = `query OutOfBandMigrations {
 	outOfBandMigrations {
@@ -57,4 +57,17 @@ export function percent(progress: number): number {
 export function migrationState(m: Pick<OutOfBandMigration, 'progress' | 'applyReverse'>): string {
 	if (m.applyReverse) return m.progress <= 0 ? 'Reverted' : 'Reverting';
 	return m.progress >= 1 ? 'Complete' : 'Running';
+}
+
+/** Unfinished migrations, for the site admin banner on the search home page. */
+export const RUNNING_MIGRATIONS = `query RunningMigrations {
+	outOfBandMigrations { id description progress applyReverse requiredBeforeNextUpgrade }
+}`;
+
+export type RunningMigrationsResult = RunningMigrationsQuery;
+export type RunningMigration = RunningMigrationsQuery['outOfBandMigrations'][number];
+
+/** Migrations still running: forward and below 100%, or in reverse and above 0%. */
+export function runningMigrations<M extends Pick<OutOfBandMigration, 'progress' | 'applyReverse'>>(all: M[]): M[] {
+	return all.filter((m) => (m.applyReverse ? m.progress > 0 : m.progress < 1));
 }

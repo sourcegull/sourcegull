@@ -8,7 +8,7 @@
 #     into the repo node's data dir and marked cloned (no GitLab needed)
 #
 # Usage: scripts/test/e2e-ui.sh            (builds the UI with the WASM parser and the binary first)
-#   CHECKS="search" runs only some of the checks (default: search admin codenav codegraph policies executor-secrets autoindex batch-changes batch-specs connections repos-admin updates watches; the others need search first)
+#   CHECKS="search" runs only some of the checks (default: search admin codenav codegraph policies executor-secrets autoindex batch-changes batch-specs connections repos-admin watches; the others need search first)
 #   CHECKS=gitea runs ui/e2e/gitea.cjs against the compose service `gitea` (GITEA_URL); scripts/dev
 #   e2e starts it fresh first
 # Needs: Playwright with Chromium resolvable by node (set NODE_PATH to its node_modules), e.g.
@@ -83,7 +83,7 @@ git clone -q --mirror "$ROOT" "$DATA/repos/$SHARD/$ID.git"
 git -C "$DATA/repos/$SHARD/$ID.git" symbolic-ref HEAD refs/heads/main
 sleep 2
 
-for check in ${CHECKS:-search admin codenav codegraph policies executor-secrets autoindex batch-changes batch-specs connections repos-admin updates analytics insights insights-create watches}; do
+for check in ${CHECKS:-search admin codenav codegraph policies executor-secrets autoindex batch-changes batch-specs connections repos-admin analytics insights insights-create watches}; do
   echo "== $check"
   BASE="http://127.0.0.1:$PORT" node "ui/e2e/$check.cjs"
 done

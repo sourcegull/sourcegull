@@ -8,6 +8,9 @@
   // The URL users reach this instance at. Set it before configuring OAuth sign-in,
   // because it is used to build callback URLs.
   // "externalURL": "https://sourcegull.example.com",
+  // Show site admins when a newer release is out (asks the GitHub releases API; turn it off
+  // without internet access).
+  // "updateCheck": true,
 
   // ── Authentication & sign-in ──
   // Sign-in methods. The first account created becomes the site admin.

@@ -6,7 +6,7 @@
 import type { StatusMessage } from '#lib/status-messages.ts';
 import { STATUS_MESSAGES } from '#lib/status-messages.ts';
 import type { RepositoryStats } from '#lib/repos-admin/queries.ts';
-import type { SiteAdminCountsQuery, SiteAdminHealthQuery } from '#lib/graphql-types.ts';
+import type { SiteAdminCountsQuery, SiteAdminHealthQuery, UpdateCheckQuery } from '#lib/graphql-types.ts';
 
 const STATUS_FIELDS = STATUS_MESSAGES.slice(
 	STATUS_MESSAGES.indexOf('statusMessages'),
@@ -43,3 +43,15 @@ export function diskUsedPercent(n: { freeDiskSpaceBytes: string; totalDiskSpaceB
 	if (!Number.isFinite(total) || total <= 0 || !Number.isFinite(free)) return null;
 	return Math.min(100, Math.max(0, Math.round(((total - free) * 100) / total)));
 }
+
+/** The newest release (asked separately: GitHub can be slow or unreachable). */
+export const UPDATE_CHECK = `query UpdateCheck {
+	site {
+		updateCheck {
+			enabled currentVersion currentVersionURL latestVersion latestVersionURL updateAvailable
+			checkedAt errorMessage
+		}
+	}
+}`;
+
+export type UpdateCheckResult = UpdateCheckQuery;

@@ -1,6 +1,6 @@
 //! Out-of-band migrations in the admin API against the test Postgres:
 //! `outOfBandMigrations` with progress and errors, `node`, `setMigrationDirection` and
-//! `site.upgradeReadiness.requiredOutOfBandMigrations`, site admins only.
+//! `requiredBeforeNextUpgrade`, site admins only.
 
 use std::sync::Arc;
 
@@ -20,9 +20,18 @@ const LIST: &str = "{ outOfBandMigrations {
     nonDestructive applyReverse errors { message created }
 } }";
 
-const REQUIRED: &str = "{ site { upgradeReadiness { requiredOutOfBandMigrations {
-    description progress deprecated applyReverse
-} } } }";
+const REQUIRED: &str = "{ outOfBandMigrations { description requiredBeforeNextUpgrade } }";
+
+/// The descriptions of the migrations `requiredBeforeNextUpgrade` marks.
+fn required(data: serde_json::Value) -> Vec<String> {
+    data["outOfBandMigrations"]
+        .as_array()
+        .unwrap()
+        .iter()
+        .filter(|m| m["requiredBeforeNextUpgrade"] == true)
+        .map(|m| m["description"].as_str().unwrap().to_owned())
+        .collect()
+}
 
 #[tokio::test]
 async fn out_of_band_migrations_admin_api() {
@@ -149,9 +158,8 @@ async fn out_of_band_migrations_admin_api() {
     let resp = run(admin, REQUIRED).await;
     assert!(resp.errors.is_empty(), "{:?}", resp.errors);
     assert_eq!(
-        resp.data.into_json().unwrap()["site"]["upgradeReadiness"]["requiredOutOfBandMigrations"],
-        json!([{ "description": "convert widgets", "progress": 0.25,
-                 "deprecated": next.to_string(), "applyReverse": false }])
+        required(resp.data.into_json().unwrap()),
+        ["convert widgets"]
     );
 
     // setMigrationDirection
@@ -181,8 +189,5 @@ async fn out_of_band_migrations_admin_api() {
         .await
         .unwrap();
     let resp = run(admin, REQUIRED).await;
-    assert_eq!(
-        resp.data.into_json().unwrap()["site"]["upgradeReadiness"]["requiredOutOfBandMigrations"],
-        json!([])
-    );
+    assert!(required(resp.data.into_json().unwrap()).is_empty());
 }

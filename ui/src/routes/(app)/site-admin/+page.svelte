@@ -6,9 +6,11 @@
 	import {
 		SITE_ADMIN_COUNTS,
 		SITE_ADMIN_HEALTH,
+		UPDATE_CHECK,
 		diskUsedPercent,
 		type SiteAdminCountsResult,
-		type SiteAdminHealthResult
+		type SiteAdminHealthResult,
+		type UpdateCheckResult
 	} from '#lib/admin/overview.ts';
 	import { formatBytes } from '#lib/repos-admin/queries.ts';
 	import { percent, summarize, type StatusEntry } from '#lib/status-messages.ts';
@@ -46,8 +48,22 @@
 		loading = false;
 	}
 
+	/** The release check; null until it answers or when it fails (the version then links anyway). */
+	let update = $state.raw<UpdateCheckResult['site']['updateCheck'] | null>(null);
+
 	onMount(() => {
 		void load();
+		graphql<UpdateCheckResult>(UPDATE_CHECK)
+			.then((r) => (update = r.site.updateCheck))
+			.catch(() => {});
+	});
+
+	const versionTitle = $derived.by(() => {
+		if (!update?.enabled) return 'Release notes of this version';
+		if (update.errorMessage) return `Release notes of this version. The release check failed: ${update.errorMessage}`;
+		return update.updateAvailable
+			? 'Release notes of this version'
+			: 'Release notes of this version. This is the newest release.';
 	});
 
 	const summary = $derived(health ? summarize(health.statusMessages) : null);
@@ -150,8 +166,20 @@
 		</p>
 	</div>
 	<div class="page-actions">
+		{#if update?.updateAvailable && update.latestVersionURL}
+			<a class="badge badge-success" href={update.latestVersionURL} target="_blank" rel="noopener noreferrer"
+				>v{update.latestVersion} available</a
+			>
+		{/if}
 		{#if health}
-			<a class="badge" href="/site-admin/updates" title="Product version">v{health.site.productVersion}</a>
+			<a
+				class="badge"
+				href={update?.currentVersionURL ??
+					`https://github.com/sourcegull/sourcegull/releases/tag/v${health.site.productVersion}`}
+				target="_blank"
+				rel="noopener noreferrer"
+				title={versionTitle}>v{health.site.productVersion}</a
+			>
 		{/if}
 		<a class="btn btn-secondary" href="/site-admin/configuration">
 			<Icon name="settings" size={16} />Site configuration
