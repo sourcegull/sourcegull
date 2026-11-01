@@ -50,7 +50,7 @@ pub mod site;
 mod status_messages;
 mod temporary_settings;
 pub mod tokens;
-pub mod upgrade_readiness;
+pub mod update_check;
 pub mod users;
 
 use std::sync::Arc;

@@ -1354,6 +1354,11 @@ export type SiteAdminHealthQuery = { site: { productVersion: string }, repositor
     | { __typename: 'GitserverDiskThresholdReached', message: string, address: string, clonesPaused: boolean }
   > };
 
+export type UpdateCheckQueryVariables = Exact<{ [key: string]: never; }>;
+
+
+export type UpdateCheckQuery = { site: { updateCheck: { enabled: boolean, currentVersion: string, currentVersionURL: string, latestVersion: string | null, latestVersionURL: string | null, updateAvailable: boolean, checkedAt: string | null, errorMessage: string | null } } };
+
 export type AnalyticsOverviewQueryVariables = Exact<{
   range: AnalyticsDateRange;
   grouping: AnalyticsGrouping;
@@ -3903,6 +3908,11 @@ export type OutOfBandMigrationsQueryVariables = Exact<{ [key: string]: never; }>
 
 export type OutOfBandMigrationsQuery = { outOfBandMigrations: Array<{ id: string, team: string, component: string, description: string, introduced: string, deprecated: string | null, progress: number, created: string, lastUpdated: string | null, nonDestructive: boolean, applyReverse: boolean, errors: Array<{ message: string, created: string }> }> };
 
+export type RunningMigrationsQueryVariables = Exact<{ [key: string]: never; }>;
+
+
+export type RunningMigrationsQuery = { outOfBandMigrations: Array<{ id: string, description: string, progress: number, applyReverse: boolean, requiredBeforeNextUpgrade: boolean }> };
+
 export type SetMigrationDirectionMutationVariables = Exact<{
   id: string | number;
   applyReverse: boolean;
@@ -3910,8 +3920,3 @@ export type SetMigrationDirectionMutationVariables = Exact<{
 
 
 export type SetMigrationDirectionMutation = { setMigrationDirection: { alwaysNil: string | null } };
-
-export type UpgradeReadinessQueryVariables = Exact<{ [key: string]: never; }>;
-
-
-export type UpgradeReadinessQuery = { site: { productVersion: string, upgradeReadiness: { schemaVersion: string | null, schemaDriftNote: string | null, schemaDrift: Array<{ name: string, problem: string, solution: string, diff: string | null, statements: Array<string> | null, urlHint: string | null }>, requiredOutOfBandMigrations: Array<{ id: string, description: string, progress: number, deprecated: string | null, applyReverse: boolean }> } } };

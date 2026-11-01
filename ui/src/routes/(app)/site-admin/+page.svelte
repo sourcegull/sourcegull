@@ -6,9 +6,11 @@
 	import {
 		SITE_ADMIN_COUNTS,
 		SITE_ADMIN_HEALTH,
+		UPDATE_CHECK,
 		diskUsedPercent,
 		type SiteAdminCountsResult,
-		type SiteAdminHealthResult
+		type SiteAdminHealthResult,
+		type UpdateCheckResult
 	} from '#lib/admin/overview.ts';
 	import { formatBytes } from '#lib/repos-admin/queries.ts';
 	import { percent, summarize, type StatusEntry } from '#lib/status-messages.ts';
@@ -46,9 +48,18 @@
 		loading = false;
 	}
 
+	/** The release check; null until it answers or when it fails (the version then links anyway). */
+	let update = $state.raw<UpdateCheckResult['site']['updateCheck'] | null>(null);
+
 	onMount(() => {
 		void load();
+		graphql<UpdateCheckResult>(UPDATE_CHECK)
+			.then((r) => (update = r.site.updateCheck))
+			.catch(() => {});
 	});
+
+	/** When GitHub was last asked, for the release status tooltips. */
+	const checkedAt = $derived(update?.checkedAt ? `Checked ${new Date(update.checkedAt).toLocaleString()}.` : '');
 
 	const summary = $derived(health ? summarize(health.statusMessages) : null);
 
@@ -151,7 +162,29 @@
 	</div>
 	<div class="page-actions">
 		{#if health}
-			<a class="badge" href="/site-admin/updates" title="Product version">v{health.site.productVersion}</a>
+			<a
+				class="badge"
+				href={update?.currentVersionURL ??
+					`https://github.com/sourcegull/sourcegull/releases/tag/v${health.site.productVersion}`}
+				target="_blank"
+				rel="noopener noreferrer"
+				title="Release notes of this version">v{health.site.productVersion}</a
+			>
+		{/if}
+		{#if update?.enabled}
+			{#if update.errorMessage}
+				<span class="badge" title="The release check failed: {update.errorMessage} {checkedAt}">Update check failed</span>
+			{:else if update.updateAvailable && update.latestVersionURL}
+				<a
+					class="badge badge-warning"
+					href={update.latestVersionURL}
+					target="_blank"
+					rel="noopener noreferrer"
+					title="Release notes of the newest release. {checkedAt}">v{update.latestVersion} available</a
+				>
+			{:else if update.latestVersion}
+				<span class="badge badge-success" title="This is the newest release. {checkedAt}">Latest</span>
+			{/if}
 		{/if}
 		<a class="btn btn-secondary" href="/site-admin/configuration">
 			<Icon name="settings" size={16} />Site configuration

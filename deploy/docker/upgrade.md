@@ -86,8 +86,8 @@ Some data migrations run in the background after an upgrade (workers run them in
 site admin **Migrations** page and `migrate status` (step 5 above) show their progress). A
 release that deprecates such a migration no longer reads the old data format, so
 `migrate upgrade` and the services refuse to move to it until the migration reaches 100%: upgrade
-to the release before it first, start it and wait. The site admin **Updates** page lists the
-migrations that must finish before the next upgrade.
+to the release before it first, start it and wait. While migrations run, site admins see a banner
+on the search home page that names those that must finish before the next upgrade.
 
 ## Rotating the encryption key
 

@@ -89,10 +89,7 @@ export const SITE_ADMIN_NAV: AdminNavSection[] = [
 	},
 	{
 		title: 'Maintenance',
-		description: 'Product version, upgrade readiness and data migrations.',
-		items: [
-			{ href: '/site-admin/updates', title: 'Updates' },
-			{ href: '/site-admin/migrations', title: 'Migrations' }
-		]
+		description: 'Background data migrations.',
+		items: [{ href: '/site-admin/migrations', title: 'Migrations' }]
 	}
 ];

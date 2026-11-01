@@ -1,6 +1,5 @@
-//! Out-of-band migrations in the admin API: `outOfBandMigrations`,
-//! `setMigrationDirection` and `site.upgradeReadiness.requiredOutOfBandMigrations`, as
-//! `OutOfBandMigration` and `OutOfBandMigrationError`. Site admins only. The
+//! Out-of-band migrations in the admin API: `outOfBandMigrations` and
+//! `setMigrationDirection`, as `OutOfBandMigration` and `OutOfBandMigrationError`. Site admins only. The
 //! runner (`sourcegull-oobmigration`) keeps the rows' progress current.
 
 use async_graphql::{Context, ID, Object, Result, SimpleObject};
@@ -80,6 +79,12 @@ impl OutOfBandMigrationNode {
         self.0.apply_reverse
     }
 
+    /// Whether the migration must complete before upgrading to the next minor version: it is
+    /// deprecated in that version or earlier and not complete.
+    async fn required_before_next_upgrade(&self) -> bool {
+        required_before_next_upgrade(&self.0)
+    }
+
     /// Errors of the migration's recent batches, newest first (at most 100).
     async fn errors(&self, ctx: &Context<'_>) -> Result<Vec<OutOfBandMigrationErrorObject>> {
         let errors = services(ctx)?
@@ -124,23 +129,12 @@ pub async fn load_node(ctx: &Context<'_>, id: &ID) -> Result<Option<OutOfBandMig
         .map(OutOfBandMigrationNode))
 }
 
-/// Migrations that must complete before upgrading past this version: those deprecated at or
-/// before the next minor version that have not completed (`requiredOutOfBandMigrations`).
-pub async fn required(ctx: &Context<'_>) -> Result<Vec<OutOfBandMigrationNode>> {
+/// Whether `m` is deprecated at or before the minor version after this one and not complete.
+fn required_before_next_upgrade(m: &OutOfBandMigration) -> bool {
     let current = MinorVersion::parse(sourcegull_db::upgrade::CURRENT_VERSION)
         .unwrap_or(MinorVersion::new(0, 0));
     let next = MinorVersion::new(current.major, current.minor + 1);
-    let rows = services(ctx)?
-        .db
-        .oob_migrations()
-        .list()
-        .await
-        .map_err(db_error)?;
-    Ok(rows
-        .into_iter()
-        .filter(|m| m.deprecated.is_some_and(|d| d <= next) && !m.complete())
-        .map(OutOfBandMigrationNode)
-        .collect())
+    m.deprecated.is_some_and(|d| d <= next) && !m.complete()
 }
 
 #[derive(Default)]

@@ -35,4 +35,3 @@ mod repos;
 mod repos_admin;
 mod schema_file;
 mod temporary_settings;
-mod upgrade_readiness;

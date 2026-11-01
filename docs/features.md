@@ -204,7 +204,7 @@ destination's host (none for Telegram), since the URL may hold a token; **Only f
 
 | Section | Pages |
 |---|---|
-| Overview | status summary, [analytics](#usage-analytics), user activity |
+| Overview | status summary, running version (linked to its release notes) and, unless `updateCheck` is off, whether a newer release is out, [analytics](#usage-analytics), user activity |
 | Repositories | code host connections (settings form with token setup help, JSON editor, connection test before saving, sync now, sync history, webhook URL); repositories (clone, fetch and index status per branch, errors, re-clone, re-index, fetch now); repo nodes (disk usage, [rebalancing](architecture.md#repo-nodes-and-rebalancing)); repository permissions |
 | Users & access | users, organizations, teams, roles, access requests ([permissions](permissions.md)) |
 | Configuration | site configuration, global settings, feature flags (with per-user and per-organization overrides), outbound webhooks |
@@ -212,7 +212,7 @@ destination's host (none for Telegram), since the URL may hold a token; **Only f
 | Bulk changes | site-wide GitLab credentials |
 | Code ownership | CODEOWNERS files, ownership signals, ownership analytics |
 | Monitoring | background jobs (every scheduled routine and job queue, with retry and cancel), slow requests and searches, outbound requests to code hosts (secrets redacted), incoming webhook logs |
-| Maintenance | updates (upgrade readiness, schema drift), out-of-band migrations |
+| Maintenance | out-of-band migrations (while one runs, site admins also see a banner on the search home page) |
 
 A status icon in the top bar shows site admins what needs attention: repositories cloning or
 failing, a repo node low on disk, or configuration problems.
