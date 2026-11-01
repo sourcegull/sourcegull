@@ -23,7 +23,7 @@
 {#each prompts as p (p.key)}
 	<div class="alert alert-warning banner" role="status">
 		{p.message}
-		{#if p.href}<a href={p.href}>{p.linkText}</a>{/if}
+		{#if p.href}<a href={p.href} data-sveltekit-reload>{p.linkText}</a>{/if}
 	</div>
 {/each}
 
