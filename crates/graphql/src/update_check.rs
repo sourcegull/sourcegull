@@ -1,7 +1,8 @@
 //! `site.updateCheck`: the newest Sourcegull release from the GitHub releases API, for the
 //! site admin overview. The answer is kept in this process for [`FRESH_FOR`] (a failure for
 //! [`RETRY_AFTER`]), so the API is asked at most a few times a day per process. The request
-//! carries only a `User-Agent` with this version; it is recorded in the outbound request log.
+//! carries only the `User-Agent` [`USER_AGENT`], nothing about the instance; it is recorded in
+//! the outbound request log.
 //! The `updateCheck` site setting turns it off.
 
 use std::sync::OnceLock;
@@ -21,6 +22,9 @@ pub const LATEST_RELEASE_API: &str =
 
 /// The releases page; a version's notes are at `<RELEASES_URL>/tag/v<version>`.
 pub const RELEASES_URL: &str = "https://github.com/sourcegull/sourcegull/releases";
+
+/// `User-Agent` of the request (the GitHub API requires one); it names no version or instance.
+const USER_AGENT: &str = "sourcegull";
 
 /// How long a successful answer is reused.
 const FRESH_FOR: Duration = Duration::from_secs(12 * 3600);
@@ -121,7 +125,7 @@ pub async fn check(svc: &Services) -> UpdateCheck {
     });
     if stale {
         let checked_at = Utc::now();
-        let result = fetch_latest(current).await;
+        let result = fetch_latest().await;
         if let Err(e) = &result {
             tracing::info!(error = %e, "release check failed");
         }
@@ -145,11 +149,10 @@ pub async fn check(svc: &Services) -> UpdateCheck {
 }
 
 /// Asks GitHub for the newest release; returns its version without the `v`.
-async fn fetch_latest(current: &str) -> Result<String, String> {
-    let user_agent = format!("sourcegull/{current}");
+async fn fetch_latest() -> Result<String, String> {
     let client = reqwest::Client::builder()
         .timeout(TIMEOUT)
-        .user_agent(&user_agent)
+        .user_agent(USER_AGENT)
         .build()
         .map_err(|e| e.to_string())?;
     let started_at = Utc::now();
@@ -170,7 +173,7 @@ async fn fetch_latest(current: &str) -> Result<String, String> {
                     "accept".to_owned(),
                     vec!["application/vnd.github+json".to_owned()],
                 ),
-                ("user-agent".to_owned(), vec![user_agent.clone()]),
+                ("user-agent".to_owned(), vec![USER_AGENT.to_owned()]),
             ],
             status_code: status,
             response_headers: response.as_ref().map_or_else(

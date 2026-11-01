@@ -33,6 +33,14 @@ Repositories are named as in Sourcegull (`gitlab.example.com/group/project`); a 
 as `group/project` also works. Revisions default to the default branch. The navigation tools
 take `repo`, `path`, `line` and either the `symbol` on that line (preferred) or a `column`.
 
+## Token usage
+
+An agent reads a symbol's definition, its references and the line ranges it needs instead of
+cloning, grepping and reading whole files, so far less output enters its context: about 5× less
+on a question about one repository, and up to 70× less for references to a common name across
+about 1,400 repositories with [precise data](code-navigation.md). Tokens are estimated at about 4
+bytes each.
+
 ## Authentication
 
 Clients authenticate in one of two ways:
