@@ -10,6 +10,8 @@
 // Run it with scripts/test/e2e-ui.sh, after ui/e2e/search.cjs has signed up the admin and with
 // the repository it sets up.
 const { chromium } = require('playwright');
+// Executors must be within one minor version of the server; the UI package carries the release version.
+const EXECUTOR_VERSION = require('../package.json').version;
 const BASE = process.env.BASE || 'http://127.0.0.1:7090';
 const OUT = process.env.OUT || require('node:os').tmpdir();
 const REPO = 'gitlab.example.com/acme/sourcegull';
@@ -67,7 +69,7 @@ function step(name) {
 		post(`/.executors/queue/batches/${action}`, { executorName: 'e2e-executor', ...data }, `token-executor ${EXECUTOR_TOKEN}`);
 	const dequeue = async () => {
 		for (let i = 0; i < 40; i++) {
-			const job = await executor('dequeue', { version: '0.1.0', capabilities: ['batch-steps', 'executor-secrets'] });
+			const job = await executor('dequeue', { version: EXECUTOR_VERSION, capabilities: ['batch-steps', 'executor-secrets'] });
 			if (job) return job;
 			await page.waitForTimeout(250);
 		}
