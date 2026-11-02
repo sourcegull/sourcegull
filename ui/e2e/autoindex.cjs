@@ -8,6 +8,8 @@
 //
 // Run it with scripts/test/e2e-ui.sh, after ui/e2e/search.cjs has signed up the admin.
 const { chromium } = require('playwright');
+// Executors must be within one minor version of the server; the UI package carries the release version.
+const EXECUTOR_VERSION = require('../package.json').version;
 const BASE = process.env.BASE || 'http://127.0.0.1:7090';
 const OUT = process.env.OUT || require('node:os').tmpdir();
 const REPO = 'gitlab.example.com/acme/sourcegull';
@@ -110,7 +112,7 @@ function step(name) {
 	await page.waitForSelector('tr[data-root=""]:has-text("Queued for indexing")', { timeout: 15000 });
 
 	step('an executor runs a job and it fails');
-	const job = await executor('dequeue', { version: '0.1.0', capabilities: ['docker-steps', 'scip-upload'] });
+	const job = await executor('dequeue', { version: EXECUTOR_VERSION, capabilities: ['docker-steps', 'scip-upload'] });
 	if (!job) fail('no job to dequeue');
 	await executor('addExecutionLogEntry', {
 		jobId: job.id,
