@@ -1,0 +1,5 @@
+# Commits that only reformat code; `git blame` skips them with
+# `git config blame.ignoreRevsFile .git-blame-ignore-revs` (GitHub's blame view reads this file).
+
+# UI: Prettier config and a one-time format of ui/src (#32)
+cb7c7b1c6e3a4220fd515cf08d8f00ee3f5e76dc
