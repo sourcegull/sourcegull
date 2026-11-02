@@ -822,3 +822,25 @@ async fn security_event_store() {
     assert_eq!(mine[0].name, "SignInFailed");
     assert_eq!(store.list_recent(None, 1).await.unwrap().len(), 1);
 }
+
+#[tokio::test(flavor = "multi_thread")]
+async fn the_test_server_is_a_supported_version() {
+    let Some((t, _db)) = setup().await else {
+        return;
+    };
+    sourcegull_db::check_server_version(&t.pool)
+        .await
+        .expect("the test server is PostgreSQL 16 or newer");
+}
+
+#[test]
+fn unsupported_server_names_the_minimum() {
+    let e = DbError::UnsupportedServer {
+        version: "15.8".into(),
+    };
+    assert!(e.is_unsupported_server());
+    assert_eq!(
+        e.to_string(),
+        "PostgreSQL 15.8 is not supported: Sourcegull needs PostgreSQL 16 or newer"
+    );
+}

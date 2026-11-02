@@ -38,7 +38,7 @@ APIs), and repo nodes listen for gRPC on `:3178`.
 
 ## PostgreSQL is the only dependency
 
-PostgreSQL 18 holds all durable state and also does the jobs often given to other services:
+PostgreSQL (16 or newer) holds all durable state and also does the jobs often given to other services:
 
 - **Job queues** (`pgqueue`): one table per queue, dequeued with `FOR UPDATE SKIP LOCKED`, with
   heartbeats, retries with backoff and a resetter for jobs whose worker died.

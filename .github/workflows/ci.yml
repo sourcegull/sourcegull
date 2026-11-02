@@ -1,4 +1,5 @@
-# CI: one job runs rustfmt, clippy and the tests against Postgres. cargo-deny, Helm lint and the Docker image build run only when
+# CI: one job runs rustfmt, clippy and the tests against Postgres 18, another the tests against
+# Postgres 16 (the oldest supported). cargo-deny, Helm lint and the Docker image build run only when
 # the workflow is started by hand (Actions → CI → Run workflow). Chart tests on kind: helm.yml.
 # Every workflow runs on the self-hosted runner ([self-hosted, linux]); only release.yml runs on
 # its own (on tags), the others by hand.
@@ -67,6 +68,34 @@ jobs:
         run: scripts/bench/search.sh --corpus tiny --repeats 3 --warmups 1
       # promtool and helm on the generated monitoring files, in Docker.
       - run: scripts/test/check-monitoring.sh
+
+  # The oldest supported PostgreSQL (MIN_SERVER_VERSION in crates/db/src/db.rs): the tests only.
+  postgres-16:
+    name: test on PostgreSQL 16
+    runs-on: [self-hosted, linux]
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_USER: sourcegull
+          POSTGRES_PASSWORD: sourcegull
+          POSTGRES_DB: sourcegull
+        ports:
+          - 5432
+        options: >-
+          --health-cmd "pg_isready -U sourcegull -d sourcegull"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 20
+    env:
+      SOURCEGULL_REQUIRE_TEST_DATABASE: "1"
+    steps:
+      - uses: actions/checkout@v5
+      - name: Test database
+        run: echo "SOURCEGULL_TEST_DATABASE_URL=postgres://sourcegull:sourcegull@localhost:${{ job.services.postgres.ports['5432'] }}/sourcegull" >>"$GITHUB_ENV"
+      - uses: dtolnay/rust-toolchain@stable
+      - uses: Swatinem/rust-cache@v2
+      - run: cargo test --workspace --locked
 
   # Manual only (workflow_dispatch).
   extra:

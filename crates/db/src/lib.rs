@@ -32,7 +32,7 @@ pub mod schema;
 pub mod stores;
 pub mod upgrade;
 
-pub use db::{Db, DbOptions};
+pub use db::{Db, DbOptions, MIN_SERVER_VERSION, check_server_version};
 pub use error::{DbError, Result};
 pub use fence::Fence;
 pub use stores::*;

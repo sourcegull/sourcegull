@@ -80,7 +80,7 @@ dashboards and documented alerts. See [the documentation](docs/README.md).
 
 ## Ready for production
 
-- One Rust binary, and PostgreSQL 18 is its only stateful dependency. Nothing is sent to a
+- One Rust binary, and PostgreSQL (16 or newer) is its only stateful dependency. Nothing is sent to a
   vendor cloud.
 - No telemetry. Usage analytics stay on the instance.
 - Docker Compose for one host, a Helm chart for Kubernetes. Every release is tested by

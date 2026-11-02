@@ -10,9 +10,10 @@ binary and the `gull` command-line client, for linux/amd64 (for arm64,
 | [Compose, production layout](#production-layout) | production on one host: a container per role | PostgreSQL service in the Compose file |
 | [Kubernetes (Helm)](#kubernetes-helm) | production, larger installs, several repo nodes | external, bundled or CloudNativePG |
 
-Every option needs only PostgreSQL 18; there is no Redis or other service to run. Install from
-a [release](https://github.com/sourcegull/sourcegull/releases): each one publishes the images,
-the Helm chart and a Compose bundle, and its notes give the versions.
+Every option needs only PostgreSQL 16 or newer (the bundled database is 18); there is no Redis
+or other service to run. Install from a [release](https://github.com/sourcegull/sourcegull/releases):
+each one publishes the images, the Helm chart and a Compose bundle, and its notes give the
+versions.
 
 ## Release artifacts
 
@@ -134,7 +135,7 @@ helm test sourcegull
 `--version` pins a chart version (the release notes give it); from a checkout,
 `deploy/helm/sourcegull` works as the chart too.
 
-For production, use an external PostgreSQL 18 and your own Secret:
+For production, use an external PostgreSQL (16 or newer, 18 recommended) and your own Secret:
 
 ```sh
 kubectl create secret generic sourcegull-secrets \

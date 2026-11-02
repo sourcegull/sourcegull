@@ -1,12 +1,29 @@
 //! The connection pool wrapper.
 
-use crate::Result;
 use crate::cluster::{Cluster, Target};
+use crate::{DbError, Result};
 use sourcegull_crypto::Keyring;
 use sqlx::postgres::{PgConnectOptions, PgPool, PgPoolOptions};
 use std::str::FromStr;
 use std::sync::Arc;
 use std::time::Duration;
+
+/// The oldest supported PostgreSQL, as `server_version_num` (16.0).
+pub const MIN_SERVER_VERSION: i32 = 160000;
+
+/// Fails with [`DbError::UnsupportedServer`] when the server is older than
+/// [`MIN_SERVER_VERSION`].
+pub async fn check_server_version(pool: &PgPool) -> Result<()> {
+    let (num, version): (String, String) = sqlx::query_as(
+        "SELECT current_setting('server_version_num'), current_setting('server_version')",
+    )
+    .fetch_one(pool)
+    .await?;
+    if num.parse::<i32>().unwrap_or(0) < MIN_SERVER_VERSION {
+        return Err(DbError::UnsupportedServer { version });
+    }
+    Ok(())
+}
 
 /// Pool and session settings for [`Db::connect`].
 #[derive(Debug, Clone)]
@@ -66,6 +83,8 @@ impl Db {
     /// The URL may list several hosts (`postgres://u:p@h1:5432,h2:5432/db`); the pools then
     /// connect to whichever is the writable primary and follow it when it changes (see
     /// [`crate::cluster`]).
+    ///
+    /// Fails with [`DbError::UnsupportedServer`] on a server older than [`MIN_SERVER_VERSION`].
     pub async fn connect(url: &str, opts: &DbOptions) -> Result<Self> {
         let target = Target::parse(url)?;
         let cluster = if target.require_primary {
@@ -84,6 +103,7 @@ impl Db {
         let pool = pool_options(opts, cluster.as_ref())
             .connect_with(connect)
             .await?;
+        check_server_version(&pool).await?;
         if let Some(c) = &cluster {
             c.register(&pool);
         }

@@ -127,7 +127,7 @@ credentials; never expose this GitLab outside your machine.
 
 ## On the host
 
-With a Rust toolchain, Node.js and PostgreSQL 18 installed:
+With a Rust toolchain, Node.js and PostgreSQL 16 or newer installed:
 
 ```sh
 # Postgres for development and tests (prints the URL)
