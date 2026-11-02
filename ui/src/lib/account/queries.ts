@@ -55,6 +55,17 @@ export const REACTIVATE_USER = `mutation ReactivateUser($user: ID!) {
 	reactivateUser(user: $user) { id }
 }`;
 
+/**
+ * Creates a user (site admins), whatever the sign-up settings. With password sign-in on, the
+ * result has a one-time link to set a password, also emailed when email is set up.
+ */
+export const CREATE_USER = `mutation CreateUser($username: String!, $email: String, $verifiedEmail: Boolean) {
+	createUser(username: $username, email: $email, verifiedEmail: $verifiedEmail) {
+		user { username }
+		resetPasswordURL
+	}
+}`;
+
 /** Creates a single-use reset link for a user (site admins); also emailed when email is set up. */
 export const RANDOMIZE_USER_PASSWORD = `mutation RandomizeUserPassword($user: ID!) {
 	randomizeUserPassword(user: $user) { resetPasswordURL }

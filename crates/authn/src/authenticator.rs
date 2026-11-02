@@ -149,18 +149,18 @@ impl Authenticator {
         self.builtin().is_some_and(|b| b.allow_signup)
     }
 
-    /// Whether no users exist yet (the next sign-up becomes site admin).
+    /// Whether the next sign-up initialises the site and becomes site admin: no users exist
+    /// yet and no site admins are declared. With declared site admins the first admin signs in
+    /// through a provider that verifies a declared email, so there is no site-init sign-up.
     pub async fn needs_site_init(&self) -> Result<bool, AuthError> {
+        Ok(self.no_users().await? && !self.has_declared_site_admins().await?)
+    }
+
+    async fn no_users(&self) -> Result<bool, AuthError> {
         Ok(self.inner.db.users().count().await? == 0)
     }
 
-    /// Whether a sign-up may proceed although sign-up is closed, because it could create a
-    /// site admin: no users exist yet, or site admins are declared (the account is then created
-    /// only for a declared, verified email; see `sourcegull_db::NewAccount::only_if_first`).
-    pub async fn may_create_first_admin(&self) -> Result<bool, AuthError> {
-        if self.needs_site_init().await? {
-            return Ok(true);
-        }
+    async fn has_declared_site_admins(&self) -> Result<bool, AuthError> {
         Ok(!self
             .inner
             .db
@@ -168,6 +168,13 @@ impl Authenticator {
             .site_admin_emails()
             .await?
             .is_empty())
+    }
+
+    /// Whether a sign-up may proceed although sign-up is closed, because it could create a
+    /// site admin: no users exist yet, or site admins are declared (the account is then created
+    /// only for a declared, verified email; see `sourcegull_db::NewAccount::only_if_first`).
+    pub async fn may_create_first_admin(&self) -> Result<bool, AuthError> {
+        Ok(self.no_users().await? || self.has_declared_site_admins().await?)
     }
 
     /// Checks `password` against `auth.passwordPolicy`.
@@ -317,6 +324,45 @@ impl Authenticator {
         )
         .await;
         Ok(user)
+    }
+
+    /// Creates an account named exactly `username`, without a password and with `email` if
+    /// given (verified when `email_verified`), for a site admin: the sign-up settings do not
+    /// apply.
+    pub async fn create_user(
+        &self,
+        username: &str,
+        email: Option<&str>,
+        email_verified: bool,
+    ) -> Result<User, AuthError> {
+        let username = username.trim();
+        validate_username(username)?;
+        let email = email.map(str::trim).filter(|e| !e.is_empty());
+        if let Some(e) = email {
+            validate_email(e)?;
+        }
+        let created = self
+            .inner
+            .db
+            .accounts()
+            .create(&NewAccount {
+                user: NewUser {
+                    username: username.to_owned(),
+                    ..Default::default()
+                },
+                email: email.map(str::to_owned),
+                email_verified: email_verified && email.is_some(),
+                only_if_first: false,
+            })
+            .await
+            .map_err(|e| match e {
+                DbError::AlreadyExists { constraint } if constraint.contains("email") => {
+                    AuthError::EmailTaken
+                }
+                DbError::AlreadyExists { .. } => AuthError::UsernameTaken,
+                other => other.into(),
+            })?;
+        Ok(created.user)
     }
 
     /// Signs in with a username (or verified email) and password, returning

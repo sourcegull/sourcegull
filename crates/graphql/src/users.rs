@@ -502,6 +502,17 @@ impl UsersQuery {
 #[derive(Default)]
 pub struct UsersMutation;
 
+/// The result of `createUser`.
+#[derive(SimpleObject)]
+pub struct CreateUserResult {
+    /// The new user.
+    user: UserNode,
+    /// A one-time link for the user to set their password, also emailed to their address when
+    /// email is set up. Null when password sign-in (the built-in provider) is off.
+    #[graphql(name = "resetPasswordURL")]
+    reset_password_url: Option<String>,
+}
+
 #[derive(SimpleObject)]
 pub struct RandomizeUserPasswordResult {
     #[graphql(name = "resetPasswordURL")]
@@ -510,6 +521,54 @@ pub struct RandomizeUserPasswordResult {
 
 #[Object]
 impl UsersMutation {
+    /// Creates a user (site admins only), whatever the sign-up settings. With password
+    /// sign-in on, the result has a one-time link for the user to set their password.
+    /// `verifiedEmail` marks `email` verified, which links it to external sign-ins by email.
+    async fn create_user(
+        &self,
+        ctx: &Context<'_>,
+        username: String,
+        email: Option<String>,
+        verified_email: Option<bool>,
+    ) -> Result<CreateUserResult> {
+        let admin = require_site_admin(ctx)?;
+        let svc = services(ctx)?;
+        let email = email.map(|e| e.trim().to_owned()).filter(|e| !e.is_empty());
+        let verified = verified_email.unwrap_or(false) && email.is_some();
+        if verified && let Some(e) = &email {
+            crate::declared::ensure_email_verification_allowed(svc, e).await?;
+        }
+        let user = svc
+            .auth
+            .create_user(&username, email.as_deref(), verified)
+            .await
+            .map_err(auth_error)?;
+        let reset_password_url = if svc.auth.builtin_enabled() {
+            Some(
+                crate::access_requests::account_setup_link(
+                    svc,
+                    user.id,
+                    email.as_deref(),
+                    "A Sourcegull account was created for you. Set your password with this link:",
+                )
+                .await?,
+            )
+        } else {
+            None
+        };
+        audit::record(
+            svc,
+            events::USER_CREATED,
+            Some(admin.user_id),
+            json!({ "userID": user.id, "username": user.username }),
+        )
+        .await;
+        Ok(CreateUserResult {
+            user: UserNode(user),
+            reset_password_url,
+        })
+    }
+
     /// Creates a single-use reset link for a user (site admins only).
     async fn randomize_user_password(
         &self,

@@ -36,6 +36,8 @@ pub mod events {
     /// An admin queued a code host permissions sync of a user or repository.
     pub const PERMISSIONS_SYNC_SCHEDULED: &str = "PermissionsSyncScheduled";
     pub const ACCESS_REQUEST_DECIDED: &str = "AccessRequestStatusChanged";
+    /// A site admin created a user.
+    pub const USER_CREATED: &str = "UserCreated";
     /// A site admin deactivated a user.
     pub const USER_DEACTIVATED: &str = "UserDeactivated";
     /// A site admin reactivated a user.

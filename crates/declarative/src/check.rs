@@ -9,7 +9,9 @@ use sourcegull_config::resources::{
     CodeHostKind, CodeIntelPolicyDecl, Entry, PolicyObjectType, ResourceKind, Resources,
     parse_resources,
 };
-use sourcegull_config::{ConfigError, ConfigIssue, Settings, SiteConfig, parse_jsonc};
+use sourcegull_config::{
+    AuthProvider, ConfigError, ConfigIssue, Settings, SiteConfig, parse_jsonc,
+};
 use sourcegull_executor_api::secrets;
 use sourcegull_outbound_webhooks::events::is_known as is_known_webhook_event;
 use sourcegull_outbound_webhooks::guard::check_webhook_url;
@@ -209,6 +211,34 @@ fn dotted(pointer: &str) -> String {
     out
 }
 
+/// Checks that a declared site admin can get an account under `config`'s sign-in settings.
+/// Declared admins are matched against verified emails, so `siteAdmins` needs a way to verify
+/// one without an existing admin: an external provider (GitLab, GitHub, Gitea, OpenID
+/// Connect, or `http-header` with `emailHeader`), SCIM provisioning (`scim.authToken`), or
+/// open built-in sign-up (`allowSignup`) with email (`email.smtp`) to confirm the address.
+/// Without one, no admin could ever sign in, so the file is refused.
+pub fn check_site_admin_sign_in(resources: &Resources, config: &SiteConfig) -> Option<ConfigIssue> {
+    if resources.site_admins.as_ref().is_none_or(Vec::is_empty) {
+        return None;
+    }
+    let verifies = config.auth_providers.iter().any(|p| match p {
+        AuthProvider::Gitlab(_)
+        | AuthProvider::Github(_)
+        | AuthProvider::Gitea(_)
+        | AuthProvider::OpenIdConnect(_) => true,
+        AuthProvider::HttpHeader(h) => h.email_header.is_some(),
+        AuthProvider::Builtin(b) => b.allow_signup && config.email_smtp.is_some(),
+    }) || config.scim_auth_token.is_some();
+    (!verifies).then(|| ConfigIssue {
+        pointer: "siteAdmins".to_owned(),
+        message: "no sign-in method can verify a declared admin's email, so no admin could sign \
+                  in: add a GitLab, GitHub, Gitea or OpenID Connect provider (or `http-header` \
+                  with `emailHeader`) to `auth.providers`, set `scim.authToken`, or set \
+                  `allowSignup` on the built-in provider together with `email.smtp`"
+            .to_owned(),
+    })
+}
+
 /// One line per issue, for errors and logs.
 pub fn describe_issues(issues: &[ConfigIssue]) -> String {
     issues
@@ -297,5 +327,51 @@ mod tests {
     fn dotted_pointers() {
         assert_eq!(dotted("/a/0/b~1c"), ".a[0].b/c");
         assert_eq!(dotted(""), "");
+    }
+
+    #[test]
+    fn site_admins_need_a_way_to_verify_an_email() {
+        let resources = |text: &str| parse_resources(text, &NoRefs).unwrap();
+        let with = |providers: serde_json::Value| SiteConfig {
+            auth_providers: serde_json::from_value(providers).unwrap(),
+            ..SiteConfig::default()
+        };
+        let admins = resources(r#"{"siteAdmins": ["admin@example.com"]}"#);
+        // Password sign-in alone (the default) cannot verify a declared admin's email.
+        let builtin = SiteConfig::default();
+        let issue = check_site_admin_sign_in(&admins, &builtin).unwrap();
+        assert_eq!(issue.pointer, "siteAdmins");
+        // Without declared admins, or with an empty list, nothing is required.
+        assert!(check_site_admin_sign_in(&resources("{}"), &builtin).is_none());
+        assert!(check_site_admin_sign_in(&resources(r#"{"siteAdmins": []}"#), &builtin).is_none());
+
+        let gitlab = with(serde_json::json!([
+            {"type": "builtin"},
+            {"type": "gitlab", "clientID": "id", "clientSecret": "secret"}
+        ]));
+        assert!(check_site_admin_sign_in(&admins, &gitlab).is_none());
+        let header = |email: bool| {
+            let mut p = serde_json::json!({"type": "http-header", "usernameHeader": "X-User"});
+            if email {
+                p["emailHeader"] = "X-Email".into();
+            }
+            with(serde_json::json!([p]))
+        };
+        assert!(check_site_admin_sign_in(&admins, &header(false)).is_some());
+        assert!(check_site_admin_sign_in(&admins, &header(true)).is_none());
+        let scim = SiteConfig {
+            scim_auth_token: Some("t".to_owned()),
+            ..SiteConfig::default()
+        };
+        assert!(check_site_admin_sign_in(&admins, &scim).is_none());
+        // Open sign-up verifies the address by email, so it needs SMTP.
+        let open = with(serde_json::json!([{"type": "builtin", "allowSignup": true}]));
+        assert!(check_site_admin_sign_in(&admins, &open).is_some());
+        let open_smtp = SiteConfig {
+            email_smtp: serde_json::from_value(serde_json::json!({"host": "smtp", "port": 25}))
+                .unwrap(),
+            ..open
+        };
+        assert!(check_site_admin_sign_in(&admins, &open_smtp).is_none());
     }
 }

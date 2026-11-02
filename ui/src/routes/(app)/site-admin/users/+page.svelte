@@ -19,7 +19,9 @@
 		type UsersResult,
 		type UsersVariables
 	} from '#lib/queries.ts';
+	import type { CreateUserMutation, CreateUserMutationVariables } from '#lib/graphql-types.ts';
 	import {
+		CREATE_USER,
 		DEACTIVATE_USER,
 		RANDOMIZE_USER_PASSWORD,
 		REACTIVATE_USER,
@@ -168,6 +170,7 @@
 		pending = user.id;
 		error = null;
 		resetLink = null;
+		created = null;
 		try {
 			const r = await graphql<RandomizeUserPasswordResult, { user: string }>(RANDOMIZE_USER_PASSWORD, {
 				user: user.id
@@ -181,6 +184,42 @@
 			error = `Could not create a reset link for ${user.username}: ${errorMessage(err)}`;
 		} finally {
 			pending = null;
+		}
+	}
+
+	let newUsername = $state('');
+	let newEmail = $state('');
+	let newEmailVerified = $state(false);
+	let creating = $state(false);
+	/** The last user created, with their account setup link (null when password sign-in is off). */
+	let created = $state<{ username: string; url: string | null; email: boolean } | null>(null);
+
+	async function createUser(): Promise<void> {
+		creating = true;
+		error = null;
+		created = null;
+		resetLink = null;
+		const email = newEmail.trim();
+		try {
+			const r = await graphql<CreateUserMutation, CreateUserMutationVariables>(CREATE_USER, {
+				username: newUsername.trim(),
+				email: email || null,
+				verifiedEmail: email !== '' && newEmailVerified
+			});
+			const url = r.createUser.resetPasswordURL;
+			created = {
+				username: r.createUser.user.username,
+				url: url ? new URL(url, location.origin).href : null,
+				email: email !== ''
+			};
+			newUsername = '';
+			newEmail = '';
+			newEmailVerified = false;
+			await load();
+		} catch (err) {
+			error = `Could not create the user: ${errorMessage(err)}`;
+		} finally {
+			creating = false;
 		}
 	}
 
@@ -206,6 +245,51 @@
 	</div>
 </div>
 
+<section class="card create-card">
+	<div class="card-header"><h2>New user</h2></div>
+	<form
+		class="toolbar create-row"
+		onsubmit={(event) => {
+			event.preventDefault();
+			void createUser();
+		}}
+	>
+		<label class="visually-hidden" for="new-username">Username</label>
+		<input
+			id="new-username"
+			class="input"
+			placeholder="Username"
+			autocomplete="off"
+			autocapitalize="off"
+			spellcheck="false"
+			bind:value={newUsername}
+			required
+		/>
+		<label class="visually-hidden" for="new-email">Email</label>
+		<input
+			id="new-email"
+			class="input"
+			type="email"
+			placeholder="Email (optional)"
+			autocomplete="off"
+			bind:value={newEmail}
+		/>
+		<button class="btn btn-primary" type="submit" disabled={creating || !newUsername.trim()}>Create user</button>
+	</form>
+	<label class="checkbox"
+		><input type="checkbox" bind:checked={newEmailVerified} disabled={!newEmail.trim()} /> The email is verified</label
+	>
+	<p class="muted small hint">
+		{#if data.auth.builtin}
+			You get a one-time link, valid for 24 hours, for them to set a password. Mark the email verified only if you know
+			it is theirs: a verified email links code host sign-ins with the same address to this account.
+		{:else}
+			Password sign-in is off, so they sign in with a code host. With a verified email that sign-in uses this account;
+			mark it verified only if you know it is theirs.
+		{/if}
+	</p>
+</section>
+
 <div class="field filter">
 	<label class="visually-hidden" for="user-filter">Filter users</label>
 	<input
@@ -225,6 +309,24 @@
 
 {#if error}
 	<div class="alert alert-danger" role="alert">{error}</div>
+{/if}
+{#if created}
+	<div
+		class="alert {created.url && !(data.auth.emailEnabled && created.email) ? 'alert-warning' : 'alert-success'}"
+		role="status"
+	>
+		{#if !created.url}
+			Created {created.username}.
+		{:else if data.auth.emailEnabled && created.email}
+			Created {created.username} and emailed them a link to set their password. You can also send it yourself:
+		{:else}
+			Created {created.username}. {#if !data.auth.emailEnabled}Email is not set up (<a href={EMAIL_SETTINGS_URL}
+					>set it up</a
+				>), so nothing was emailed.{:else}They have no email, so nothing was emailed.{/if} Send them this one-time link to
+			set their password privately:
+		{/if}
+		{#if created.url}<code class="mono reset-link">{created.url}</code>{/if}
+	</div>
 {/if}
 {#if resetLink}
 	<div class="alert {data.auth.emailEnabled ? 'alert-success' : 'alert-warning'}" role="status">
@@ -358,6 +460,17 @@
 {/if}
 
 <style>
+	.create-card {
+		max-width: 48rem;
+		margin-bottom: var(--space-6);
+	}
+	.create-row .input {
+		flex: 1 1 12rem;
+		width: auto;
+	}
+	.hint {
+		margin: var(--space-2) 0 0;
+	}
 	.reset-link {
 		display: block;
 		margin-top: var(--space-2);

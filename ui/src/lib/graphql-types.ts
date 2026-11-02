@@ -1055,6 +1055,15 @@ export type AddUserEmailMutationVariables = Exact<{
 
 export type AddUserEmailMutation = { addUserEmail: { alwaysNil: string | null } };
 
+export type CreateUserMutationVariables = Exact<{
+  username: string;
+  email?: string | null | undefined;
+  verifiedEmail?: boolean | null | undefined;
+}>;
+
+
+export type CreateUserMutation = { createUser: { resetPasswordURL: string | null, user: { username: string } } };
+
 export type DeactivateUserMutationVariables = Exact<{
   user: string | number;
 }>;

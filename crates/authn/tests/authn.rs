@@ -778,3 +778,24 @@ async fn rbac_store_assignments() {
             .is_empty()
     );
 }
+
+#[tokio::test]
+async fn declared_site_admins_replace_site_init() {
+    let Some(e) = setup_with(false, true).await else {
+        return;
+    };
+    e.db.declared()
+        .set_site_admins(Some(&["root@example.com".to_owned()]))
+        .await
+        .unwrap();
+    // The first admin comes from a provider-verified declared email, not a site-init sign-up.
+    assert!(!e.auth.needs_site_init().await.unwrap());
+    assert!(e.auth.may_create_first_admin().await.unwrap());
+    // A password sign-up cannot verify the email, so it cannot create that admin.
+    let err = e
+        .auth
+        .sign_up("root", "root@example.com", PW)
+        .await
+        .unwrap_err();
+    assert!(matches!(err, AuthError::SignupDisabled), "{err:?}");
+}
