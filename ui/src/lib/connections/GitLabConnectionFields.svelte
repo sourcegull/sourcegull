@@ -6,6 +6,7 @@
 -->
 <script lang="ts">
 	import { untrack } from 'svelte';
+	import CodeSnippet from '#lib/components/CodeSnippet.svelte';
 	import {
 		MEMBERSHIP_QUERY,
 		exclusionsValue,
@@ -13,10 +14,14 @@
 		jsonOnlyKeys,
 		lines,
 		normalizePath,
+		OAUTH_REDIRECT,
+		oauthAuthorizeURL,
+		oauthTokenCommand,
 		projectEdits,
 		readExclusions,
 		readProjects,
 		tokenPageURL,
+		tokenTypeEdits,
 		type Edit,
 		type ProjectMode
 	} from './gitlab-form.ts';
@@ -41,6 +46,8 @@
 	const token = $derived(typeof doc.token === 'string' ? doc.token : '');
 	const tokenStored = $derived(editing && token === 'REDACTED');
 	const tokenType = $derived(doc['token.type'] === 'oauth' ? 'oauth' : 'pat');
+	const refresh = $derived(typeof doc['token.oauth.refresh'] === 'string' ? doc['token.oauth.refresh'] : '');
+	const refreshStored = $derived(editing && refresh === 'REDACTED');
 	const authType = $derived.by(() => {
 		const a = doc.authorization as { identityProvider?: { type?: unknown } } | undefined;
 		const t = a?.identityProvider?.type;
@@ -63,6 +70,9 @@
 	let excludeEmpty = $state(initialExclusions.emptyRepos);
 	/** Whether the token will also be used for bulk changes (asks for `api`). */
 	let wantsApi = $state(false);
+	const scopes = $derived(wantsApi ? ['api'] : ['read_api']);
+	/** The OAuth application's ID, only used to fill in the link and the command. */
+	let clientID = $state('');
 
 	function writeProjects(): void {
 		groupsText = lines(groupsText, normalizePath).join('\n');
@@ -107,6 +117,10 @@
 		onedit([[['token'], value === '' && editing ? 'REDACTED' : value]]);
 	}
 
+	function setRefresh(value: string): void {
+		onedit([[['token.oauth.refresh'], value === '' ? (refreshStored ? 'REDACTED' : undefined) : value]]);
+	}
+
 	function setAuthorization(t: string): void {
 		onedit([[['authorization'], t === 'none' ? undefined : { identityProvider: { type: t } }]]);
 	}
@@ -135,13 +149,45 @@
 
 	<section aria-labelledby="gl-token">
 		<h3 id="gl-token">Access token</h3>
+		<fieldset class="modes" {disabled}>
+			<legend class="visually-hidden">Token type</legend>
+			<label class="checkbox">
+				<input
+					type="radio"
+					name="gl-token-type"
+					checked={tokenType === 'pat'}
+					onchange={() => onedit(tokenTypeEdits('pat'))}
+				/>
+				<span>
+					Personal, group or project access token <span class="muted">(recommended)</span>
+					<span class="hint block">Created in GitLab in a minute; it lasts until the expiry date you pick.</span>
+				</span>
+			</label>
+			<label class="checkbox">
+				<input
+					type="radio"
+					name="gl-token-type"
+					checked={tokenType === 'oauth'}
+					onchange={() => onedit(tokenTypeEdits('oauth'))}
+				/>
+				<span>
+					OAuth token
+					<span class="hint block">
+						For a GitLab that doesn't allow access tokens. Issued through the OAuth application of
+						<a href="/site-admin/configuration">sign-in with GitLab</a>; it lasts two hours and Sourcegull renews it
+						with its refresh token.
+					</span>
+				</span>
+			</label>
+		</fieldset>
 		<details class="setup" open={!editing}>
 			<summary>How to create the token</summary>
 			<ol class="steps">
 				<li>
 					Sign in to <code class="code-inline">{host}</code> as the user whose access Sourcegull should have. Every
-					project that user can see can be mirrored, so a dedicated service account (or a group access token) is
-					a good choice.
+					project that user can see can be mirrored, so a dedicated service account{tokenType === 'pat'
+						? ' (or a group access token)'
+						: ''} is a good choice.
 				</li>
 				<li>
 					<label class="checkbox inline">
@@ -149,25 +195,66 @@
 						I'll also use this connection for bulk changes (merge requests)
 					</label>
 				</li>
-				<li>
-					Open
-					<a href={tokenPageURL(url, wantsApi ? ['api'] : ['read_api'])} target="_blank" rel="noopener noreferrer"
-						>User settings › Access tokens</a
-					>
-					(the name and scope are filled in), pick an expiry date, and create the token. Scope:
-					<ul>
-						<li>
-							<code class="code-inline">read_api</code>: search, code navigation and repository permissions.
-						</li>
-						<li><code class="code-inline">api</code>: also merge requests for bulk changes and webhook registration.</li>
-					</ul>
-					A group or project access token with the same scope works too (Group › Settings › Access tokens); it sees
-					only that group's projects.
-				</li>
-				<li>Copy the token into the field below. GitLab shows it only once.</li>
-				<li>
-					When the token expires, syncing stops. Sourcegull emails the site admins 14, 7 and 1 days before (<code class="code-inline">codeHosts.tokenExpiryAlerts</code>).
-				</li>
+				{#if tokenType === 'pat'}
+					<li>
+						Open
+						<a href={tokenPageURL(url, scopes)} target="_blank" rel="noopener noreferrer">User settings › Access tokens</a>
+						(the name and scope are filled in), pick an expiry date, and create the token. Scope:
+						<ul>
+							<li>
+								<code class="code-inline">read_api</code>: search, code navigation and repository permissions.
+							</li>
+							<li>
+								<code class="code-inline">api</code>: also merge requests for bulk changes and webhook registration.
+							</li>
+						</ul>
+						A group or project access token with the same scope works too (Group › Settings › Access tokens); it sees
+						only that group's projects.
+					</li>
+					<li>Copy the token into the field below. GitLab shows it only once.</li>
+					<li>
+						When the token expires, syncing stops. Sourcegull emails the site admins 14, 7 and 1 days before (<code
+							class="code-inline">codeHosts.tokenExpiryAlerts</code
+						>).
+					</li>
+				{:else}
+					<li>
+						Set up <a href="/site-admin/configuration">sign-in with GitLab</a> for
+						<code class="code-inline">{host}</code> (an <code class="code-inline">auth.providers</code> entry with the
+						same URL). Sourcegull renews the token with that entry's OAuth application.
+					</li>
+					<li>
+						In GitLab, edit that OAuth application: add <code class="code-inline">{OAUTH_REDIRECT}</code> as another
+						redirect URI (one per line) and tick the scope <code class="code-inline">{scopes[0]}</code>.
+					</li>
+					<li>
+						<label for="gl-client-id">Its Application ID:</label>
+						<input
+							id="gl-client-id"
+							class="input mono inline-input"
+							autocomplete="off"
+							placeholder="Application ID"
+							bind:value={clientID}
+						/>
+						<span class="muted">(only fills in the link and the command; not saved)</span>
+					</li>
+					<li>
+						Open <a href={oauthAuthorizeURL(url, clientID.trim(), scopes)} target="_blank" rel="noopener noreferrer"
+							>the authorization page</a
+						>
+						and click <em>Authorize</em>. The browser then goes to
+						<code class="code-inline">{OAUTH_REDIRECT}?code=…</code>, which doesn't load; copy the
+						<code class="code-inline">code</code> from the address bar. It is valid for ten minutes.
+					</li>
+					<li>
+						Exchange it for tokens, with the application's secret and the code:
+						<CodeSnippet code={oauthTokenCommand(url, clientID.trim())} label="token command" />
+					</li>
+					<li>
+						Copy <code class="code-inline">access_token</code> into <em>Token</em> and
+						<code class="code-inline">refresh_token</code> into <em>Refresh token</em> below.
+					</li>
+				{/if}
 			</ol>
 		</details>
 		<div class="field">
@@ -177,26 +264,36 @@
 				class="input mono"
 				type="password"
 				autocomplete="off"
-				placeholder={tokenStored ? 'Stored token kept; type a new one to replace it' : 'glpat-…'}
+				placeholder={tokenStored
+					? 'Stored token kept; type a new one to replace it'
+					: tokenType === 'oauth'
+						? 'access_token'
+						: 'glpat-…'}
 				value={tokenStored || token === PLACEHOLDER_TOKEN ? '' : token}
 				{disabled}
 				oninput={(e) => setToken(value(e).trim())}
 			/>
 			<span class="hint">Stored encrypted. Use <em>Test connection</em> below to check it.</span>
 		</div>
-		<div class="field">
-			<label for="gl-token-type">Token type</label>
-			<select
-				id="gl-token-type"
-				class="input"
-				value={tokenType}
-				{disabled}
-				onchange={(e) => onedit([[['token.type'], value(e) === 'oauth' ? 'oauth' : undefined]])}
-			>
-				<option value="pat">Personal, group or project access token</option>
-				<option value="oauth">OAuth access token</option>
-			</select>
-		</div>
+		{#if tokenType === 'oauth'}
+			<div class="field">
+				<label for="gl-refresh-input">Refresh token</label>
+				<input
+					id="gl-refresh-input"
+					class="input mono"
+					type="password"
+					autocomplete="off"
+					placeholder={refreshStored ? 'Stored refresh token kept; type a new one to replace it' : 'refresh_token'}
+					value={refreshStored ? '' : refresh}
+					{disabled}
+					oninput={(e) => setRefresh(value(e).trim())}
+				/>
+				<span class="hint">
+					Sourcegull stores each renewed token here. If GitLab rejects it (revoked, or used elsewhere), syncing stops
+					until you create new tokens.
+				</span>
+			</div>
+		{/if}
 	</section>
 
 	<section aria-labelledby="gl-projects">
@@ -484,6 +581,15 @@
 	}
 	.checkbox.inline {
 		display: inline-flex;
+	}
+	.hint.block {
+		display: block;
+	}
+	.inline-input {
+		display: inline-block;
+		width: 22rem;
+		max-width: 100%;
+		margin: 0 var(--space-1);
 	}
 	.modes {
 		border: none;

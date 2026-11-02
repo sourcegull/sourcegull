@@ -312,6 +312,27 @@ by the OAuth application of a GitLab entry in `auth.providers` for the same URL 
 }
 ```
 
+Use this only when your GitLab doesn't allow access tokens. To get the tokens (the connection
+form shows the same steps with the link and command filled in):
+
+1. Sign in to GitLab as the user whose access Sourcegull should have.
+2. Edit the sign-in OAuth application: add `http://localhost/` as another redirect URI and tick
+   `read_api` (or `api`, for bulk changes and webhook registration).
+3. Open `<GitLab URL>/oauth/authorize?client_id=<application id>&redirect_uri=http%3A%2F%2Flocalhost%2F&response_type=code&scope=read_api`
+   and click **Authorize**. The browser goes to `http://localhost/?code=…`, which doesn't load;
+   copy the `code` from the address bar (valid for ten minutes).
+4. Exchange it:
+
+   ```sh
+   curl -s <GitLab URL>/oauth/token -d grant_type=authorization_code \
+     -d client_id=<application id> -d client_secret='<secret>' \
+     -d redirect_uri=http://localhost/ -d code='<code>'
+   ```
+
+5. Put `access_token` into `token` and `refresh_token` into `token.oauth.refresh`.
+   `token.oauth.expiry` is optional: without it, the token is refreshed when GitLab first
+   rejects it.
+
 GitLab OAuth access tokens expire after two hours. Sourcegull refreshes the token five minutes
 before `token.oauth.expiry`, and when GitLab answers 401, then retries the request once. The
 refresh uses the client ID and secret of the matching `auth.providers` entry (each entry for
