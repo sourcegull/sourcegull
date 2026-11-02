@@ -13,14 +13,7 @@ import type {
 } from '#lib/graphql-types.ts';
 
 export type RepositoryFilter =
-	| 'all'
-	| 'cloned'
-	| 'cloning'
-	| 'not-cloned'
-	| 'failed'
-	| 'indexed'
-	| 'not-indexed'
-	| 'corrupted';
+	'all' | 'cloned' | 'cloning' | 'not-cloned' | 'failed' | 'indexed' | 'not-indexed' | 'corrupted';
 
 export const REPOSITORY_FILTERS: { value: RepositoryFilter; label: string }[] = [
 	{ value: 'all', label: 'All' },
@@ -339,7 +332,9 @@ export function cloneState(m: MirrorInfo): 'cloned' | 'cloning' | 'not cloned' {
  */
 export function remoteWebURL(remote: string): string | null {
 	const scp = /^[\w.-]+@([\w.-]+):(?!\/)(.+)$/.exec(remote);
-	const candidate = scp ? `https://${scp[1]}/${scp[2]}` : remote.replace(/^ssh:\/\/(?:[^@/]+@)?([^/:]+)(?::\d+)?\//, 'https://$1/');
+	const candidate = scp
+		? `https://${scp[1]}/${scp[2]}`
+		: remote.replace(/^ssh:\/\/(?:[^@/]+@)?([^/:]+)(?::\d+)?\//, 'https://$1/');
 	let url: URL;
 	try {
 		url = new URL(candidate);

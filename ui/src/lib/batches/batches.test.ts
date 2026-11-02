@@ -126,7 +126,10 @@ describe('changesets', () => {
 
 	it('reads the branch from the spec', () => {
 		const c = {
-			currentSpec: { id: 's', description: { __typename: 'GitBranchChangesetDescription', baseRef: 'main', headRef: 'fix', published: null } }
+			currentSpec: {
+				id: 's',
+				description: { __typename: 'GitBranchChangesetDescription', baseRef: 'main', headRef: 'fix', published: null }
+			}
 		} as ExternalChangesetNode;
 		expect(changesetBranch(c)).toBe('fix');
 		expect(changesetBranch({ currentSpec: null } as ExternalChangesetNode)).toBeNull();
@@ -207,7 +210,11 @@ describe('preview', () => {
 		};
 		expect(canSetPublicationState(detach)).toBe(false);
 		expect(previewTitle(detach)).toEqual({ title: 'Old', repo: 'r', branch: null });
-		expect(previewTitle(attach(null))).toEqual({ title: 'Hello', repo: 'gitlab.example.com/acme/app', branch: 'hello' });
+		expect(previewTitle(attach(null))).toEqual({
+			title: 'Hello',
+			repo: 'gitlab.example.com/acme/app',
+			branch: 'hello'
+		});
 	});
 
 	it('builds publicationStates', () => {
@@ -249,9 +256,24 @@ describe('preview', () => {
 		).toEqual(['title', 'diff', 'commit author']);
 		const s = { publish: 2, archive: 1 } as Partial<PreviewStats>;
 		const full = Object.fromEntries(
-			['push', 'update', 'undraft', 'publish', 'publishDraft', 'sync', 'import', 'close', 'reopen', 'sleep', 'detach', 'archive', 'reattach', 'added', 'modified', 'removed'].map(
-				(k) => [k, (s as Record<string, number>)[k] ?? 0]
-			)
+			[
+				'push',
+				'update',
+				'undraft',
+				'publish',
+				'publishDraft',
+				'sync',
+				'import',
+				'close',
+				'reopen',
+				'sleep',
+				'detach',
+				'archive',
+				'reattach',
+				'added',
+				'modified',
+				'removed'
+			].map((k) => [k, (s as Record<string, number>)[k] ?? 0])
 		) as unknown as PreviewStats;
 		expect(statsOperations(full)).toEqual([
 			{ op: 'PUBLISH', count: 2 },
@@ -297,7 +319,10 @@ describe('markdown', () => {
 			{ kind: 'text', text: ' ' },
 			{ kind: 'link', href: 'https://x.y', children: [{ kind: 'text', text: 'd' }] }
 		]);
-		expect(parseInline('[x](javascript:alert(1))')).toEqual([{ kind: 'text', text: 'x' }, { kind: 'text', text: ')' }]);
+		expect(parseInline('[x](javascript:alert(1))')).toEqual([
+			{ kind: 'text', text: 'x' },
+			{ kind: 'text', text: ')' }
+		]);
 		expect(safeHref('javascript:alert(1)')).toBeNull();
 		expect(safeHref('/users/alice')).toBe('/users/alice');
 		expect(parseInline('see https://example.com.')[1]).toEqual({

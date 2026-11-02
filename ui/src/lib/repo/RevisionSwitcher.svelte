@@ -83,7 +83,14 @@
 <svelte:window onclick={onwindowclick} />
 
 <div class="rev-switcher" bind:this={root}>
-	<button type="button" class="btn btn-sm mono rev-trigger" aria-haspopup="listbox" aria-expanded={open} onclick={toggle} title="Switch branch or tag">
+	<button
+		type="button"
+		class="btn btn-sm mono rev-trigger"
+		aria-haspopup="listbox"
+		aria-expanded={open}
+		onclick={toggle}
+		title="Switch branch or tag"
+	>
 		<span class="rev-icon"><Icon name="branch" size={14} /></span>
 		<span class="visually-hidden">rev:</span>
 		<span class="rev-label">{label}</span>

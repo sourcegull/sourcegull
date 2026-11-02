@@ -20,9 +20,9 @@ const node: PreciseIndexCoverageNode = {
 describe('coverage', () => {
 	it('summarizes the indexed commit', () => {
 		expect(indexedSummary(node, now)).toBe('aaaaaaaaaaaa · default branch tip · 3h ago');
-		expect(
-			indexedSummary({ ...node, indexedAtHead: false, indexedAt: '2026-10-08T12:00:00Z' }, now)
-		).toBe('aaaaaaaaaaaa · tip is aaaaaaaaaaaa · 12d ago');
+		expect(indexedSummary({ ...node, indexedAtHead: false, indexedAt: '2026-10-08T12:00:00Z' }, now)).toBe(
+			'aaaaaaaaaaaa · tip is aaaaaaaaaaaa · 12d ago'
+		);
 		expect(indexedSummary({ ...node, indexedCommit: null }, now)).toBe('never');
 	});
 	it('labels states', () => {

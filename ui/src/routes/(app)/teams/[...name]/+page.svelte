@@ -15,7 +15,7 @@
 		type TeamDetail,
 		type TeamResult,
 		type Vars
-} from '#lib/orgs/queries.ts';
+	} from '#lib/orgs/queries.ts';
 
 	const name = $derived(page.params.name ?? '');
 	let team = $state<TeamDetail | null>(null);

@@ -138,7 +138,9 @@
 						{#each o.reasons as r, j (j)}
 							{@const href = reasonURL(r)}
 							{#if href}
-								<a class="reason" {href} title={r.__typename === 'CodeownersFileEntry' ? r.pattern : ''}>{reasonLabel(r)}</a>
+								<a class="reason" {href} title={r.__typename === 'CodeownersFileEntry' ? r.pattern : ''}
+									>{reasonLabel(r)}</a
+								>
 							{:else}
 								<span class="reason" class:signal={isSignal(r)}>{reasonLabel(r)}</span>
 							{/if}

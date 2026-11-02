@@ -21,9 +21,7 @@
 	const LABEL = 90;
 	let hovered = $state<string | null>(null);
 
-	const radius = $derived(
-		Math.max(Math.min((width - 2 * LABEL) / 2.4, (height - 2 * PAD) / 2.6), 10)
-	);
+	const radius = $derived(Math.max(Math.min((width - 2 * LABEL) / 2.4, (height - 2 * PAD) / 2.6), 10));
 	const arcs = $derived(pieArcs(data, radius));
 	const labels = $derived(
 		pieLabels(
@@ -69,7 +67,13 @@
 			</a>
 		{/each}
 		{#if hoveredArc}
-			<path class="arc top" d={hoveredArc.path} fill={hoveredArc.datum.color} aria-hidden="true" pointer-events="none" />
+			<path
+				class="arc top"
+				d={hoveredArc.path}
+				fill={hoveredArc.datum.color}
+				aria-hidden="true"
+				pointer-events="none"
+			/>
 		{/if}
 	</g>
 </svg>

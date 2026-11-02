@@ -10,10 +10,9 @@
 {#snippet inline(nodes: Inline[])}
 	{#each nodes as n, i (i)}
 		{#if n.kind === 'text'}{n.text}{:else if n.kind === 'code'}<code>{n.text}</code
-			>{:else if n.kind === 'strong'}<strong>{@render inline(n.children)}</strong
-			>{:else if n.kind === 'em'}<em>{@render inline(n.children)}</em
-			>{:else if n.kind === 'link'}<a href={n.href} rel="noopener noreferrer">{@render inline(n.children)}</a
-			>{/if}
+			>{:else if n.kind === 'strong'}<strong>{@render inline(n.children)}</strong>{:else if n.kind === 'em'}<em
+				>{@render inline(n.children)}</em
+			>{:else if n.kind === 'link'}<a href={n.href} rel="noopener noreferrer">{@render inline(n.children)}</a>{/if}
 	{/each}
 {/snippet}
 

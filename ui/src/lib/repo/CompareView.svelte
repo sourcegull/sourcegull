@@ -35,10 +35,11 @@
 		loading = true;
 		error = null;
 		try {
-			const r = await graphql<CompareResult, { repo: string; base: string | null; head: string | null }>(
-				COMPARE,
-				{ repo: repoName, base: b || null, head: h || null }
-			);
+			const r = await graphql<CompareResult, { repo: string; base: string | null; head: string | null }>(COMPARE, {
+				repo: repoName,
+				base: b || null,
+				head: h || null
+			});
 			if (mine !== seq) return;
 			result = r.repository?.comparison ?? null;
 		} catch (err) {

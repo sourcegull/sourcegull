@@ -21,14 +21,7 @@
 	} from '#lib/queries.ts';
 
 	const PAGE_SIZE = 50;
-	const STATES: PermissionsSyncJobState[] = [
-		'QUEUED',
-		'PROCESSING',
-		'ERRORED',
-		'FAILED',
-		'COMPLETED',
-		'CANCELED'
-	];
+	const STATES: PermissionsSyncJobState[] = ['QUEUED', 'PROCESSING', 'ERRORED', 'FAILED', 'COMPLETED', 'CANCELED'];
 
 	// "Why can X see Y".
 	let username = $state('');
@@ -47,10 +40,10 @@
 		explanation = null;
 		subjects = null;
 		try {
-			const found = await graphql<PermissionsSubjectsResult, PermissionsSubjectsVariables>(
-				PERMISSIONS_SUBJECTS,
-				{ username: username.trim(), repo: repoName.trim() }
-			);
+			const found = await graphql<PermissionsSubjectsResult, PermissionsSubjectsVariables>(PERMISSIONS_SUBJECTS, {
+				username: username.trim(),
+				repo: repoName.trim()
+			});
 			subjects = found;
 			if (!found.user) {
 				explainError = `No user named ${JSON.stringify(username.trim())}.`;
@@ -60,13 +53,13 @@
 				explainError = `No repository named ${JSON.stringify(repoName.trim())}.`;
 				return;
 			}
-			const result = await graphql<
-				RepositoryAccessExplanationResult,
-				RepositoryAccessExplanationVariables
-			>(REPOSITORY_ACCESS_EXPLANATION, {
-				user: found.user.id,
-				repository: found.repository.id
-			});
+			const result = await graphql<RepositoryAccessExplanationResult, RepositoryAccessExplanationVariables>(
+				REPOSITORY_ACCESS_EXPLANATION,
+				{
+					user: found.user.id,
+					repository: found.repository.id
+				}
+			);
 			explanation = result.repositoryAccessExplanation;
 		} catch (err) {
 			explainError = errorMessage(err);
@@ -108,10 +101,10 @@
 		loading = true;
 		jobsError = null;
 		try {
-			const result = await graphql<PermissionsSyncJobsResult, PermissionsSyncJobsVariables>(
-				PERMISSIONS_SYNC_JOBS,
-				{ first: PAGE_SIZE, state: stateFilter || null }
-			);
+			const result = await graphql<PermissionsSyncJobsResult, PermissionsSyncJobsVariables>(PERMISSIONS_SYNC_JOBS, {
+				first: PAGE_SIZE,
+				state: stateFilter || null
+			});
 			if (seq !== requestSeq) return;
 			jobs = result.permissionsSyncJobs.nodes;
 			totalCount = result.permissionsSyncJobs.totalCount;
@@ -137,13 +130,8 @@
 
 	const formatTime = (iso: string | null) => (iso ? new Date(iso).toLocaleString() : 'never');
 	const subjectName = (job: PermissionsSyncJobNode) =>
-		job.subject === null
-			? '(deleted)'
-			: job.subject.__typename === 'User'
-				? job.subject.username
-				: job.subject.name;
-	const providerLabel = (type: string) =>
-		({ gitlab: 'GitLab', github: 'GitHub', gitea: 'Gitea' })[type] ?? type;
+		job.subject === null ? '(deleted)' : job.subject.__typename === 'User' ? job.subject.username : job.subject.name;
+	const providerLabel = (type: string) => ({ gitlab: 'GitLab', github: 'GitHub', gitea: 'Gitea' })[type] ?? type;
 	const reasonLabel = (kind: string) => kind.toLowerCase().replaceAll('_', ' ');
 
 	onMount(() => {
@@ -158,8 +146,8 @@
 		<h1>Repository permissions</h1>
 		<p class="page-description">
 			Repository access is synced from the code hosts of connections with an
-			<code class="code-inline">authorization</code> block. Explain why a user can or cannot read a
-			repository, and watch the permission sync jobs.
+			<code class="code-inline">authorization</code> block. Explain why a user can or cannot read a repository, and watch
+			the permission sync jobs.
 		</p>
 		<RelatedLinks />
 	</div>
@@ -207,8 +195,7 @@
 						<li>
 							<span class="badge">{reasonLabel(reason.kind)}</span>
 							{reason.detail}
-							{#if reason.grantedAt}<span class="muted">({formatTime(reason.grantedAt)})</span
-								>{/if}
+							{#if reason.grantedAt}<span class="muted">({formatTime(reason.grantedAt)})</span>{/if}
 						</li>
 					{/each}
 				</ul>
@@ -225,9 +212,7 @@
 			<dt>Repository permissions last synced</dt>
 			<dd>
 				{formatTime(explanation.repositorySyncedAt)}
-				<button class="btn btn-sm" type="button" onclick={() => syncNow('repository')}
-					>Sync now</button
-				>
+				<button class="btn btn-sm" type="button" onclick={() => syncNow('repository')}>Sync now</button>
 			</dd>
 		</dl>
 	{/if}
@@ -276,8 +261,7 @@
 								class="badge"
 								class:badge-success={job.state === 'COMPLETED'}
 								class:badge-info={job.state === 'PROCESSING'}
-								class:badge-danger={job.state === 'FAILED' || job.state === 'ERRORED'}
-								>{job.state.toLowerCase()}</span
+								class:badge-danger={job.state === 'FAILED' || job.state === 'ERRORED'}>{job.state.toLowerCase()}</span
 							>
 							{#each job.codeHostStates.filter((s) => s.status === 'ERROR') as s (s.providerID)}
 								<div class="muted failure">{providerLabel(s.providerType)}: {s.message}</div>
@@ -291,11 +275,8 @@
 						<td class="num">{job.permissionsAdded} / {job.permissionsRemoved} / {job.permissionsFound}</td>
 						<td class="actions">
 							{#if job.state === 'QUEUED' || job.state === 'PROCESSING'}
-								<button
-									class="btn btn-sm"
-									type="button"
-									disabled={pending === job.id}
-									onclick={() => cancel(job)}>Cancel</button
+								<button class="btn btn-sm" type="button" disabled={pending === job.id} onclick={() => cancel(job)}
+									>Cancel</button
 								>
 							{/if}
 						</td>

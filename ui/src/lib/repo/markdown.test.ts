@@ -69,7 +69,9 @@ describe('parseDocument', () => {
 	});
 
 	it('parses code, quotes and rules', () => {
-		const blocks = parseDocument('```rust\nfn main() {}\n\n# not a heading\n```\n\n    indented\n\n> quoted\n> # title\n\n***');
+		const blocks = parseDocument(
+			'```rust\nfn main() {}\n\n# not a heading\n```\n\n    indented\n\n> quoted\n> # title\n\n***'
+		);
 		expect(kinds(blocks)).toEqual(['code', 'code', 'quote', 'rule']);
 		expect(blocks[0]).toEqual({ kind: 'code', lang: 'rust', text: 'fn main() {}\n\n# not a heading' });
 		expect(blocks[1]).toEqual({ kind: 'code', lang: '', text: 'indented' });
@@ -95,7 +97,9 @@ describe('parseDocument', () => {
 	});
 
 	it('parses images, badges and reference links', () => {
-		const [p] = parseDocument('[![build](ci.png)](https://ci.example.com) ![logo][l] [docs][] ~~old~~\n\n[l]: img/logo.png\n[Docs]: <docs/index.md> "Title"');
+		const [p] = parseDocument(
+			'[![build](ci.png)](https://ci.example.com) ![logo][l] [docs][] ~~old~~\n\n[l]: img/logo.png\n[Docs]: <docs/index.md> "Title"'
+		);
 		expect(p?.kind === 'para' && p.children).toEqual([
 			{ kind: 'link', href: 'https://ci.example.com', children: [{ kind: 'image', src: 'ci.png', alt: 'build' }] },
 			{ kind: 'text', text: ' ' },
@@ -150,10 +154,19 @@ describe('document URLs', () => {
 	});
 
 	it('loads relative images through the raw endpoint', () => {
-		expect(resolveImage('img/logo.png', loc)).toEqual({ kind: 'image', src: '/gitlab.com/g/p@v1/-/raw/a/img/logo.png' });
-		expect(resolveImage('/docs/shot.JPG?raw=true', loc)).toEqual({ kind: 'image', src: '/gitlab.com/g/p@v1/-/raw/docs/shot.JPG' });
+		expect(resolveImage('img/logo.png', loc)).toEqual({
+			kind: 'image',
+			src: '/gitlab.com/g/p@v1/-/raw/a/img/logo.png'
+		});
+		expect(resolveImage('/docs/shot.JPG?raw=true', loc)).toEqual({
+			kind: 'image',
+			src: '/gitlab.com/g/p@v1/-/raw/docs/shot.JPG'
+		});
 		expect(resolveImage('diagram.svg', loc)).toEqual({ kind: 'link', href: '/gitlab.com/g/p@v1/-/blob/a/diagram.svg' });
-		expect(resolveImage('https://img.example.com/b.png', loc)).toEqual({ kind: 'link', href: 'https://img.example.com/b.png' });
+		expect(resolveImage('https://img.example.com/b.png', loc)).toEqual({
+			kind: 'link',
+			href: 'https://img.example.com/b.png'
+		});
 		expect(resolveImage('//img.example.com/b.png', loc)).toEqual({ kind: 'link', href: '//img.example.com/b.png' });
 		expect(resolveImage('data:image/png;base64,AAAA', loc)).toEqual({ kind: 'text' });
 		expect(resolveImage('mailto:a@example.com', loc)).toEqual({ kind: 'text' });

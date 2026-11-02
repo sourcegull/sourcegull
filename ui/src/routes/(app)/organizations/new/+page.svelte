@@ -1,11 +1,7 @@
 <script lang="ts">
 	import { goto } from '$app/navigation';
 	import { errorMessage, graphql } from '#lib/graphql.ts';
-	import {
-		CREATE_ORGANIZATION,
-		type CreateOrganizationResult,
-		type Vars
-	} from '#lib/orgs/queries.ts';
+	import { CREATE_ORGANIZATION, type CreateOrganizationResult, type Vars } from '#lib/orgs/queries.ts';
 
 	let name = $state('');
 	let displayName = $state('');

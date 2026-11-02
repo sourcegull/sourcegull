@@ -64,9 +64,7 @@ describe('analytics helpers', () => {
 	});
 
 	it('keeps the anonymous id in a cookie the server can read', () => {
-		expect(anonymousCookie('3f2a-9c')).toBe(
-			'sourcegullAnonymousUid=3f2a-9c; path=/; max-age=31536000; SameSite=Lax'
-		);
+		expect(anonymousCookie('3f2a-9c')).toBe('sourcegullAnonymousUid=3f2a-9c; path=/; max-age=31536000; SameSite=Lax');
 		expect(anonymousCookie('x', true)).toMatch(/; Secure$/);
 	});
 });

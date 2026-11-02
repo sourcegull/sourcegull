@@ -205,11 +205,8 @@
 									>Cancel</button
 								>
 							{/if}
-							<button
-								type="button"
-								class="btn btn-sm btn-danger"
-								disabled={busy === job.id}
-								onclick={() => remove(job)}>Delete</button
+							<button type="button" class="btn btn-sm btn-danger" disabled={busy === job.id} onclick={() => remove(job)}
+								>Delete</button
 							>
 						</div>
 					</li>

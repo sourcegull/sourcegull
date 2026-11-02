@@ -66,10 +66,9 @@
 				enabled: d.enabled,
 				excludedRepoPatterns: parsePatterns(d.patterns)
 			}));
-			const r = await graphql<UpdateOwnSignalConfigurationsMutation, Vars>(
-				UPDATE_OWN_SIGNAL_CONFIGURATIONS,
-				{ input: { configs } }
-			);
+			const r = await graphql<UpdateOwnSignalConfigurationsMutation, Vars>(UPDATE_OWN_SIGNAL_CONFIGURATIONS, {
+				input: { configs }
+			});
 			drafts = toDrafts(r.updateOwnSignalConfigurations);
 			saved = true;
 		} catch (err) {
@@ -90,10 +89,9 @@
 	<div>
 		<h1>Ownership signals</h1>
 		<p class="page-description">
-			Signals suggest owners where CODEOWNERS files and assignments say nothing: people who committed to
-			a file in the last 90 days, and people who viewed it. They are computed in the background and
-			listed after the owners. Exclude repositories with name patterns, one per line
-			(<span class="code-inline">*</span> matches any characters).
+			Signals suggest owners where CODEOWNERS files and assignments say nothing: people who committed to a file in the
+			last 90 days, and people who viewed it. They are computed in the background and listed after the owners. Exclude
+			repositories with name patterns, one per line (<span class="code-inline">*</span> matches any characters).
 		</p>
 	</div>
 </div>

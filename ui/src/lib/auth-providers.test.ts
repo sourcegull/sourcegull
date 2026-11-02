@@ -25,9 +25,15 @@ describe('provider types', () => {
 
 describe('redirect URIs', () => {
 	it('builds the callback from externalURL', () => {
-		expect(redirectURI('https://sourcegull.example.com', 'gitlab')).toBe('https://sourcegull.example.com/.auth/gitlab/callback');
-		expect(redirectURI('https://sourcegull.example.com/', 'gitlab')).toBe('https://sourcegull.example.com/.auth/gitlab/callback');
-		expect(redirectURI(' https://x.test/sub// ', 'openidconnect')).toBe('https://x.test/sub/.auth/openidconnect/callback');
+		expect(redirectURI('https://sourcegull.example.com', 'gitlab')).toBe(
+			'https://sourcegull.example.com/.auth/gitlab/callback'
+		);
+		expect(redirectURI('https://sourcegull.example.com/', 'gitlab')).toBe(
+			'https://sourcegull.example.com/.auth/gitlab/callback'
+		);
+		expect(redirectURI(' https://x.test/sub// ', 'openidconnect')).toBe(
+			'https://x.test/sub/.auth/openidconnect/callback'
+		);
 	});
 
 	it('needs a valid http(s) externalURL', () => {
@@ -61,8 +67,12 @@ describe('GitHub and Gitea application URLs', () => {
 			user: 'https://gitea.example.com/user/settings/applications',
 			admin: 'https://gitea.example.com/-/admin/applications'
 		});
-		expect(redirectURI('https://sourcegull.example.com', 'github')).toBe('https://sourcegull.example.com/.auth/github/callback');
-		expect(redirectURI('https://sourcegull.example.com', 'gitea')).toBe('https://sourcegull.example.com/.auth/gitea/callback');
+		expect(redirectURI('https://sourcegull.example.com', 'github')).toBe(
+			'https://sourcegull.example.com/.auth/github/callback'
+		);
+		expect(redirectURI('https://sourcegull.example.com', 'gitea')).toBe(
+			'https://sourcegull.example.com/.auth/gitea/callback'
+		);
 	});
 });
 

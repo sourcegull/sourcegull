@@ -164,10 +164,7 @@ export const EMPTY_FILTERS: InsightFilters = {
 };
 
 /** The filters saved on a view. */
-export function filtersOf(
-	filters: InsightViewNode['defaultFilters'],
-	display: SeriesDisplayOptions
-): InsightFilters {
+export function filtersOf(filters: InsightViewNode['defaultFilters'], display: SeriesDisplayOptions): InsightFilters {
 	return {
 		context: filters.searchContexts?.[0] ?? '',
 		includeRepoRegexp: filters.includeRepoRegex ?? '',

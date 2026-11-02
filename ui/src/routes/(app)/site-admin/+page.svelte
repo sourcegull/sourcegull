@@ -142,9 +142,7 @@
 				value: n(health?.gitservers.totalCount),
 				detail: s ? `${formatBytes(s.gitDirBytes)} of repositories` : undefined,
 				href: '/site-admin/repo-nodes',
-				tone: nodes.some((x) => x.clonesPaused || x.error)
-					? 'danger'
-					: undefined
+				tone: nodes.some((x) => x.clonesPaused || x.error) ? 'danger' : undefined
 			}
 		];
 	});
@@ -156,8 +154,8 @@
 	<div>
 		<h1>Site admin</h1>
 		<p class="page-description">
-			Health and usage of this Sourcegull instance. Anything that needs your attention is listed first;
-			every admin area is linked below.
+			Health and usage of this Sourcegull instance. Anything that needs your attention is listed first; every admin area
+			is linked below.
 		</p>
 	</div>
 	<div class="page-actions">
@@ -173,7 +171,9 @@
 		{/if}
 		{#if update?.enabled}
 			{#if update.errorMessage}
-				<span class="badge" title="The release check failed: {update.errorMessage} {checkedAt}">Update check failed</span>
+				<span class="badge" title="The release check failed: {update.errorMessage} {checkedAt}"
+					>Update check failed</span
+				>
 			{:else if update.updateAvailable && update.latestVersionURL}
 				<a
 					class="badge badge-warning"
@@ -224,15 +224,19 @@
 		</ul>
 	{:else if summary}
 		<div class="alert alert-success" role="status">
-			<strong>All systems normal.</strong> Repositories are cloned and indexed, and repo nodes have
-			disk space.
+			<strong>All systems normal.</strong> Repositories are cloned and indexed, and repo nodes have disk space.
 		</div>
 	{/if}
 </section>
 
 <section class="tiles block" aria-label="Counts">
 	{#each tiles as tile (tile.label)}
-		<a class="tile card card-interactive" class:danger={tile.tone === 'danger'} class:warning={tile.tone === 'warning'} href={tile.href}>
+		<a
+			class="tile card card-interactive"
+			class:danger={tile.tone === 'danger'}
+			class:warning={tile.tone === 'warning'}
+			href={tile.href}
+		>
 			<span class="tile-label">{tile.label}</span>
 			<span class="tile-value">{loading && tile.value === '—' ? '…' : tile.value}</span>
 			{#if tile.detail}<span class="tile-detail">{tile.detail}</span>{/if}
@@ -253,8 +257,7 @@
 			</div>
 			{#if s.total === 0}
 				<p class="muted">
-					No repositories yet. <a href="/site-admin/external-services">Add a code host connection</a> to
-					start cloning.
+					No repositories yet. <a href="/site-admin/external-services">Add a code host connection</a> to start cloning.
 				</p>
 			{:else}
 				<div class="progress-row">
@@ -268,8 +271,14 @@
 					<span class="num">{n(s.indexed)} / {n(s.cloned)}</span>
 				</div>
 				<dl class="facts">
-					<div><dt>Cloning</dt><dd class="num">{n(s.cloning)}</dd></div>
-					<div><dt>Queued</dt><dd class="num">{n(s.queued)}</dd></div>
+					<div>
+						<dt>Cloning</dt>
+						<dd class="num">{n(s.cloning)}</dd>
+					</div>
+					<div>
+						<dt>Queued</dt>
+						<dd class="num">{n(s.queued)}</dd>
+					</div>
 					<div>
 						<dt>Failed</dt>
 						<dd class="num">

@@ -162,16 +162,12 @@ describe('SSE and blame', () => {
 		await streamBlame('/x', (h) => got.push(...h), undefined, fetchMock);
 		expect(got).toEqual([hunk]);
 
-		const failing = vi.fn<typeof fetch>(
-			async () => new Response(JSON.stringify({ error: 'nope' }), { status: 404 })
-		);
+		const failing = vi.fn<typeof fetch>(async () => new Response(JSON.stringify({ error: 'nope' }), { status: 404 }));
 		await expect(streamBlame('/x', () => {}, undefined, failing)).rejects.toThrow('nope');
 	});
 
 	it('builds the stream URL and relative dates', () => {
-		expect(blameStreamURL('g.com/a/b', 'main', 'src/x y.rs')).toBe(
-			'/.api/blame/g.com/a/b@main/-/stream/src/x%20y.rs'
-		);
+		expect(blameStreamURL('g.com/a/b', 'main', 'src/x y.rs')).toBe('/.api/blame/g.com/a/b@main/-/stream/src/x%20y.rs');
 		const now = new Date('2024-01-10T00:00:00Z');
 		expect(relativeDate('2024-01-09T00:00:00Z', now)).toBe('1 day ago');
 		expect(relativeDate('2024-01-03T00:00:00Z', now)).toBe('1 week ago');
@@ -219,7 +215,7 @@ describe('code graph data', () => {
 		expect(canReindex('INDEXING_ERRORED')).toBe(true);
 		expect(canReindex('QUEUED_FOR_INDEXING')).toBe(false);
 	});
-	it('lists an index job\'s steps with their logs', () => {
+	it("lists an index job's steps with their logs", () => {
 		const entry = (key: string, exitCode: number) => ({
 			key,
 			command: ['git', 'fetch'],
@@ -274,9 +270,7 @@ describe('emptyRepoBadge', () => {
 			title: 'No commits yet',
 			warning: false
 		});
-		expect(emptyRepoBadge({ isEmpty: true, remoteUnavailable: 'MISSING' })?.title).toBe(
-			'No repository on GitLab yet'
-		);
+		expect(emptyRepoBadge({ isEmpty: true, remoteUnavailable: 'MISSING' })?.title).toBe('No repository on GitLab yet');
 		expect(emptyRepoBadge({ isEmpty: true, remoteUnavailable: 'DISABLED' })).toEqual({
 			label: 'repository disabled',
 			title: 'Repository is disabled for this project on GitLab',
@@ -292,7 +286,10 @@ describe('emptyRepoBadge', () => {
 
 describe('repository metadata', () => {
 	it('needs REPO_METADATA#WRITE', () => {
-		const viewer = (namespace: string, action: string) => ({ id: 'u', permissions: { nodes: [{ namespace, action }] } });
+		const viewer = (namespace: string, action: string) => ({
+			id: 'u',
+			permissions: { nodes: [{ namespace, action }] }
+		});
 		expect(canWriteMetadata(viewer('REPO_METADATA', 'WRITE'))).toBe(true);
 		expect(canWriteMetadata(viewer('BATCH_CHANGES', 'WRITE'))).toBe(false);
 		expect(canWriteMetadata(null)).toBe(false);

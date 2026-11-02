@@ -32,7 +32,11 @@ describe('rankingStatus', () => {
 		expect(rankingStatus({ ...base, rankingSummary: [] }, now).text).toMatch(/^no runs yet/);
 		const running: RankingRunSummary = { ...run, completedAt: null };
 		expect(rankingStatus({ ...base, rankingSummary: [running] }, now).text).toBe('computing since 2h ago…');
-		const failed: RankingRunSummary = { ...running, completedAt: '2026-10-20T10:00:01Z', failureMessage: 'upload 3: gone' };
+		const failed: RankingRunSummary = {
+			...running,
+			completedAt: '2026-10-20T10:00:01Z',
+			failureMessage: 'upload 3: gone'
+		};
 		expect(rankingStatus({ ...base, rankingSummary: [failed] }, now)).toEqual({
 			text: 'the last run failed 2h ago: upload 3: gone',
 			failed: true

@@ -9,9 +9,7 @@ describe('currentHref', () => {
 	it('picks the longest matching item', () => {
 		expect(currentHref(items, '/site-admin/analytics/users')).toBe('/site-admin/analytics/users');
 		expect(currentHref(items, '/site-admin/analytics')).toBe('/site-admin/analytics');
-		expect(currentHref(items, '/site-admin/repositories/gitlab.com/a/b')).toBe(
-			'/site-admin/repositories'
-		);
+		expect(currentHref(items, '/site-admin/repositories/gitlab.com/a/b')).toBe('/site-admin/repositories');
 	});
 	it('matches exact items only on their own path', () => {
 		expect(currentHref(items, '/site-admin')).toBe('/site-admin');

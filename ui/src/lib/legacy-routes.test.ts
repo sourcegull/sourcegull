@@ -18,7 +18,9 @@ describe('legacyRedirect', () => {
 	it('maps namespace bulk change pages', () => {
 		expect(go('/users/alice/batch-changes')).toBe('/users/alice/bulk-changes');
 		expect(go('/users/alice/batch-changes/fix/edit')).toBe('/users/alice/bulk-changes/fix/edit');
-		expect(go('/organizations/acme/batch-changes/apply/QmF0Y2hTcGVj')).toBe('/organizations/acme/bulk-changes/apply/QmF0Y2hTcGVj');
+		expect(go('/organizations/acme/batch-changes/apply/QmF0Y2hTcGVj')).toBe(
+			'/organizations/acme/bulk-changes/apply/QmF0Y2hTcGVj'
+		);
 	});
 
 	it('leaves other paths alone', () => {

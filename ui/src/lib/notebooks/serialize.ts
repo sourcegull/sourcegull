@@ -131,7 +131,12 @@ export function notebookFileName(title: string): string {
 
 /** The notebook title for an imported file name: the name without `.snb.md` (or `.md`). */
 export function titleFromFileName(name: string): string {
-	return name.replace(/\.snb\.md$/i, '').replace(/\.md$/i, '').trim() || 'Imported notebook';
+	return (
+		name
+			.replace(/\.snb\.md$/i, '')
+			.replace(/\.md$/i, '')
+			.trim() || 'Imported notebook'
+	);
 }
 
 interface ParsedBlobURL {

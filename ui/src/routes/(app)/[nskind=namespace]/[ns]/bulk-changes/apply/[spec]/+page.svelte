@@ -253,9 +253,18 @@
 		{#if stats}
 			<section class="stats card" aria-label="Preview stats">
 				<dl class="delta">
-					<div data-stat="added"><dt>Added</dt><dd>{stats.added}</dd></div>
-					<div data-stat="modified"><dt>Modified</dt><dd>{stats.modified}</dd></div>
-					<div data-stat="removed"><dt>Removed</dt><dd>{stats.removed}</dd></div>
+					<div data-stat="added">
+						<dt>Added</dt>
+						<dd>{stats.added}</dd>
+					</div>
+					<div data-stat="modified">
+						<dt>Modified</dt>
+						<dd>{stats.modified}</dd>
+					</div>
+					<div data-stat="removed">
+						<dt>Removed</dt>
+						<dd>{stats.removed}</dd>
+					</div>
 				</dl>
 				<ul class="ops" aria-label="Operations">
 					{#each statsOperations(stats) as o (o.op)}
@@ -294,7 +303,7 @@
 	{#if settable > 0}
 		<div class="toolbar publish-all">
 			<span class="muted small">
-				{settable === 1 ? "1 changeset leaves" : `${settable} changesets leave`} publication to you:
+				{settable === 1 ? '1 changeset leaves' : `${settable} changesets leave`} publication to you:
 			</span>
 			<button class="btn btn-sm" type="button" onclick={() => setAll('true')}>Publish all</button>
 			<button class="btn btn-sm" type="button" onclick={() => setAll('draft')}>Publish all as drafts</button>

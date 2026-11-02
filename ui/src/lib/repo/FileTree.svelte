@@ -21,9 +21,7 @@
 	const OVERSCAN = 12;
 
 	type DirState =
-		| { status: 'loading' }
-		| { status: 'error'; message: string }
-		| { status: 'loaded'; entries: TreeEntryNode[] };
+		{ status: 'loading' } | { status: 'error'; message: string } | { status: 'loaded'; entries: TreeEntryNode[] };
 
 	const dirs = new SvelteMap<string, DirState>();
 	const expanded = new SvelteSet<string>();
@@ -166,8 +164,11 @@
 								if (e.isDirectory && !expanded.has(e.path)) toggle(e);
 							}}
 						>
-							<span class="entry-icon"><Icon name={e.isDirectory ? 'folder' : 'file'} size={14} /></span>{e.name}{#if e.isDirectory}<span class="visually-hidden">/</span>{:else if e.kind === 'SUBMODULE'}<span
-									class="muted"> (submodule)</span
+							<span class="entry-icon"><Icon name={e.isDirectory ? 'folder' : 'file'} size={14} /></span
+							>{e.name}{#if e.isDirectory}<span class="visually-hidden">/</span>{:else if e.kind === 'SUBMODULE'}<span
+									class="muted"
+								>
+									(submodule)</span
 								>{/if}
 						</a>
 					{:else}

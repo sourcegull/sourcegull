@@ -92,9 +92,7 @@
 	<span class="spacer"></span>
 	{#if dirty}<span class="badge" aria-live="polite">Unsaved changes</span>{/if}
 	{#if !readOnly}
-		<button class="btn" type="button" onclick={() => (contents = baseline)} disabled={!dirty || saving}
-			>Discard</button
-		>
+		<button class="btn" type="button" onclick={() => (contents = baseline)} disabled={!dirty || saving}>Discard</button>
 		<button class="btn btn-primary" type="button" onclick={save} disabled={!dirty || saving || conflict}
 			>{saving ? 'Saving…' : 'Save'}</button
 		>

@@ -219,12 +219,7 @@
 				{/if}
 			</svg>
 			{#if activePoint}
-				<div
-					class="tooltip"
-					role="status"
-					style:left="{tooltipLeft}%"
-					class:flip={tooltipLeft > 60}
-				>
+				<div class="tooltip" role="status" style:left="{tooltipLeft}%" class:flip={tooltipLeft > 60}>
 					<div class="tt-date">{day(activePoint.date)}</div>
 					{#each BURNDOWN_SERIES as s (s.key)}
 						<div class="tt-row">
@@ -233,7 +228,9 @@
 							<span class="muted">{s.label}</span>
 						</div>
 					{/each}
-					<div class="tt-row"><span class="tt-key"></span><strong>{activePoint.total}</strong><span class="muted">Total</span></div>
+					<div class="tt-row">
+						<span class="tt-key"></span><strong>{activePoint.total}</strong><span class="muted">Total</span>
+					</div>
 				</div>
 			{/if}
 		</div>

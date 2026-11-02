@@ -55,4 +55,3 @@
 		<p class="loading" role="status"><span class="spinner"></span>Loading…</p>
 	{/if}
 </div>
-

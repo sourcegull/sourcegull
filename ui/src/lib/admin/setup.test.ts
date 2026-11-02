@@ -23,11 +23,18 @@ describe('setup checklist', () => {
 		});
 	});
 	it('treats built-in passwords alone as no sign-in provider', () => {
-		const steps = setupSteps({ siteConfig: '{"auth.providers": [{"type": "builtin"}]}', connections: 0, users: 3, emailEnabled: true });
+		const steps = setupSteps({
+			siteConfig: '{"auth.providers": [{"type": "builtin"}]}',
+			connections: 0,
+			users: 3,
+			emailEnabled: true
+		});
 		expect(steps.filter((s) => !s.done).map((s) => s.id)).toEqual(['external-url', 'connection', 'sign-in']);
 	});
 	it('survives a missing or broken document', () => {
-		expect(setupSteps({ siteConfig: null, connections: 0, users: 1, emailEnabled: false }).every((s) => !s.done)).toBe(true);
+		expect(setupSteps({ siteConfig: null, connections: 0, users: 1, emailEnabled: false }).every((s) => !s.done)).toBe(
+			true
+		);
 		expect(setupSteps({ siteConfig: '{', connections: 0, users: 1, emailEnabled: false })[0]?.done).toBe(false);
 	});
 });

@@ -15,10 +15,22 @@ describe('ownership helpers', () => {
 	it('labels reasons', () => {
 		const file = { __typename: 'GitBlob' as const, path: '.gitlab/CODEOWNERS', url: '/r/-/blob/.gitlab/CODEOWNERS' };
 		expect(
-			reasonLabel({ __typename: 'CodeownersFileEntry', ruleLineMatch: 4, section: 'codeowners', pattern: '*', codeownersFile: file })
+			reasonLabel({
+				__typename: 'CodeownersFileEntry',
+				ruleLineMatch: 4,
+				section: 'codeowners',
+				pattern: '*',
+				codeownersFile: file
+			})
 		).toBe('CODEOWNERS line 4');
 		expect(
-			reasonLabel({ __typename: 'CodeownersFileEntry', ruleLineMatch: 7, section: 'Docs', pattern: '/docs/', codeownersFile: file })
+			reasonLabel({
+				__typename: 'CodeownersFileEntry',
+				ruleLineMatch: 7,
+				section: 'Docs',
+				pattern: '/docs/',
+				codeownersFile: file
+			})
 		).toBe('CODEOWNERS line 7 [Docs]');
 		expect(reasonLabel({ __typename: 'AssignedOwner', isDirectMatch: false })).toBe('Assigned to a parent directory');
 		const commits = { __typename: 'RecentContributorOwnershipSignal' as const, contributionCount: 3 };
@@ -51,13 +63,22 @@ describe('ownership helpers', () => {
 		expect(ownerName({ ...person, name: '', email: 'a@example.com' })).toBe('a@example.com');
 		// A commit author: name and email.
 		expect(ownerName({ ...person, name: 'Bob B', displayName: 'Bob B', email: 'bob@example.com' })).toBe('Bob B');
-		const team: OwnerTeam = { __typename: 'Team', id: 't', name: 'acme/backend', teamDisplayName: null, url: '', external: true };
+		const team: OwnerTeam = {
+			__typename: 'Team',
+			id: 't',
+			name: 'acme/backend',
+			teamDisplayName: null,
+			url: '',
+			external: true
+		};
 		expect(ownerName(team)).toBe('acme/backend');
 	});
 
 	it('checks OWNERSHIP#ASSIGN', () => {
 		expect(canAssign(null)).toBe(false);
-		expect(canAssign({ id: 'u', permissions: { nodes: [{ namespace: 'BATCH_CHANGES', action: 'READ' }] } })).toBe(false);
+		expect(canAssign({ id: 'u', permissions: { nodes: [{ namespace: 'BATCH_CHANGES', action: 'READ' }] } })).toBe(
+			false
+		);
 		expect(canAssign({ id: 'u', permissions: { nodes: [{ namespace: 'OWNERSHIP', action: 'ASSIGN' }] } })).toBe(true);
 	});
 });

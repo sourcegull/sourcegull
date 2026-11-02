@@ -43,7 +43,9 @@
 		try {
 			await graphql(UPDATE_INFERENCE_SCRIPT, { script });
 			saved = script;
-			notice = script.trim() ? 'Saved the inference script.' : 'Removed the inference script: the built-in recognizers run unchanged.';
+			notice = script.trim()
+				? 'Saved the inference script.'
+				: 'Removed the inference script: the built-in recognizers run unchanged.';
 		} catch (err) {
 			error = errorMessage(err);
 		} finally {
@@ -61,10 +63,7 @@
 				error = `No repository named ${repoName.trim()}.`;
 				return;
 			}
-			const res = await graphql<
-				InferAutoIndexJobsForRepoQuery,
-				{ repo: string; script: string }
-			>(
+			const res = await graphql<InferAutoIndexJobsForRepoQuery, { repo: string; script: string }>(
 				INFER_AUTO_INDEX_JOBS,
 				{ repo: r.repository.id, script }
 			);
@@ -84,8 +83,8 @@
 	<div>
 		<h1>Auto-indexing inference script</h1>
 		<p class="page-description">
-			A Lua script that adds recognizers to auto-indexing's job inference or disables built-in ones. It
-			runs sandboxed (no I/O, limited time and memory). Auto-indexing itself is turned on with
+			A Lua script that adds recognizers to auto-indexing's job inference or disables built-in ones. It runs sandboxed
+			(no I/O, limited time and memory). Auto-indexing itself is turned on with
 			<code class="code-inline">codeIntelAutoIndexing.enabled</code> in the
 			<a href="/site-admin/configuration">site configuration</a>.
 		</p>

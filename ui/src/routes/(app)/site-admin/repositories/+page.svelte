@@ -3,11 +3,7 @@
 	import { onMount } from 'svelte';
 	import { page } from '$app/state';
 	import { errorMessage, graphql } from '#lib/graphql.ts';
-	import {
-		REPOSITORIES_REFRESH_INTERVAL,
-		percent,
-		syncInProgress
-	} from '#lib/status-messages.ts';
+	import { REPOSITORIES_REFRESH_INTERVAL, percent, syncInProgress } from '#lib/status-messages.ts';
 	import {
 		ADMIN_REPOSITORIES,
 		RECLONE_REPOSITORY,
@@ -53,15 +49,12 @@
 		loading = true;
 		if (!quiet) error = null;
 		try {
-			const result = await graphql<AdminRepositoriesResult, AdminRepositoriesVariables>(
-				ADMIN_REPOSITORIES,
-				{
-					first: PAGE_SIZE,
-					after: cursors[cursors.length - 1] ?? null,
-					query: query.trim() || null,
-					...filterVariables(filter)
-				}
-			);
+			const result = await graphql<AdminRepositoriesResult, AdminRepositoriesVariables>(ADMIN_REPOSITORIES, {
+				first: PAGE_SIZE,
+				after: cursors[cursors.length - 1] ?? null,
+				query: query.trim() || null,
+				...filterVariables(filter)
+			});
 			if (seq !== requestSeq) return;
 			repos = result.repositories.nodes;
 			totalCount = result.repositories.totalCount;
@@ -73,9 +66,7 @@
 			);
 			// While repositories clone or index, the counts and rows refresh on their own.
 			if (syncInProgress(stats)) scheduleRefresh();
-			nextCursor = result.repositories.pageInfo.hasNextPage
-				? result.repositories.pageInfo.endCursor
-				: null;
+			nextCursor = result.repositories.pageInfo.hasNextPage ? result.repositories.pageInfo.endCursor : null;
 		} catch (err) {
 			if (seq === requestSeq) error = errorMessage(err);
 		} finally {
@@ -116,30 +107,26 @@
 
 	type Action = 'fetch' | 'reclone' | 'reindex';
 
-	const ACTIONS: Record<Action, { mutation: string; vars: (id: string) => object; done: string }> =
-		{
-			fetch: {
-				mutation: UPDATE_MIRROR_REPOSITORY,
-				vars: (id) => ({ repository: id }),
-				done: 'fetch queued'
-			},
-			reclone: {
-				mutation: RECLONE_REPOSITORY,
-				vars: (id) => ({ repo: id }),
-				done: 're-clone queued'
-			},
-			reindex: {
-				mutation: REINDEX_REPOSITORY,
-				vars: (id) => ({ repository: id }),
-				done: 'reindex queued'
-			}
-		};
+	const ACTIONS: Record<Action, { mutation: string; vars: (id: string) => object; done: string }> = {
+		fetch: {
+			mutation: UPDATE_MIRROR_REPOSITORY,
+			vars: (id) => ({ repository: id }),
+			done: 'fetch queued'
+		},
+		reclone: {
+			mutation: RECLONE_REPOSITORY,
+			vars: (id) => ({ repo: id }),
+			done: 're-clone queued'
+		},
+		reindex: {
+			mutation: REINDEX_REPOSITORY,
+			vars: (id) => ({ repository: id }),
+			done: 'reindex queued'
+		}
+	};
 
 	async function act(repo: AdminRepositoryNode, action: Action): Promise<void> {
-		if (
-			action === 'reclone' &&
-			!confirm(`Clone ${repo.name} again from its code host? The current copy is replaced.`)
-		)
+		if (action === 'reclone' && !confirm(`Clone ${repo.name} again from its code host? The current copy is replaced.`))
 			return;
 		pending = `${repo.id}:${action}`;
 		error = null;
@@ -232,11 +219,15 @@
 		</div>
 		<div class="bars">
 			<div class="bar-row">
-				<span>Cloned {s.cloned.toLocaleString('en-US')} of {s.total.toLocaleString('en-US')}
-					{#if failedNotCloned > 0}<span class="error-text">({failedNotCloned.toLocaleString('en-US')} failed to clone)</span>{/if}
+				<span
+					>Cloned {s.cloned.toLocaleString('en-US')} of {s.total.toLocaleString('en-US')}
+					{#if failedNotCloned > 0}<span class="error-text"
+							>({failedNotCloned.toLocaleString('en-US')} failed to clone)</span
+						>{/if}
 					{#if s.noCodeAccess > 0}<span class="badge badge-warning" title={NO_CODE_ACCESS_HINT}
 							>{s.noCodeAccess.toLocaleString('en-US')} no code access</span
-						>{/if}</span>
+						>{/if}</span
+				>
 				<progress max="100" value={percent(s.cloned, s.total)} aria-label="Cloned"></progress>
 				<span class="pct">{percent(s.cloned, s.total)}%</span>
 			</div>
@@ -257,37 +248,37 @@
 {/if}
 
 <div class="toolbar list-toolbar">
-<div class="btn-group" role="group" aria-label="Filter repositories">
-	{#each REPOSITORY_FILTERS as f (f.value)}
-		<button
-			type="button"
-			class="btn btn-sm"
-			class:btn-primary={filter === f.value}
-			aria-pressed={filter === f.value}
-			onclick={() => showFilter(f.value)}
-		>
-			{f.label}
-			{#if counts[f.value] !== undefined}<span class="count">{counts[f.value]?.toLocaleString('en-US')}</span>{/if}
-		</button>
-	{/each}
-</div>
+	<div class="btn-group" role="group" aria-label="Filter repositories">
+		{#each REPOSITORY_FILTERS as f (f.value)}
+			<button
+				type="button"
+				class="btn btn-sm"
+				class:btn-primary={filter === f.value}
+				aria-pressed={filter === f.value}
+				onclick={() => showFilter(f.value)}
+			>
+				{f.label}
+				{#if counts[f.value] !== undefined}<span class="count">{counts[f.value]?.toLocaleString('en-US')}</span>{/if}
+			</button>
+		{/each}
+	</div>
 
-<form
-	class="search"
-	onsubmit={(e) => {
-		e.preventDefault();
-		restart();
-	}}
->
-	<input
-		class="input input-sm"
-		type="search"
-		placeholder="Search by name"
-		aria-label="Search repositories"
-		bind:value={query}
-	/>
-	<button class="btn btn-sm" type="submit">Search</button>
-</form>
+	<form
+		class="search"
+		onsubmit={(e) => {
+			e.preventDefault();
+			restart();
+		}}
+	>
+		<input
+			class="input input-sm"
+			type="search"
+			placeholder="Search by name"
+			aria-label="Search repositories"
+			bind:value={query}
+		/>
+		<button class="btn btn-sm" type="submit">Search</button>
+	</form>
 </div>
 
 {#if error}
@@ -343,9 +334,7 @@
 					</td>
 					<td class="num">{m.cloned ? formatBytes(m.byteSize) : '—'}</td>
 					<td class="mono small nowrap">{m.shard ?? '—'}</td>
-					<td title={m.updatedAt ? new Date(m.updatedAt).toLocaleString() : undefined}
-						>{relativeTime(m.updatedAt)}</td
-					>
+					<td title={m.updatedAt ? new Date(m.updatedAt).toLocaleString() : undefined}>{relativeTime(m.updatedAt)}</td>
 					<td title={m.lastChanged ? new Date(m.lastChanged).toLocaleString() : undefined}
 						>{relativeTime(m.lastChanged)}</td
 					>
@@ -354,23 +343,15 @@
 							? new Date(repo.textSearchIndex.lastIndexedAt).toLocaleString()
 							: undefined}
 					>
-						{repo.textSearchIndex?.lastIndexedAt
-							? relativeTime(repo.textSearchIndex.lastIndexedAt)
-							: 'no'}
+						{repo.textSearchIndex?.lastIndexedAt ? relativeTime(repo.textSearchIndex.lastIndexedAt) : 'no'}
 					</td>
 					<td>
 						<div class="actions">
-							<button
-								class="btn btn-sm"
-								type="button"
-								disabled={pending !== null}
-								onclick={() => act(repo, 'fetch')}>Fetch now</button
+							<button class="btn btn-sm" type="button" disabled={pending !== null} onclick={() => act(repo, 'fetch')}
+								>Fetch now</button
 							>
-							<button
-								class="btn btn-sm"
-								type="button"
-								disabled={pending !== null}
-								onclick={() => act(repo, 'reindex')}>Re-index</button
+							<button class="btn btn-sm" type="button" disabled={pending !== null} onclick={() => act(repo, 'reindex')}
+								>Re-index</button
 							>
 							<button
 								class="btn btn-sm btn-danger"
@@ -397,9 +378,7 @@
 			{totalCount}
 		{/if}
 	</span>
-	<button class="btn btn-sm" type="button" disabled={cursors.length < 2} onclick={previousPage}
-		>Previous</button
-	>
+	<button class="btn btn-sm" type="button" disabled={cursors.length < 2} onclick={previousPage}>Previous</button>
 	<button class="btn btn-sm" type="button" disabled={!nextCursor} onclick={nextPage}>Next</button>
 </div>
 
@@ -466,8 +445,8 @@
 		text-align: right;
 		font-variant-numeric: tabular-nums;
 	}
-		
-.list-toolbar {
+
+	.list-toolbar {
 		justify-content: space-between;
 		margin-bottom: var(--space-3);
 	}
@@ -480,14 +459,14 @@
 	.search input {
 		max-width: 24rem;
 	}
-		.error {
+	.error {
 		color: var(--color-danger);
 		max-width: 32rem;
 		overflow: hidden;
 		text-overflow: ellipsis;
 		white-space: nowrap;
 	}
-		.badge + .badge {
+	.badge + .badge {
 		margin-left: var(--space-1);
 	}
 	.actions {

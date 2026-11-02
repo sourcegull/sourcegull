@@ -14,7 +14,16 @@ describe('mainNav', () => {
 		expect(labels({ signedIn: true, siteAdmin: true, batchChangesEnabled: true })).toEqual([
 			[
 				'Code',
-				['Search', 'Repositories', 'Contexts', 'Saved searches', 'Notebooks', 'Compute', 'Search jobs', 'Connect an agent']
+				[
+					'Search',
+					'Repositories',
+					'Contexts',
+					'Saved searches',
+					'Notebooks',
+					'Compute',
+					'Search jobs',
+					'Connect an agent'
+				]
 			],
 			['Automate', ['Watches', 'Trends', 'Bulk changes']],
 			['Admin', ['Site admin']]

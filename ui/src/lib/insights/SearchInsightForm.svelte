@@ -61,7 +61,11 @@
 
 	async function loadPreview(signal: AbortSignal): Promise<PreviewModel> {
 		const input = previewInput;
-		const r = await graphql<InsightPreviewResult, { input: InsightPreviewInput }>(INSIGHT_PREVIEW, { input }, { signal });
+		const r = await graphql<InsightPreviewResult, { input: InsightPreviewInput }>(
+			INSIGHT_PREVIEW,
+			{ input },
+			{ signal }
+		);
 		const strokes = f.series.filter(isSeriesValid).map((s) => ({ label: s.name.trim(), stroke: s.stroke }));
 		return { kind: 'line', series: previewLineSeries(r.searchInsightPreview, strokes) };
 	}

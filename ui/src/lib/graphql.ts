@@ -94,17 +94,10 @@ export async function graphql<TData, TVariables extends object = Record<string, 
 
 	const errors = body?.errors ?? [];
 	if (errors.length > 0) {
-		throw new GraphQLRequestError(
-			errors.map((e) => e.message).join('\n'),
-			response.status,
-			errors
-		);
+		throw new GraphQLRequestError(errors.map((e) => e.message).join('\n'), response.status, errors);
 	}
 	if (!response.ok) {
-		throw new GraphQLRequestError(
-			`Request failed: ${response.status} ${response.statusText}`.trim(),
-			response.status
-		);
+		throw new GraphQLRequestError(`Request failed: ${response.status} ${response.statusText}`.trim(), response.status);
 	}
 	if (body?.data === undefined || body.data === null) {
 		throw new GraphQLRequestError('Response contained no data', response.status);

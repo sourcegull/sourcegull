@@ -1,14 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { GraphQLRequestError } from '#lib/graphql.ts';
-import {
-	duration,
-	isActive,
-	isCancelable,
-	reasonLabel,
-	setFlash,
-	takeFlash,
-	validationMessages
-} from './queries.ts';
+import { duration, isActive, isCancelable, reasonLabel, setFlash, takeFlash, validationMessages } from './queries.ts';
 
 describe('code host connection helpers', () => {
 	it('formats sync durations', () => {
@@ -42,9 +34,7 @@ describe('code host connection helpers', () => {
 			}
 		]);
 		expect(validationMessages(err)).toEqual(['/url: is required']);
-		const other = new GraphQLRequestError('nope', 200, [
-			{ message: 'nope', extensions: { code: 'FORBIDDEN' } }
-		]);
+		const other = new GraphQLRequestError('nope', 200, [{ message: 'nope', extensions: { code: 'FORBIDDEN' } }]);
 		expect(validationMessages(other)).toBeNull();
 		expect(validationMessages(new Error('x'))).toBeNull();
 	});

@@ -38,7 +38,7 @@
 	}
 </script>
 
-<svelte:window onclick={onwindowclick} onkeydown={onkeydown} />
+<svelte:window onclick={onwindowclick} {onkeydown} />
 
 <div class="select" bind:this={root}>
 	<button

@@ -19,10 +19,10 @@
 		loading = true;
 		error = null;
 		try {
-			const r = await graphql<
-				RepositoriesResult,
-				{ first: number; after: string | null; query: string | null }
-			>(REPOSITORIES, { first: PAGE_SIZE, after, query: query.trim() || null });
+			const r = await graphql<RepositoriesResult, { first: number; after: string | null; query: string | null }>(
+				REPOSITORIES,
+				{ first: PAGE_SIZE, after, query: query.trim() || null }
+			);
 			if (mine !== seq) return;
 			repos = after ? [...repos, ...r.repositories.nodes] : r.repositories.nodes;
 			totalCount = r.repositories.totalCount;
@@ -64,14 +64,7 @@
 
 	<div class="field">
 		<label class="visually-hidden" for="repo-filter">Filter repositories</label>
-		<input
-			id="repo-filter"
-			class="input"
-			type="search"
-			placeholder="Filter by name…"
-			bind:value={query}
-			{oninput}
-		/>
+		<input id="repo-filter" class="input" type="search" placeholder="Filter by name…" bind:value={query} {oninput} />
 	</div>
 
 	{#if error}
@@ -93,7 +86,11 @@
 			</li>
 		{:else}
 			<li class="muted">
-				{loading ? 'Loading…' : query.trim() ? 'No repositories match.' : 'No repositories yet. Site admins can add a GitLab connection.'}
+				{loading
+					? 'Loading…'
+					: query.trim()
+						? 'No repositories match.'
+						: 'No repositories yet. Site admins can add a GitLab connection.'}
 			</li>
 		{/each}
 	</ul>

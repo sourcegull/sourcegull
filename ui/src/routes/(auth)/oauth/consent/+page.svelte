@@ -72,8 +72,8 @@
 	{#if details.redirectWarning}
 		<div class="alert alert-warning" role="alert">
 			This app registered itself, so anyone could have chosen its name. It sends you to
-			<code class="code-inline">{details.redirectHost}</code>, which is not on your computer. Only allow
-			it if you know and trust that site.
+			<code class="code-inline">{details.redirectHost}</code>, which is not on your computer. Only allow it if you know
+			and trust that site.
 		</div>
 	{/if}
 	<ul class="facts">
@@ -87,7 +87,9 @@
 			{/if}
 		</li>
 		{#if details.clientURI}
-			<li>App home page: <a href={details.clientURI} rel="noopener noreferrer" target="_blank">{details.clientURI}</a></li>
+			<li>
+				App home page: <a href={details.clientURI} rel="noopener noreferrer" target="_blank">{details.clientURI}</a>
+			</li>
 		{/if}
 		<li>You can revoke access any time under <a href="/user/settings/connected-apps">Connected apps</a>.</li>
 	</ul>

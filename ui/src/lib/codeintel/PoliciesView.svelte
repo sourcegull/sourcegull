@@ -220,7 +220,9 @@
 				const what = d.type === 'GIT_TREE' ? 'branch' : d.type === 'GIT_TAG' ? 'tag' : 'commit';
 				const plural = what === 'branch' ? 'branches' : `${what}s`;
 				preview = n === 0 ? `Matches no ${what} of this repository.` : `Matches ${n} ${n === 1 ? what : plural}:`;
-				previewItems = (f?.nodes ?? []).map((o) => ({ label: `${o.name}${o.name === o.rev ? '' : ` (${o.rev.slice(0, 7)})`}` }));
+				previewItems = (f?.nodes ?? []).map((o) => ({
+					label: `${o.name}${o.name === o.rev ? '' : ` (${o.rev.slice(0, 7)})`}`
+				}));
 			} else {
 				const patterns = parsePatterns(d.patterns);
 				if (!patterns || !siteAdmin) {
@@ -258,13 +260,19 @@
 		{/if}
 	</div>
 	<p class="muted intro">
-		Policies name branches, tags or commits. Precise indexes that serve them are kept for the policy's duration;
-		older ones expire and are deleted. The tip of the default branch always keeps the indexes it uses.
+		Policies name branches, tags or commits. Precise indexes that serve them are kept for the policy's duration; older
+		ones expire and are deleted. The tip of the default branch always keeps the indexes it uses.
 	</p>
 	{#if exclusive}<ManagedNotice kind="codeIntelPolicies" />{/if}
 
 	{#if draft}
-		<form class="editor" onsubmit={(e) => { e.preventDefault(); void save(); }}>
+		<form
+			class="editor"
+			onsubmit={(e) => {
+				e.preventDefault();
+				void save();
+			}}
+		>
 			<h3>{draft.id ? `Edit ${draft.protected ? 'built-in ' : ''}policy` : 'New policy'}</h3>
 			{#if draft.protected}
 				<p class="muted">Built-in policies keep their name and what they match; durations and switches can change.</p>
@@ -297,7 +305,13 @@
 				</label>
 				<label class="field grow">
 					<span>{draft.type === 'GIT_COMMIT' ? 'Commit' : 'Name pattern (glob)'}</span>
-					<input class="input mono" bind:value={draft.pattern} oninput={schedulePreview} required disabled={draft.protected} />
+					<input
+						class="input mono"
+						bind:value={draft.pattern}
+						oninput={schedulePreview}
+						required
+						disabled={draft.protected}
+					/>
 				</label>
 			</div>
 			{#if preview}
@@ -306,7 +320,9 @@
 					{#if previewItems.length}
 						<ul>
 							{#each previewItems as item (item.label)}
-								<li class="mono">{#if item.href}<a href={item.href}>{item.label}</a>{:else}{item.label}{/if}</li>
+								<li class="mono">
+									{#if item.href}<a href={item.href}>{item.label}</a>{:else}{item.label}{/if}
+								</li>
 							{/each}
 						</ul>
 					{/if}
@@ -314,12 +330,20 @@
 			{/if}
 
 			<fieldset>
-				<legend><label><input type="checkbox" bind:checked={draft.retentionEnabled} /> Keep precise indexes</label></legend>
+				<legend
+					><label><input type="checkbox" bind:checked={draft.retentionEnabled} /> Keep precise indexes</label></legend
+				>
 				{#if draft.retentionEnabled}
 					<div class="row">
 						<label class="field">
 							<span>For</span>
-							<input class="input amount" type="number" min="1" placeholder="forever" bind:value={draft.retentionAmount} />
+							<input
+								class="input amount"
+								type="number"
+								min="1"
+								placeholder="forever"
+								bind:value={draft.retentionAmount}
+							/>
 						</label>
 						<label class="field">
 							<span><span class="visually-hidden">Unit</span>&nbsp;</span>
@@ -359,7 +383,9 @@
 							Index every commit on matching branches, not only their tips
 						</label>
 					{/if}
-					<p class="muted hint">Auto-indexing runs on executors, which are not set up yet; the setting is kept for them.</p>
+					<p class="muted hint">
+						Auto-indexing runs on executors, which are not set up yet; the setting is kept for them.
+					</p>
 				{/if}
 			</fieldset>
 
@@ -408,7 +434,9 @@
 						<td>{describeRetention(p) || '—'}</td>
 						<td>
 							{#if p.indexingEnabled}
-								{p.indexCommitMaxAgeHours === null ? 'Any age' : `Commits from the last ${formatHours(p.indexCommitMaxAgeHours)}`}
+								{p.indexCommitMaxAgeHours === null
+									? 'Any age'
+									: `Commits from the last ${formatHours(p.indexCommitMaxAgeHours)}`}
 							{:else}—{/if}
 						</td>
 						{#if siteAdmin}

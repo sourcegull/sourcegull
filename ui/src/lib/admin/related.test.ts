@@ -3,7 +3,18 @@ import { describe, expect, it } from 'vitest';
 import { BY_ROUTE, configSectionURL, relatedForRoute, relatedForSection, type RelatedLink } from './related.ts';
 
 const ROUTES = new URL('../../routes/(app)', import.meta.url);
-const SECTION_IDS = ['general', 'auth', 'permissions', 'repositories', 'search', 'codeIntel', 'batchChanges', 'insights', 'notifications', 'observability'];
+const SECTION_IDS = [
+	'general',
+	'auth',
+	'permissions',
+	'repositories',
+	'search',
+	'codeIntel',
+	'batchChanges',
+	'insights',
+	'notifications',
+	'observability'
+];
 
 /** Whether `href` names a page of the app (or a configuration section the server defines). */
 function resolves(link: RelatedLink): boolean {
@@ -28,10 +39,7 @@ describe('related links', () => {
 	});
 
 	it('links only to pages that exist', () => {
-		const links = [
-			...Object.values(BY_ROUTE).flat(),
-			...SECTION_IDS.flatMap((id) => relatedForSection(id))
-		];
+		const links = [...Object.values(BY_ROUTE).flat(), ...SECTION_IDS.flatMap((id) => relatedForSection(id))];
 		expect(links.length).toBeGreaterThan(20);
 		expect(links.filter((l) => !resolves(l))).toEqual([]);
 	});

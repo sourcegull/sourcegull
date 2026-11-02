@@ -47,7 +47,9 @@
 	const a = $derived(data?.analytics ?? null);
 	const usage = $derived(data?.usageStatistics ?? null);
 	const share = $derived(
-		a ? preciseShare(a.codeIntel.preciseEvents.summary.totalCount, a.codeIntel.searchBasedEvents.summary.totalCount) : null
+		a
+			? preciseShare(a.codeIntel.preciseEvents.summary.totalCount, a.codeIntel.searchBasedEvents.summary.totalCount)
+			: null
 	);
 	const formatDate = (iso: string | null) => (iso ? new Date(iso).toLocaleString() : 'not yet');
 </script>
@@ -58,8 +60,9 @@
 	<div>
 		<h1>Analytics</h1>
 		<p class="page-description">
-			Usage of this instance from its own event logs; nothing is sent anywhere. Updated every half
-			hour (last: {formatDate(a?.updatedAt ?? null)}). Dates are UTC.
+			Usage of this instance from its own event logs; nothing is sent anywhere. Updated every half hour (last: {formatDate(
+				a?.updatedAt ?? null
+			)}). Dates are UTC.
 		</p>
 		<RelatedLinks />
 	</div>
@@ -71,7 +74,13 @@
 <div class="filters" role="group" aria-label="Date range and grouping">
 	<div class="btn-group">
 		{#each DATE_RANGES as r (r.value)}
-			<button type="button" class="btn btn-sm" class:btn-primary={range === r.value} aria-pressed={range === r.value} onclick={() => (range = r.value)}>
+			<button
+				type="button"
+				class="btn btn-sm"
+				class:btn-primary={range === r.value}
+				aria-pressed={range === r.value}
+				onclick={() => (range = r.value)}
+			>
 				{r.label}
 			</button>
 		{/each}
@@ -93,9 +102,19 @@
 	<section aria-busy={loading}>
 		<div class="section-header"><h2>Users</h2></div>
 		<div class="tiles">
-			<div class="tile"><span class="value">{formatCount(usage.daus[0]?.userCount ?? 0)}</span><span class="label">active today</span></div>
-			<div class="tile"><span class="value">{formatCount(usage.waus[0]?.userCount ?? 0)}</span><span class="label">active this week</span></div>
-			<div class="tile"><span class="value">{formatCount(usage.maus[0]?.userCount ?? 0)}</span><span class="label">active this month</span></div>
+			<div class="tile">
+				<span class="value">{formatCount(usage.daus[0]?.userCount ?? 0)}</span><span class="label">active today</span>
+			</div>
+			<div class="tile">
+				<span class="value">{formatCount(usage.waus[0]?.userCount ?? 0)}</span><span class="label"
+					>active this week</span
+				>
+			</div>
+			<div class="tile">
+				<span class="value">{formatCount(usage.maus[0]?.userCount ?? 0)}</span><span class="label"
+					>active this month</span
+				>
+			</div>
 			<div class="tile">
 				<span class="value">{formatCount(a.users.activity.summary.totalRegisteredUsers)}</span>
 				<span class="label">registered users active in range</span>
@@ -109,10 +128,20 @@
 			<div>
 				<h3>Days used in range</h3>
 				<table class="table table-bordered table-sm">
-					<thead><tr><th scope="col" class="num">Days</th><th scope="col" class="num">Users</th><th scope="col" class="num">Share</th></tr></thead>
+					<thead
+						><tr
+							><th scope="col" class="num">Days</th><th scope="col" class="num">Users</th><th scope="col" class="num"
+								>Share</th
+							></tr
+						></thead
+					>
 					<tbody>
 						{#each a.users.frequencies as f (f.daysUsed)}
-							<tr><td class="num">{f.daysUsed}</td><td class="num">{f.frequency}</td><td class="num">{f.percentage.toFixed(1)}%</td></tr>
+							<tr
+								><td class="num">{f.daysUsed}</td><td class="num">{f.frequency}</td><td class="num"
+									>{f.percentage.toFixed(1)}%</td
+								></tr
+							>
 						{:else}
 							<tr><td colspan="3" class="empty-cell">No activity in this range.</td></tr>
 						{/each}
@@ -157,9 +186,19 @@
 			<div>
 				<h3>Latency (time to the last result)</h3>
 				<div class="tiles">
-					<div class="tile"><span class="value small">{formatLatency(a.search.latency.p50)}</span><span class="label">median</span></div>
-					<div class="tile"><span class="value small">{formatLatency(a.search.latency.p90)}</span><span class="label">90th percentile</span></div>
-					<div class="tile"><span class="value small">{formatLatency(a.search.latency.p99)}</span><span class="label">99th percentile</span></div>
+					<div class="tile">
+						<span class="value small">{formatLatency(a.search.latency.p50)}</span><span class="label">median</span>
+					</div>
+					<div class="tile">
+						<span class="value small">{formatLatency(a.search.latency.p90)}</span><span class="label"
+							>90th percentile</span
+						>
+					</div>
+					<div class="tile">
+						<span class="value small">{formatLatency(a.search.latency.p99)}</span><span class="label"
+							>99th percentile</span
+						>
+					</div>
 				</div>
 			</div>
 		</div>
@@ -191,7 +230,11 @@
 			<div>
 				<h3>By language</h3>
 				<table class="table table-bordered table-sm">
-					<thead><tr><th scope="col">Language</th><th scope="col">Precision</th><th scope="col" class="num">Requests</th></tr></thead>
+					<thead
+						><tr
+							><th scope="col">Language</th><th scope="col">Precision</th><th scope="col" class="num">Requests</th></tr
+						></thead
+					>
 					<tbody>
 						{#each a.codeIntelByLanguage as l (l.language + l.precision)}
 							<tr><td>{l.language || 'Unknown'}</td><td>{l.precision}</td><td class="num">{l.count}</td></tr>
@@ -205,11 +248,22 @@
 				<h3>Top repositories</h3>
 				<div class="table-scroll">
 					<table class="table table-bordered table-sm">
-						<thead><tr><th scope="col">Repository</th><th scope="col">Kind</th><th scope="col">Precision</th><th scope="col" class="num">Requests</th></tr></thead>
+						<thead
+							><tr
+								><th scope="col">Repository</th><th scope="col">Kind</th><th scope="col">Precision</th><th
+									scope="col"
+									class="num">Requests</th
+								></tr
+							></thead
+						>
 						<tbody>
 							{#each a.codeIntelTopRepositories as r (r.name + r.language + r.kind + r.precision)}
 								<tr>
-									<td class="mono"><a href="/{r.name}">{r.name}</a>{#if r.hasPrecise}<span class="badge badge-success">precise index</span>{/if}</td>
+									<td class="mono"
+										><a href="/{r.name}">{r.name}</a>{#if r.hasPrecise}<span class="badge badge-success"
+												>precise index</span
+											>{/if}</td
+									>
 									<td>{r.kind}</td>
 									<td>{r.precision}</td>
 									<td class="num">{r.events}</td>

@@ -72,9 +72,7 @@ export function emptyRepoMessage(m: MirrorEmptiness): string | null {
 }
 
 /** The status badge of an empty repository in the site admin list, or null when it has commits. */
-export function emptyRepoBadge(
-	m: MirrorEmptiness
-): { label: string; title: string; warning: boolean } | null {
+export function emptyRepoBadge(m: MirrorEmptiness): { label: string; title: string; warning: boolean } | null {
 	switch (m.remoteUnavailable) {
 		case 'MISSING':
 			return { label: 'empty', title: 'No repository on GitLab yet', warning: false };
@@ -139,10 +137,7 @@ export interface RepositoryHeader {
 }
 
 export async function loadRepositoryHeader(name: string): Promise<RepositoryHeader | null> {
-	const r = await graphql<RepositoryHeaderQuery, { name: string }>(
-		REPOSITORY_HEADER,
-		{ name }
-	);
+	const r = await graphql<RepositoryHeaderQuery, { name: string }>(REPOSITORY_HEADER, { name });
 	return r.repository;
 }
 

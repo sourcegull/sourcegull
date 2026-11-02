@@ -60,8 +60,8 @@
 		<p class="page-description">
 			GraphQL requests slower than <code class="code-inline">observability.logSlowGraphQLRequests</code>
 			and searches slower than <code class="code-inline">observability.logSlowSearches</code>
-			(milliseconds, site configuration; unset turns the log off). The newest 1,024 are kept; each is
-			also written to the server log.
+			(milliseconds, site configuration; unset turns the log off). The newest 1,024 are kept; each is also written to the
+			server log.
 		</p>
 		<RelatedLinks />
 	</div>

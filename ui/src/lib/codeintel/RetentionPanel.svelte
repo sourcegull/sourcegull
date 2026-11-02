@@ -76,7 +76,9 @@
 				{result.dependents.totalCount === 1 ? 'index' : 'indexes'}:
 				{#each result.dependents.nodes as d, i (d.id)}
 					{#if i > 0},{/if}
-					{#if d.projectRoot}<a href={d.projectRoot.url}>{d.projectRoot.repository.name}{d.inputRoot ? `/${d.inputRoot}` : ''}</a>{:else}{d.inputRoot || '/'}{/if}
+					{#if d.projectRoot}<a href={d.projectRoot.url}
+							>{d.projectRoot.repository.name}{d.inputRoot ? `/${d.inputRoot}` : ''}</a
+						>{:else}{d.inputRoot || '/'}{/if}
 				{/each}
 			</p>
 		{/if}

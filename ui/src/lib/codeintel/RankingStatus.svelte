@@ -1,11 +1,7 @@
 <script lang="ts">
 	import { onMount } from 'svelte';
 	import { errorMessage, graphql } from '#lib/graphql.ts';
-	import {
-		BUMP_DERIVATIVE_GRAPH_KEY,
-		RANKING_SUMMARY,
-		type RankingSummaryResult
-	} from '#lib/queries.ts';
+	import { BUMP_DERIVATIVE_GRAPH_KEY, RANKING_SUMMARY, type RankingSummaryResult } from '#lib/queries.ts';
 	import { rankingStatus } from './ranking.ts';
 
 	let summary = $state<RankingSummaryResult['rankingSummary'] | null>(null);

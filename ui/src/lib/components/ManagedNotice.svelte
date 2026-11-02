@@ -19,8 +19,9 @@
 
 {#if kind}
 	<div class="alert alert-info" role="status" data-testid="managed-notice">
-		{label.charAt(0).toUpperCase()}{label.slice(1)} are managed by SOURCEGULL_RESOURCES_FILE
-		(<code class="code-inline">{kind}</code>), so they can't be added or changed here. Add them to the file.
+		{label.charAt(0).toUpperCase()}{label.slice(1)} are managed by SOURCEGULL_RESOURCES_FILE (<code class="code-inline"
+			>{kind}</code
+		>), so they can't be added or changed here. Add them to the file.
 	</div>
 {:else if managedBy}
 	<div class="alert alert-info" role="status" data-testid="managed-notice">

@@ -115,7 +115,9 @@ describe('drafts', () => {
 
 describe('URL parameters', () => {
 	it('splits a search query into the repository query and the series query', () => {
-		expect(insightDataFromQuery('context:global repo:^gitlab\\.com/a$ -repo:b TODO lang:go patterntype:keyword')).toEqual({
+		expect(
+			insightDataFromQuery('context:global repo:^gitlab\\.com/a$ -repo:b TODO lang:go patterntype:keyword')
+		).toEqual({
 			repoQuery: 'repo:^gitlab\\.com/a$ -repo:b',
 			seriesQuery: 'TODO lang:go patterntype:keyword'
 		});
@@ -134,7 +136,10 @@ describe('URL parameters', () => {
 
 	it('prefills the search wizard from encoded trend values', () => {
 		// Title, repoQuery and series are double-encoded.
-		const series = [{ name: 'Go', query: 'lang:go', stroke: '#123456' }, { name: 'Rust', query: 'lang:rust' }];
+		const series = [
+			{ name: 'Go', query: 'lang:go', stroke: '#123456' },
+			{ name: 'Rust', query: 'lang:rust' }
+		];
 		const p = new URLSearchParams();
 		p.set('title', encodeURIComponent('Languages & more'));
 		p.set('repositories', 'gitlab.com/a,gitlab.com/b');

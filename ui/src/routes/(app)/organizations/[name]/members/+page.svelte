@@ -17,7 +17,7 @@
 		type OrganizationResult,
 		type OrgHeader,
 		type Vars
-} from '#lib/orgs/queries.ts';
+	} from '#lib/orgs/queries.ts';
 	import type { PageProps } from './$types';
 
 	let { data }: PageProps = $props();

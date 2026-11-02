@@ -147,9 +147,9 @@
 	<div>
 		<h1>Feature flags</h1>
 		<p class="page-description">
-			Boolean flags are on or off for everyone; rollout flags are on for a stable share of signed-in
-			users. Overrides set a flag for one user or for the members of an organization: a user override
-			wins, then org overrides (on wins when orgs disagree), then the flag.
+			Boolean flags are on or off for everyone; rollout flags are on for a stable share of signed-in users. Overrides
+			set a flag for one user or for the members of an organization: a user override wins, then org overrides (on wins
+			when orgs disagree), then the flag.
 		</p>
 	</div>
 </div>

@@ -125,7 +125,11 @@
 						<tr class="message-row"><td colspan="5" class="muted message">{e.message}</td></tr>
 					{/if}
 				{:else}
-					<tr><td colspan="5" class="muted">{loading ? 'Loading…' : 'No runs yet: pushes to watched repositories will show up here.'}</td></tr>
+					<tr
+						><td colspan="5" class="muted"
+							>{loading ? 'Loading…' : 'No runs yet: pushes to watched repositories will show up here.'}</td
+						></tr
+					>
 				{/each}
 			</tbody>
 		</table>

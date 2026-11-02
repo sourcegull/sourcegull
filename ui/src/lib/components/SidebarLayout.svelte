@@ -48,13 +48,7 @@
 <div class="with-sidebar">
 	<aside class:open bind:this={aside}>
 		<h2 class="sidebar-title">{title}</h2>
-		<button
-			type="button"
-			class="nav-toggle"
-			aria-expanded={open}
-			aria-controls={navId}
-			onclick={() => (open = !open)}
-		>
+		<button type="button" class="nav-toggle" aria-expanded={open} aria-controls={navId} onclick={() => (open = !open)}>
 			<span class="toggle-text">
 				<span class="toggle-section">{title}</span>
 				<span class="toggle-current">{currentTitle ?? 'Menu'}</span>

@@ -38,8 +38,8 @@
 
 {#if phase === 'syncing'}
 	<div class="alert alert-info banner" role="status">
-		Syncing your repository permissions from your code host. Repositories you have access to will appear
-		when it finishes, usually within a minute.
+		Syncing your repository permissions from your code host. Repositories you have access to will appear when it
+		finishes, usually within a minute.
 	</div>
 {:else if phase === 'done'}
 	<div class="alert alert-success banner" role="status">

@@ -57,10 +57,7 @@
 		toggling = m.id;
 		error = null;
 		try {
-			const r = await graphql<
-				ToggleCodeMonitorMutation,
-				{ id: string; enabled: boolean }
-			>(TOGGLE_MONITOR, {
+			const r = await graphql<ToggleCodeMonitorMutation, { id: string; enabled: boolean }>(TOGGLE_MONITOR, {
 				id: m.id,
 				enabled: !m.enabled
 			});
@@ -85,7 +82,8 @@
 		<div>
 			<h1>Watches</h1>
 			<p class="page-description">
-				Watch a commit or diff search and get notified by email, webhook, Slack, Mattermost or Telegram when new pushes match it.
+				Watch a commit or diff search and get notified by email, webhook, Slack, Mattermost or Telegram when new pushes
+				match it.
 			</p>
 		</div>
 		<div class="page-actions">

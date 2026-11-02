@@ -8,8 +8,8 @@
 	<div>
 		<h1>Connected apps</h1>
 		<p class="page-description">
-			AI agents and other MCP clients you allowed to use Sourcegull as you, by signing in from the app. They see
-			the repositories you can, through the MCP server only. Revoking ends their access at once.
+			AI agents and other MCP clients you allowed to use Sourcegull as you, by signing in from the app. They see the
+			repositories you can, through the MCP server only. Revoking ends their access at once.
 		</p>
 	</div>
 </div>

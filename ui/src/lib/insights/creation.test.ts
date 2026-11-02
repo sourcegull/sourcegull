@@ -166,11 +166,7 @@ describe('validation', () => {
 
 	it('collects the errors of each form', () => {
 		expect(searchFormErrors(searchFields())).toEqual({});
-		expect(Object.keys(searchFormErrors(defaultSearchFields())).sort()).toEqual([
-			'repositories',
-			'series',
-			'title'
-		]);
+		expect(Object.keys(searchFormErrors(defaultSearchFields())).sort()).toEqual(['repositories', 'series', 'title']);
 		expect(searchFormErrors(searchFields({ repoMode: 'all-repos', repositories: [] }))).toEqual({});
 		expect(searchFormErrors(searchFields({ repoMode: 'search-query', repoQuery: '' }))).toEqual({
 			repositories: 'Search repositories query is a required field, please fill in the field.'
@@ -254,7 +250,10 @@ describe('inputs', () => {
 	});
 
 	it('creates capture group, group results and language usage trends', () => {
-		const cg = captureGroupCreateInput({ ...defaultCaptureGroupFields(), title: 'V', query: '(\\d+)', repoQuery: 'repo:a' }, null);
+		const cg = captureGroupCreateInput(
+			{ ...defaultCaptureGroupFields(), title: 'V', query: '(\\d+)', repoQuery: 'repo:a' },
+			null
+		);
 		expect(cg.dataSeries[0]).toMatchObject({ generatedFromCaptureGroups: true, groupBy: null, query: '(\\d+)' });
 		expect(cg.dataSeries[0]?.timeScope).toEqual({ stepInterval: { unit: 'MONTH', value: 2 } });
 		expect(cg.repositoryScope).toEqual({ repositories: [], repositoryCriteria: 'repo:a' });
@@ -335,13 +334,19 @@ describe('edit forms', () => {
 	});
 
 	it('loads group results and language usage trends', () => {
-		const compute = editFormOf(view({ dataSeriesDefinitions: [def({ groupBy: 'AUTHOR', generatedFromCaptureGroups: true })] }));
+		const compute = editFormOf(
+			view({ dataSeriesDefinitions: [def({ groupBy: 'AUTHOR', generatedFromCaptureGroups: true })] })
+		);
 		expect(compute.type).toBe('compute');
-		if (compute.type === 'compute') expect(compute.fields).toMatchObject({ groupBy: 'AUTHOR', repositories: ['gitlab.com/a/b'] });
+		if (compute.type === 'compute')
+			expect(compute.fields).toMatchObject({ groupBy: 'AUTHOR', repositories: ['gitlab.com/a/b'] });
 		const pie = editFormOf(
 			view({ presentation: { __typename: 'PieChartInsightViewPresentation', title: 'Langs', otherThreshold: 0.03 } })
 		);
-		expect(pie).toEqual({ type: 'language-stats', fields: { title: 'Langs', repository: 'gitlab.com/a/b', threshold: '3' } });
+		expect(pie).toEqual({
+			type: 'language-stats',
+			fields: { title: 'Langs', repository: 'gitlab.com/a/b', threshold: '3' }
+		});
 	});
 });
 
@@ -361,7 +366,12 @@ describe('previews', () => {
 			timeScope: { stepInterval: { unit: 'MONTH', value: 1 } },
 			series: [{ query: 'A', label: 'a', generatedFromCaptureGroups: false, groupBy: null }]
 		});
-		const c = computePreviewInput({ title: '', repositories: ['r'], series: [newSeries(0, { name: 'n', query: 'q' })], groupBy: 'PATH' });
+		const c = computePreviewInput({
+			title: '',
+			repositories: ['r'],
+			series: [newSeries(0, { name: 'n', query: 'q' })],
+			groupBy: 'PATH'
+		});
 		expect(c.series[0]).toMatchObject({ groupBy: 'PATH', generatedFromCaptureGroups: true });
 	});
 

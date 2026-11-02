@@ -40,13 +40,7 @@
 <svelte:window onclick={onWindowClick} onkeydown={onKeydown} />
 
 <div class="user-menu" bind:this={root}>
-	<button
-		class="trigger"
-		type="button"
-		aria-haspopup="menu"
-		aria-expanded={open}
-		onclick={() => (open = !open)}
-	>
+	<button class="trigger" type="button" aria-haspopup="menu" aria-expanded={open} onclick={() => (open = !open)}>
 		<span class="avatar" aria-hidden="true">{user.username.slice(0, 1).toUpperCase()}</span>
 		<span class="username">{user.username}</span>
 		<Icon name="chevron-down" size={14} />

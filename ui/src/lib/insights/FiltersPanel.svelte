@@ -179,9 +179,7 @@
 			</label>
 			{#if numSamples}
 				<label class="count">
-					<span
-						>Max number of series points to display <small class="muted">(max {MAX_NUMBER_OF_SAMPLES})</small></span
-					>
+					<span>Max number of series points to display <small class="muted">(max {MAX_NUMBER_OF_SAMPLES})</small></span>
 					<input
 						class="input"
 						type="number"

@@ -161,8 +161,9 @@
 		{#if notice}<div class="alert alert-success" role="status">{notice}</div>{/if}
 		{#if monitor.unfilteredResults}
 			<div class="alert alert-danger" role="alert">
-				<strong>Unfiltered:</strong> every email recipient gets all results found with @{monitor.runsAs?.username}'s access,
-				including results in repositories they cannot read. Turned on by @{monitor.unfilteredBy?.username}{#if monitor.unfilteredAt}
+				<strong>Unfiltered:</strong> every email recipient gets all results found with @{monitor.runsAs?.username}'s
+				access, including results in repositories they cannot read. Turned on by @{monitor.unfilteredBy
+					?.username}{#if monitor.unfilteredAt}
 					on {new Date(monitor.unfilteredAt).toLocaleString()}{/if}.
 			</div>
 		{/if}

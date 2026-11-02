@@ -83,7 +83,11 @@
 
 	const tabs = $derived([
 		{ label: 'Code', href: repoURL(route.repo, route.rev), active: browsing },
-		{ label: 'Commits', href: repoPageURL(route.repo, route.rev, 'commits'), active: route.kind === 'commits' || route.kind === 'commit' },
+		{
+			label: 'Commits',
+			href: repoPageURL(route.repo, route.rev, 'commits'),
+			active: route.kind === 'commits' || route.kind === 'commit'
+		},
 		{ label: 'Branches', href: repoPageURL(route.repo, null, 'branches'), active: route.kind === 'branches' },
 		{ label: 'Tags', href: repoPageURL(route.repo, null, 'tags'), active: route.kind === 'tags' },
 		{ label: 'Compare', href: repoPageURL(route.repo, null, 'compare'), active: route.kind === 'compare' },
@@ -175,9 +179,7 @@
 	const owner = $derived(route.repo.includes('/') ? route.repo.slice(0, route.repo.lastIndexOf('/') + 1) : '');
 	const shortName = $derived(route.repo.slice(owner.length));
 
-	const title = $derived(
-		route.path && browsing ? `${route.path.split('/').pop()} · ${route.repo}` : route.repo
-	);
+	const title = $derived(route.path && browsing ? `${route.path.split('/').pop()} · ${route.repo}` : route.repo);
 </script>
 
 <svelte:head><title>{title} · Sourcegull</title></svelte:head>
@@ -200,7 +202,9 @@
 			{/if}
 			<span class="repo-icon" aria-hidden="true"><Icon name="repo" size={16} /></span>
 			<h1 class="repo-name">
-				<a href={repoURL(route.repo, null)}><span class="repo-owner">{owner}</span><span class="repo-short">{shortName}</span></a>
+				<a href={repoURL(route.repo, null)}
+					><span class="repo-owner">{owner}</span><span class="repo-short">{shortName}</span></a
+				>
 			</h1>
 			{#if showSwitcher && header && cloned}
 				<RevisionSwitcher repo={route.repo} current={route.rev} {defaultBranch} {onselect} />

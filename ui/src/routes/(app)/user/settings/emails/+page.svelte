@@ -71,8 +71,8 @@
 	<div>
 		<h1>Emails</h1>
 		<p class="page-description">
-			Verified addresses sign you in and match you to code host accounts and permissions. The
-			primary address receives notifications.
+			Verified addresses sign you in and match you to code host accounts and permissions. The primary address receives
+			notifications.
 		</p>
 	</div>
 </div>
@@ -99,23 +99,33 @@
 			<li class="row">
 				<strong>{e.email}</strong>
 				{#if e.isPrimary}<span class="badge badge-primary">Primary</span>{/if}
-				{#if e.verified}<span class="badge">Verified</span>{:else}<span class="badge badge-warning">Not verified</span>{/if}
+				{#if e.verified}<span class="badge">Verified</span>{:else}<span class="badge badge-warning">Not verified</span
+					>{/if}
 				{#if !user.scimControlled}
 					<span class="toolbar">
 						{#if !e.verified && emailEnabled}
-							<button class="btn btn-sm" type="button" disabled={busy}
+							<button
+								class="btn btn-sm"
+								type="button"
+								disabled={busy}
 								onclick={() => run(RESEND_VERIFICATION_EMAIL, e.email, `Sent a verification link to ${e.email}.`)}
 								>Resend verification</button
 							>
 						{/if}
 						{#if e.verified && !e.isPrimary}
-							<button class="btn btn-sm" type="button" disabled={busy}
+							<button
+								class="btn btn-sm"
+								type="button"
+								disabled={busy}
 								onclick={() => run(SET_USER_EMAIL_PRIMARY, e.email, `${e.email} is now your primary address.`)}
 								>Set as primary</button
 							>
 						{/if}
 						{#if !e.isPrimary && user.emails.length > 1}
-							<button class="btn btn-sm btn-danger" type="button" disabled={busy}
+							<button
+								class="btn btn-sm btn-danger"
+								type="button"
+								disabled={busy}
 								onclick={() => run(REMOVE_USER_EMAIL, e.email, `Removed ${e.email}.`)}>Remove</button
 							>
 						{/if}

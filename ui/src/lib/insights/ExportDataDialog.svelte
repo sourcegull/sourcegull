@@ -38,7 +38,9 @@
 	<p>This will only include data that you are permitted to see.</p>
 	<footer>
 		<button type="button" class="btn" onclick={onclose}>Cancel</button>
-		<a class="btn btn-primary" href={exportURL(id)} download onclick={() => setTimeout(onclose, 0)}>Export data as CSV</a>
+		<a class="btn btn-primary" href={exportURL(id)} download onclick={() => setTimeout(onclose, 0)}
+			>Export data as CSV</a
+		>
 	</footer>
 </dialog>
 

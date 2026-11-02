@@ -129,7 +129,9 @@
 		/>
 		<section class="section">
 			<h2>Data series</h2>
-			<p class="muted subtitle">Generated dynamically for each unique value from the regular expression capture group.</p>
+			<p class="muted subtitle">
+				Generated dynamically for each unique value from the regular expression capture group.
+			</p>
 			<div class="card series">
 				<div class="field">
 					<label for="capture-group-query">Search query</label>

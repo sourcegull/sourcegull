@@ -38,7 +38,10 @@ export function loadTheme(): ThemePreference {
 }
 
 /** Stores the preference and applies it to `root` (the document element by default). */
-export function setTheme(theme: ThemePreference, root: HTMLElement | undefined = globalThis.document?.documentElement): void {
+export function setTheme(
+	theme: ThemePreference,
+	root: HTMLElement | undefined = globalThis.document?.documentElement
+): void {
 	writeStorage(THEME_KEY, theme === 'system' ? null : theme);
 	if (!root) return;
 	if (theme === 'system') root.removeAttribute('data-theme');

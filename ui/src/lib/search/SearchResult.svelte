@@ -27,7 +27,10 @@
 		return b && b !== 'HEAD' ? b : null;
 	}
 
-	function blobURL(m: { repository: string; path: string; branches?: string[]; commit: string }, line?: number): string {
+	function blobURL(
+		m: { repository: string; path: string; branches?: string[]; commit: string },
+		line?: number
+	): string {
 		const url = repoPageURL(m.repository, fileRev(m), 'blob', m.path);
 		return line ? `${url}#L${line}` : url;
 	}
@@ -75,7 +78,9 @@
 
 	function formatDate(s: string): string {
 		const d = new Date(s);
-		return Number.isNaN(d.getTime()) ? s : d.toLocaleDateString(undefined, { year: 'numeric', month: 'short', day: 'numeric' });
+		return Number.isNaN(d.getTime())
+			? s
+			: d.toLocaleDateString(undefined, { year: 'numeric', month: 'short', day: 'numeric' });
 	}
 </script>
 
@@ -124,7 +129,9 @@
 			<CodeHostLink link={codeHostLink} target={codeHostTarget} />
 		{:else}
 			{@const [dir, name] = dirAndName(match.path)}
-			<span class="type-icon" aria-hidden="true"><Icon name={match.type === 'symbol' ? 'symbol' : 'file'} size={15} /></span>
+			<span class="type-icon" aria-hidden="true"
+				><Icon name={match.type === 'symbol' ? 'symbol' : 'file'} size={15} /></span
+			>
 			<a class="repo" href={repoURL(match.repository, fileRev(match))}>{match.repository}</a>
 			<span class="sep">›</span>
 			<a class="path mono" href={blobURL(match)}>
@@ -138,7 +145,10 @@
 			{#if fileRev(match)}<span class="badge mono">{fileRev(match)}</span>{/if}
 			<span class="spacer"></span>
 			{#if count > 0}
-				<span class="match-count">{count} {match.type === 'symbol' ? 'symbol' : 'match'}{count === 1 ? '' : match.type === 'symbol' ? 's' : 'es'}</span>
+				<span class="match-count"
+					>{count}
+					{match.type === 'symbol' ? 'symbol' : 'match'}{count === 1 ? '' : match.type === 'symbol' ? 's' : 'es'}</span
+				>
 			{/if}
 			{#if match.language}<span class="muted meta">{match.language}</span>{/if}
 			<CodeHostLink link={codeHostLink} target={codeHostTarget} />
@@ -177,7 +187,9 @@
 		<table class="chunk mono" class:diff={commit.language === 'diff'}>
 			<tbody>
 				{#each commit.lines.slice(0, all ? undefined : COLLAPSED_LINES) as line (line.number)}
-					<tr class={line.marker === '+' ? 'added' : line.marker === '-' ? 'deleted' : line.marker === '@' ? 'hunk' : ''}>
+					<tr
+						class={line.marker === '+' ? 'added' : line.marker === '-' ? 'deleted' : line.marker === '@' ? 'hunk' : ''}
+					>
 						<td class="text">{@render lineText(line)}</td>
 					</tr>
 				{/each}
@@ -188,7 +200,9 @@
 	{#if hiddenGroups > 0 || hiddenLines > 0}
 		<button type="button" class="more" aria-expanded="false" onclick={() => (showAll = true)}>
 			<Icon name="chevron-down" size={14} />
-			Show {hiddenGroups > 0 ? `${hiddenGroups} more match${hiddenGroups === 1 ? '' : 'es'}` : `${hiddenLines} more lines`}
+			Show {hiddenGroups > 0
+				? `${hiddenGroups} more match${hiddenGroups === 1 ? '' : 'es'}`
+				: `${hiddenLines} more lines`}
 		</button>
 	{:else if showAll}
 		<button type="button" class="more" aria-expanded="true" onclick={() => (showAll = false)}>

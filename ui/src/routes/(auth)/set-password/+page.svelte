@@ -34,9 +34,7 @@
 		Your password is set. <a href="/sign-in?local=1">Sign in</a>.
 	</div>
 {:else if !token}
-	<div class="alert alert-danger" role="alert">
-		This link is incomplete. Use the full link a site admin sent you.
-	</div>
+	<div class="alert alert-danger" role="alert">This link is incomplete. Use the full link a site admin sent you.</div>
 {:else}
 	{#if error}
 		<div class="alert alert-danger" role="alert">{error}</div>
@@ -44,14 +42,7 @@
 	<form {onsubmit}>
 		<div class="field">
 			<label class="label" for="password">New password</label>
-			<input
-				class="input"
-				id="password"
-				type="password"
-				bind:value={password}
-				autocomplete="new-password"
-				required
-			/>
+			<input class="input" id="password" type="password" bind:value={password} autocomplete="new-password" required />
 		</div>
 		<button class="btn btn-primary" type="submit" disabled={submitting}>
 			{submitting ? 'Saving…' : 'Set password'}

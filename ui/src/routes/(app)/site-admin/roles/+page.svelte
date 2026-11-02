@@ -36,9 +36,7 @@
 			roles = result.roles.nodes;
 			permissions = result.permissions.nodes;
 			exclusive = isExclusive(result.site.declaredConfigFiles, 'roles');
-			chosen = Object.fromEntries(
-				roles.map((role) => [role.id, role.permissions.nodes.map((p) => p.id)])
-			);
+			chosen = Object.fromEntries(roles.map((role) => [role.id, role.permissions.nodes.map((p) => p.id)]));
 			error = null;
 		} catch (err) {
 			error = errorMessage(err);
@@ -140,11 +138,8 @@
 			</h2>
 			{#if !role.managedBy}
 				<div class="role-actions">
-					<button
-						class="btn btn-sm btn-primary"
-						type="button"
-						disabled={busy !== null}
-						onclick={() => save(role)}>Save permissions</button
+					<button class="btn btn-sm btn-primary" type="button" disabled={busy !== null} onclick={() => save(role)}
+						>Save permissions</button
 					>
 					{#if !role.system}<button
 							class="btn btn-sm btn-danger"

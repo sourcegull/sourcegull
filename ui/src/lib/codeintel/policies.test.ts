@@ -1,5 +1,12 @@
 import { describe, expect, it } from 'vitest';
-import { describeRetention, describeScope, describeTarget, formatHours, parsePatterns, splitHours } from './policies.ts';
+import {
+	describeRetention,
+	describeScope,
+	describeTarget,
+	formatHours,
+	parsePatterns,
+	splitHours
+} from './policies.ts';
 
 describe('policies', () => {
 	it('formats durations in the largest whole unit', () => {
@@ -25,7 +32,12 @@ describe('policies', () => {
 		expect(describeScope({ repository: null, repositoryPatterns: null })).toBe('All repositories');
 		expect(describeScope({ repository: null, repositoryPatterns: ['a/*', 'b/*'] })).toBe('a/*, b/*');
 		expect(describeScope({ repository: { name: 'x/y', url: '/x/y' }, repositoryPatterns: null })).toBe('x/y');
-		const base = { type: 'GIT_TREE' as const, retentionEnabled: true, retentionDurationHours: 168, retainIntermediateCommits: true };
+		const base = {
+			type: 'GIT_TREE' as const,
+			retentionEnabled: true,
+			retentionDurationHours: 168,
+			retainIntermediateCommits: true
+		};
 		expect(describeRetention(base)).toBe('Kept 1 week, every commit on the branch');
 		expect(describeRetention({ ...base, type: 'GIT_TAG' })).toBe('Kept 1 week');
 		expect(describeRetention({ ...base, retentionEnabled: false })).toBe('');

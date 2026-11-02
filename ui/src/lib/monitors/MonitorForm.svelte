@@ -194,8 +194,8 @@
 		<span class="label">When new commits match this search</span>
 		<QueryInput bind:value={query} {patternType} label="Watch query" onsubmit={() => submit()} />
 		<span class="hint" class:warn={typeMissing}>
-			Must contain <code>type:diff</code> (changed lines) or <code>type:commit</code> (commit messages). Only commits
-			pushed after the watch is created notify; it runs with your repository permissions.
+			Must contain <code>type:diff</code> (changed lines) or <code>type:commit</code> (commit messages). Only commits pushed
+			after the watch is created notify; it runs with your repository permissions.
 		</span>
 	</fieldset>
 
@@ -227,7 +227,9 @@
 								</label>
 							{/each}
 						</div>
-						<span class="hint">Emails go to each recipient's verified primary address (every member of an organization).</span>
+						<span class="hint"
+							>Emails go to each recipient's verified primary address (every member of an organization).</span
+						>
 					</div>
 					<label class="checkbox">
 						<input
@@ -253,7 +255,9 @@
 								Leave empty to keep the stored header.{/if}
 						</span>
 						{#if a.masked}
-							<label class="checkbox"><input type="checkbox" bind:checked={a.removeHeader} /> Remove the stored header</label>
+							<label class="checkbox"
+								><input type="checkbox" bind:checked={a.removeHeader} /> Remove the stored header</label
+							>
 						{/if}
 					</div>
 				{:else if a.kind === 'telegram'}
@@ -275,7 +279,13 @@
 					</div>
 					<div class="field">
 						<label for={`cm-chat-${i}`}>Chat</label>
-						<input id={`cm-chat-${i}`} class="input" required bind:value={a.chatId} placeholder="-1001234567890 or @channel" />
+						<input
+							id={`cm-chat-${i}`}
+							class="input"
+							required
+							bind:value={a.chatId}
+							placeholder="-1001234567890 or @channel"
+						/>
 						<span class="hint">
 							A numeric chat ID (negative for groups and channels) or a public channel's <code>@username</code>. Add the
 							bot to the chat first.
@@ -302,7 +312,12 @@
 					<input type="checkbox" bind:checked={a.includeResults} /> Include results
 				</label>
 				{#if testStatus[i]}
-					<div class="alert" class:alert-success={testStatus[i]?.ok} class:alert-danger={!testStatus[i]?.ok} role="status">
+					<div
+						class="alert"
+						class:alert-success={testStatus[i]?.ok}
+						class:alert-danger={!testStatus[i]?.ok}
+						role="status"
+					>
 						{testStatus[i]?.message}
 					</div>
 				{/if}
@@ -314,7 +329,9 @@
 			<button type="button" class="btn btn-sm" onclick={() => addAction('email')}>Add email</button>
 			<button type="button" class="btn btn-sm" onclick={() => addAction('webhook')}>Add webhook</button>
 			<button type="button" class="btn btn-sm" onclick={() => addAction('slackWebhook')}>Add Slack webhook</button>
-			<button type="button" class="btn btn-sm" onclick={() => addAction('mattermostWebhook')}>Add Mattermost webhook</button>
+			<button type="button" class="btn btn-sm" onclick={() => addAction('mattermostWebhook')}
+				>Add Mattermost webhook</button
+			>
 			<button type="button" class="btn btn-sm" onclick={() => addAction('telegram')}>Add Telegram</button>
 		</div>
 	</fieldset>
@@ -337,7 +354,8 @@
 		{/if}
 		{#if othersUnfiltered}
 			<div class="alert alert-danger" role="alert">
-				Unfiltered results were turned on by <strong>@{othersUnfiltered.unfilteredBy}</strong>{#if othersUnfiltered.unfilteredAt}
+				Unfiltered results were turned on by <strong>@{othersUnfiltered.unfilteredBy}</strong
+				>{#if othersUnfiltered.unfilteredAt}
 					on {new Date(othersUnfiltered.unfilteredAt).toLocaleString()}{/if}. Saving turns them off unless you turn them
 				on yourself.
 			</div>
@@ -357,9 +375,9 @@
 					</p>
 					{#if !siteAdmin}
 						<p>
-							<strong>You are responsible for the consequences of sharing this code.</strong> Turn this on only if every
-							recipient may see everything you can read in the watched repositories. Your name and the time you turned it on
-							are recorded and shown on the watch.
+							<strong>You are responsible for the consequences of sharing this code.</strong> Turn this on only if every recipient
+							may see everything you can read in the watched repositories. Your name and the time you turned it on are recorded
+							and shown on the watch.
 						</p>
 					{/if}
 					{#if needsAcknowledgement}

@@ -21,8 +21,7 @@
 
 	async function load(): Promise<void> {
 		try {
-			migrations = (await graphql<OutOfBandMigrationsResult>(OUT_OF_BAND_MIGRATIONS))
-				.outOfBandMigrations;
+			migrations = (await graphql<OutOfBandMigrationsResult>(OUT_OF_BAND_MIGRATIONS)).outOfBandMigrations;
 			error = null;
 		} catch (err) {
 			error = errorMessage(err);
@@ -59,9 +58,10 @@
 	<div>
 		<h1>Out-of-band migrations</h1>
 		<p class="page-description">
-			Long-running data migrations that workers run in the background after an upgrade, such as
-			re-encrypting secrets after a key rotation. A release that deprecates a migration cannot be
-			installed until the migration reaches 100%. <code>sourcegull migrate status</code> lists them too.
+			Long-running data migrations that workers run in the background after an upgrade, such as re-encrypting secrets
+			after a key rotation. A release that deprecates a migration cannot be installed until the migration reaches 100%. <code
+				>sourcegull migrate status</code
+			> lists them too.
 		</p>
 	</div>
 </div>
@@ -91,9 +91,7 @@
 						</div>
 						{#if m.errors.length > 0}
 							<details class="errors">
-								<summary
-									>{m.errors.length} recent error{m.errors.length === 1 ? '' : 's'}</summary
-								>
+								<summary>{m.errors.length} recent error{m.errors.length === 1 ? '' : 's'}</summary>
 								<ul>
 									{#each m.errors as e, i (i)}
 										<li>
@@ -106,8 +104,7 @@
 						{/if}
 					</td>
 					<td class="progress-cell">
-						<progress max="100" value={percent(m.progress)} aria-label="Progress of {m.description}"
-						></progress>
+						<progress max="100" value={percent(m.progress)} aria-label="Progress of {m.description}"></progress>
 						<div class="small">
 							{percent(m.progress)}% · {migrationState(m)}
 						</div>

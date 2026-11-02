@@ -44,7 +44,11 @@ describe('agentGuides', () => {
 	});
 
 	it('puts the endpoint in every guide', () => {
-		for (const g of guides) expect(g.snippets.some((s) => s.code.includes(URL)), g.id).toBe(true);
+		for (const g of guides)
+			expect(
+				g.snippets.some((s) => s.code.includes(URL)),
+				g.id
+			).toBe(true);
 	});
 
 	it('emits valid JSON for JSON snippets', () => {

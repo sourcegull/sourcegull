@@ -89,8 +89,8 @@
 	<div>
 		<h1>Edit connection</h1>
 		<p class="page-description">
-			Changing the configuration queues a full sync. Repositories the new configuration no longer
-			lists are removed after it.
+			Changing the configuration queues a full sync. Repositories the new configuration no longer lists are removed
+			after it.
 		</p>
 		<RelatedLinks />
 	</div>

@@ -181,11 +181,7 @@ export function stateLabel(state: StatusState): string {
 }
 
 /** Whether the repositories page should keep refreshing for these counts. */
-export function syncInProgress(stats: {
-	cloning: number;
-	queued: number;
-	notIndexed: number;
-}): boolean {
+export function syncInProgress(stats: { cloning: number; queued: number; notIndexed: number }): boolean {
 	return stats.cloning > 0 || stats.queued > 0 || stats.notIndexed > 0;
 }
 

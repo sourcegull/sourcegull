@@ -11,7 +11,11 @@
 </script>
 
 <!-- A query with the search box's syntax colours (display only). -->
-<code class="query-text">{#each tokens as t, i (i)}{#if t.kind === 'text' || t.kind === 'space'}{t.text}{:else}<span class="q-{t.kind}">{t.text}</span>{/if}{/each}</code>
+<code class="query-text"
+	>{#each tokens as t, i (i)}{#if t.kind === 'text' || t.kind === 'space'}{t.text}{:else}<span class="q-{t.kind}"
+				>{t.text}</span
+			>{/if}{/each}</code
+>
 
 <style>
 	.query-text {

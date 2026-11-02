@@ -100,7 +100,10 @@ const BY_SECTION: Partial<Record<ConfigSectionId, RelatedLink[]>> = {
 	codeIntel: [CODE_GRAPH, COVERAGE, EXECUTORS, EXECUTOR_SECRETS],
 	batchChanges: [page('/site-admin/bulk-changes', 'Bulk changes')],
 	notifications: [OUTBOUND_WEBHOOKS],
-	observability: [page('/site-admin/slow-requests', 'Slow requests'), page('/site-admin/outbound-requests', 'Outbound requests')]
+	observability: [
+		page('/site-admin/slow-requests', 'Slow requests'),
+		page('/site-admin/outbound-requests', 'Outbound requests')
+	]
 };
 
 /** The related links of the page at SvelteKit route `routeId`; empty for other pages. */

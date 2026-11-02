@@ -36,10 +36,7 @@
 		}
 	}
 
-	async function decide(
-		request: AccessRequestNode,
-		status: SetAccessRequestStatusVariables['status']
-	): Promise<void> {
+	async function decide(request: AccessRequestNode, status: SetAccessRequestStatusVariables['status']): Promise<void> {
 		pending = request.id;
 		error = null;
 		try {
@@ -71,8 +68,8 @@
 	<div>
 		<h1>Access requests</h1>
 		<p class="page-description">
-			{totalCount} pending. People who asked for an account from the sign-in page; approving one
-			creates the account and gives you a setup link to send them.
+			{totalCount} pending. People who asked for an account from the sign-in page; approving one creates the account and gives
+			you a setup link to send them.
 		</p>
 		<RelatedLinks />
 	</div>

@@ -175,8 +175,8 @@
 					OAuth token
 					<span class="hint block">
 						For a GitLab that doesn't allow access tokens. Issued through the OAuth application of
-						<a href={configSectionURL('auth')}>sign-in with GitLab</a>; it lasts two hours and Sourcegull renews it
-						with its refresh token.
+						<a href={configSectionURL('auth')}>sign-in with GitLab</a>; it lasts two hours and Sourcegull renews it with
+						its refresh token.
 					</span>
 				</span>
 			</label>
@@ -199,7 +199,9 @@
 				{#if tokenType === 'pat'}
 					<li>
 						Open
-						<a href={tokenPageURL(url, scopes)} target="_blank" rel="noopener noreferrer">User settings › Access tokens</a>
+						<a href={tokenPageURL(url, scopes)} target="_blank" rel="noopener noreferrer"
+							>User settings › Access tokens</a
+						>
 						(the name and scope are filled in), pick an expiry date, and create the token. Scope:
 						<ul>
 							<li>
@@ -209,8 +211,8 @@
 								<code class="code-inline">api</code>: also merge requests for bulk changes and webhook registration.
 							</li>
 						</ul>
-						A group or project access token with the same scope works too (Group › Settings › Access tokens); it sees
-						only that group's projects.
+						A group or project access token with the same scope works too (Group › Settings › Access tokens); it sees only
+						that group's projects.
 					</li>
 					<li>Copy the token into the field below. GitLab shows it only once.</li>
 					<li>
@@ -221,8 +223,8 @@
 				{:else}
 					<li>
 						Set up <a href={configSectionURL('auth')}>sign-in with GitLab</a> for
-						<code class="code-inline">{host}</code> (an <code class="code-inline">auth.providers</code> entry with the
-						same URL). Sourcegull renews the token with that entry's OAuth application.
+						<code class="code-inline">{host}</code> (an <code class="code-inline">auth.providers</code> entry with the same
+						URL). Sourcegull renews the token with that entry's OAuth application.
 					</li>
 					<li>
 						In GitLab, edit that OAuth application: add <code class="code-inline">{OAUTH_REDIRECT}</code> as another
@@ -327,7 +329,9 @@
 					{disabled}
 					onchange={writeProjects}
 				></textarea>
-				<span class="hint">One per line: a group path or its URL. Subgroups are included, archived projects skipped.</span>
+				<span class="hint"
+					>One per line: a group path or its URL. Subgroups are included, archived projects skipped.</span
+				>
 			</div>
 		{:else if mode === 'custom'}
 			<div class="field">
@@ -491,8 +495,8 @@
 				{disabled}
 				onchange={(e) => onedit([[['webhooks.autoRegister'], checked(e) || undefined]])}
 			/>
-			Register webhooks on every project automatically (needs the <code class="code-inline">api</code> scope and the
-			Maintainer role)
+			Register webhooks on every project automatically (needs the <code class="code-inline">api</code> scope and the Maintainer
+			role)
 		</label>
 		<div class="field cert">
 			<label for="gl-cert">TLS certificate (PEM)</label>

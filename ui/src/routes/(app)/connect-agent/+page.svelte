@@ -86,8 +86,8 @@
 		<div>
 			<h1>Connect an agent</h1>
 			<p class="page-description">
-				Give AI coding agents such as Claude Code, Cursor or Copilot access to Sourcegull's code search and
-				navigation through the Model Context Protocol (MCP). The agent sees exactly the repositories you can.
+				Give AI coding agents such as Claude Code, Cursor or Copilot access to Sourcegull's code search and navigation
+				through the Model Context Protocol (MCP). The agent sees exactly the repositories you can.
 			</p>
 		</div>
 	</div>
@@ -101,8 +101,8 @@
 				<span>
 					<strong>Through the browser</strong> <span class="badge">Recommended</span>
 					<span class="small muted method-text">
-						For Claude Code, VS Code and Cursor. Add only the server URL; the agent opens the browser for you to
-						allow access. No token to copy, store or rotate.
+						For Claude Code, VS Code and Cursor. Add only the server URL; the agent opens the browser for you to allow
+						access. No token to copy, store or rotate.
 					</span>
 				</span>
 			</label>
@@ -111,8 +111,8 @@
 				<span>
 					<strong>With an access token</strong>
 					<span class="small muted method-text">
-						For other agents, CI jobs and scripts, or when the agent can't open a browser. You create a token and
-						put it in the agent's configuration.
+						For other agents, CI jobs and scripts, or when the agent can't open a browser. You create a token and put it
+						in the agent's configuration.
 					</span>
 				</span>
 			</label>
@@ -125,8 +125,8 @@
 				<h2 id="step-oauth"><span class="step">1</span> Add Sourcegull to your agent</h2>
 			</div>
 			<p class="muted">
-				The first time the agent connects, it opens the browser: sign in and allow access. You can see and revoke
-				the agents you allowed under <a href="/user/settings/connected-apps">Connected apps</a>.
+				The first time the agent connects, it opens the browser: sign in and allow access. You can see and revoke the
+				agents you allowed under <a href="/user/settings/connected-apps">Connected apps</a>.
 			</p>
 			{#each oauthSnippets(url) as s (s.title)}
 				<div class="snippet-block">
@@ -153,8 +153,8 @@
 			<div class="section-header"><h2 id="step-token"><span class="step">2</span> Access token</h2></div>
 			{#if token}
 				<div class="alert alert-success" role="status">
-					<strong>Copy your token now. You won't be able to see it again.</strong> It is filled into every snippet
-					below until you leave this page.
+					<strong>Copy your token now. You won't be able to see it again.</strong> It is filled into every snippet below
+					until you leave this page.
 					<CopyField value={token} label="Access token" />
 				</div>
 			{:else if user}
@@ -175,9 +175,9 @@
 				</p>
 			{/if}
 			<div class="alert alert-warning">
-				The token acts as you: anyone who has it can read all code you can. Keep it out of committed files (the
-				snippets read it from <code class="code-inline">{TOKEN_ENV}</code> or a secret prompt where the agent
-				supports that) and delete it when you no longer need it.
+				The token acts as you: anyone who has it can read all code you can. Keep it out of committed files (the snippets
+				read it from <code class="code-inline">{TOKEN_ENV}</code> or a secret prompt where the agent supports that) and delete
+				it when you no longer need it.
 			</div>
 		</section>
 
@@ -219,7 +219,9 @@
 	{/if}
 
 	<section aria-labelledby="step-rules">
-		<div class="section-header"><h2 id="step-rules"><span class="step">{useToken ? 4 : 2}</span> Tell the agent when to use Sourcegull</h2></div>
+		<div class="section-header">
+			<h2 id="step-rules"><span class="step">{useToken ? 4 : 2}</span> Tell the agent when to use Sourcegull</h2>
+		</div>
 		<p class="muted">
 			Paste into <code class="code-inline">CLAUDE.md</code>, <code class="code-inline">AGENTS.md</code>,
 			<code class="code-inline">.cursor/rules</code>, <code class="code-inline">.github/copilot-instructions.md</code>

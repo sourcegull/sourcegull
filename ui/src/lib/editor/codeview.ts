@@ -4,13 +4,7 @@
  * blame gutter fed incrementally from the streaming blame endpoint.
  */
 import { highlightSelectionMatches, search, searchKeymap } from '@codemirror/search';
-import {
-	EditorState,
-	RangeSetBuilder,
-	StateEffect,
-	StateField,
-	type Extension
-} from '@codemirror/state';
+import { EditorState, RangeSetBuilder, StateEffect, StateField, type Extension } from '@codemirror/state';
 import {
 	Decoration,
 	EditorView,
@@ -172,8 +166,9 @@ const theme = EditorView.theme({
 	'.cm-lineNumbers .cm-gutterElement': { cursor: 'pointer', padding: '0 8px 0 12px' },
 	'.cm-lineNumbers .cm-gutterElement:hover': { color: 'var(--color-text)' },
 	'.cm-selected-line': { backgroundColor: 'var(--editor-line-selected)' },
-	'&.cm-focused > .cm-scroller > .cm-selectionLayer .cm-selectionBackground, .cm-selectionBackground':
-		{ backgroundColor: 'var(--editor-selection)' },
+	'&.cm-focused > .cm-scroller > .cm-selectionLayer .cm-selectionBackground, .cm-selectionBackground': {
+		backgroundColor: 'var(--editor-selection)'
+	},
 	'.cm-blame-gutter .cm-gutterElement': { width: '22rem', overflow: 'hidden' },
 	'.cm-blame-entry': {
 		display: 'flex',

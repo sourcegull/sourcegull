@@ -55,9 +55,7 @@ export type BatchesViewerResult = BatchesViewerQuery;
 
 /** Whether the viewer holds `BATCH_CHANGES#WRITE` (needed for every mutation here). */
 export function canWriteBatchChanges(viewer: Pick<BatchesViewer, 'permissions'> | null): boolean {
-	return (
-		viewer?.permissions.nodes.some((p) => p.namespace === 'BATCH_CHANGES' && p.action === 'WRITE') ?? false
-	);
+	return viewer?.permissions.nodes.some((p) => p.namespace === 'BATCH_CHANGES' && p.action === 'WRITE') ?? false;
 }
 
 /**
@@ -73,8 +71,7 @@ export function batchesUnavailableMessage(err: unknown): string | null {
 
 /** What the bulk changes pages may offer the viewer. */
 export type BatchesAccess =
-	| { available: true; viewer: BatchesViewer; canWrite: boolean }
-	| { available: false; message: string };
+	{ available: true; viewer: BatchesViewer; canWrite: boolean } | { available: false; message: string };
 
 /**
  * Loads the viewer and checks that bulk changes are available to them (the API answers with
@@ -96,7 +93,6 @@ export async function loadBatchesAccess(): Promise<BatchesAccess> {
 // ------------------------------------------------------------------ namespaces and URLs
 
 export type { NamespaceKind };
-
 
 export const USER_NAMESPACE = `query BatchUserNamespace($name: String!) { user(username: $name) { id url } }`;
 export const ORG_NAMESPACE = `query BatchOrgNamespace($name: String!) { organization(name: $name) { id url } }`;
@@ -158,14 +154,7 @@ const SPEC_FIELDS = `fragment SpecEditorFields on BatchSpec {
 	}
 }`;
 
-export type BatchSpecState =
-	| 'PENDING'
-	| 'PROCESSING'
-	| 'FAILED'
-	| 'COMPLETED'
-	| 'QUEUED'
-	| 'CANCELING'
-	| 'CANCELED';
+export type BatchSpecState = 'PENDING' | 'PROCESSING' | 'FAILED' | 'COMPLETED' | 'QUEUED' | 'CANCELING' | 'CANCELED';
 
 export type ResolutionState = 'QUEUED' | 'PROCESSING' | 'ERRORED' | 'FAILED' | 'COMPLETED';
 
@@ -364,7 +353,8 @@ export function specIssues(err: unknown): SpecIssue[] | null {
 
 /** `line 3, column 5: …` for the list under the editor (the message names the field). */
 export function formatIssue(issue: SpecIssue): string {
-	const at = issue.line !== null ? `line ${issue.line}${issue.column !== null ? `, column ${issue.column}` : ''}: ` : '';
+	const at =
+		issue.line !== null ? `line ${issue.line}${issue.column !== null ? `, column ${issue.column}` : ''}: ` : '';
 	return `${at}${issue.message}`;
 }
 
@@ -422,12 +412,42 @@ export interface SpecExample {
  */
 export const SPEC_EXAMPLES: SpecExample[] = [
 	{ id: 'hello-world', title: 'Hello world', description: 'Append a line to every README.md.', code: helloWorld },
-	{ id: 'sed-replace', title: 'Replace words with sed', description: 'Search and replace terms in Markdown files.', code: sedReplace },
-	{ id: 'go-dependency-bump', title: 'Upgrade a Go dependency', description: 'Run go get and go mod tidy where a module is used.', code: goDependencyBump },
-	{ id: 'eslint-fix', title: 'Run eslint --fix', description: 'Fix lint errors in JavaScript and TypeScript repositories.', code: eslintFix },
-	{ id: 'workspace-discovery', title: 'Monorepo workspaces', description: 'One changeset per project directory (rootAtLocationOf).', code: workspaceDiscovery },
-	{ id: 'outputs-and-templates', title: 'Outputs and templates', description: 'Step outputs in YAML used in the changeset template.', code: outputsAndTemplates },
-	{ id: 'modify-yaml-files', title: 'Modify YAML files', description: 'Edit files found by the search with a script mounted into the container.', code: modifyYaml }
+	{
+		id: 'sed-replace',
+		title: 'Replace words with sed',
+		description: 'Search and replace terms in Markdown files.',
+		code: sedReplace
+	},
+	{
+		id: 'go-dependency-bump',
+		title: 'Upgrade a Go dependency',
+		description: 'Run go get and go mod tidy where a module is used.',
+		code: goDependencyBump
+	},
+	{
+		id: 'eslint-fix',
+		title: 'Run eslint --fix',
+		description: 'Fix lint errors in JavaScript and TypeScript repositories.',
+		code: eslintFix
+	},
+	{
+		id: 'workspace-discovery',
+		title: 'Monorepo workspaces',
+		description: 'One changeset per project directory (rootAtLocationOf).',
+		code: workspaceDiscovery
+	},
+	{
+		id: 'outputs-and-templates',
+		title: 'Outputs and templates',
+		description: 'Step outputs in YAML used in the changeset template.',
+		code: outputsAndTemplates
+	},
+	{
+		id: 'modify-yaml-files',
+		title: 'Modify YAML files',
+		description: 'Edit files found by the search with a script mounted into the container.',
+		code: modifyYaml
+	}
 ];
 
 /** The spec a new bulk change starts with: the hello world example with its name. */
@@ -489,7 +509,10 @@ export interface PreviewWorkspace {
 export type WorkspacesPreviewResult = WorkspacesPreviewQuery;
 
 /** Why a workspace will not run (empty when it will). */
-export function skipReasons(ws: Pick<PreviewWorkspace, 'ignored' | 'unsupported' | 'state'>, flags?: Partial<SpecFlags>): string[] {
+export function skipReasons(
+	ws: Pick<PreviewWorkspace, 'ignored' | 'unsupported' | 'state'>,
+	flags?: Partial<SpecFlags>
+): string[] {
 	const reasons: string[] = [];
 	if (ws.ignored && !flags?.allowIgnored) reasons.push('The repository has a .batchignore file.');
 	if (ws.unsupported && !flags?.allowUnsupported) reasons.push("The repository's code host is not supported.");

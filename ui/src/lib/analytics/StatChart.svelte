@@ -35,14 +35,27 @@
 		{/if}
 	</figcaption>
 	<div class="plot">
-		<svg viewBox="0 0 {W} {H}" preserveAspectRatio="none" role="img" aria-label="{title} by {grouping === 'WEEKLY' ? 'week' : 'day'}">
+		<svg
+			viewBox="0 0 {W} {H}"
+			preserveAspectRatio="none"
+			role="img"
+			aria-label="{title} by {grouping === 'WEEKLY' ? 'week' : 'day'}"
+		>
 			<line class="baseline" x1="0" y1={H - 0.5} x2={W} y2={H - 0.5} />
 			{#each geometry as b, i (i)}
 				<!-- svelte-ignore a11y_no_static_element_interactions -->
 				<g onmouseenter={() => (hovered = i)} onmouseleave={() => (hovered = null)}>
 					<rect class="hit" x={b.x - 1} y="0" width={b.w + 2} height={H} />
 					{#if b.h > 0}
-						<rect class="bar" class:active={hovered === i} x={b.x} y={b.y} width={b.w} height={b.h} rx={Math.min(2, b.w / 2)} />
+						<rect
+							class="bar"
+							class:active={hovered === i}
+							x={b.x}
+							y={b.y}
+							width={b.w}
+							height={b.h}
+							rx={Math.min(2, b.w / 2)}
+						/>
 					{/if}
 				</g>
 			{/each}
@@ -58,10 +71,20 @@
 	<details>
 		<summary class="muted">Table</summary>
 		<table class="table compact">
-			<thead><tr><th scope="col">{grouping === 'WEEKLY' ? 'Week of' : 'Day'}</th><th scope="col">Events</th><th scope="col">Users</th><th scope="col">Registered</th></tr></thead>
+			<thead
+				><tr
+					><th scope="col">{grouping === 'WEEKLY' ? 'Week of' : 'Day'}</th><th scope="col">Events</th><th scope="col"
+						>Users</th
+					><th scope="col">Registered</th></tr
+				></thead
+			>
 			<tbody>
 				{#each item.nodes as n (n.date)}
-					<tr><td>{bucketLabel(n.date, 'DAILY')}</td><td>{n.count}</td><td>{n.uniqueUsers}</td><td>{n.registeredUsers}</td></tr>
+					<tr
+						><td>{bucketLabel(n.date, 'DAILY')}</td><td>{n.count}</td><td>{n.uniqueUsers}</td><td
+							>{n.registeredUsers}</td
+						></tr
+					>
 				{/each}
 			</tbody>
 		</table>

@@ -130,7 +130,12 @@ export function canAssign(viewer: Viewer | null): boolean {
 }
 
 /** Loads the owners of a file or directory and whether the viewer may assign owners. */
-export async function loadOwnership(repo: string, rev: string, path: string, isDir: boolean): Promise<LoadedOwnership | null> {
+export async function loadOwnership(
+	repo: string,
+	rev: string,
+	path: string,
+	isDir: boolean
+): Promise<LoadedOwnership | null> {
 	if (isDir) {
 		const r = await graphql<TreeOwnershipResult, Vars>(TREE_OWNERSHIP, { repo, rev, path });
 		if (!r.repository) return null;
@@ -198,7 +203,9 @@ export async function unassign(owner: OwnerPerson | OwnerTeam, repoID: string, a
 	if (owner.__typename === 'Team') {
 		await graphql<unknown, Vars>(REMOVE_ASSIGNED_TEAM, { input: { assignedOwnerID: owner.id, repoID, absolutePath } });
 	} else if (owner.user) {
-		await graphql<unknown, Vars>(REMOVE_ASSIGNED_OWNER, { input: { assignedOwnerID: owner.user.id, repoID, absolutePath } });
+		await graphql<unknown, Vars>(REMOVE_ASSIGNED_OWNER, {
+			input: { assignedOwnerID: owner.user.id, repoID, absolutePath }
+		});
 	}
 }
 

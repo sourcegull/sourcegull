@@ -38,7 +38,11 @@
 	const PLACEHOLDER_TOKEN = '<access token>';
 
 	const url = $derived(typeof doc.url === 'string' ? doc.url : '');
-	const host = $derived(giteaBase(url).replace(/^https?:\/\//, '').replace(/\/.*$/, ''));
+	const host = $derived(
+		giteaBase(url)
+			.replace(/^https?:\/\//, '')
+			.replace(/\/.*$/, '')
+	);
 	const token = $derived(typeof doc.token === 'string' ? doc.token : '');
 	const tokenStored = $derived(editing && token === 'REDACTED');
 	const rateLimit = $derived(
@@ -137,8 +141,8 @@
 			<summary>How to create the token</summary>
 			<ol class="steps">
 				<li>
-					Sign in to <code class="code-inline">{host}</code> as the user whose access Sourcegull should have. Every
-					repository the token can read can be mirrored, so a dedicated machine user is a good choice.
+					Sign in to <code class="code-inline">{host}</code> as the user whose access Sourcegull should have. Every repository
+					the token can read can be mirrored, so a dedicated machine user is a good choice.
 				</li>
 				<li>
 					Open
@@ -175,9 +179,7 @@
 			<legend class="visually-hidden">Which repositories</legend>
 			<label class="checkbox">
 				<input type="radio" name="gt-mode" checked={mode === 'affiliated'} onchange={() => setMode('affiliated')} />
-				<span
-					>Every repository the token's user owns, collaborates on or reaches through an organization</span
-				>
+				<span>Every repository the token's user owns, collaborates on or reaches through an organization</span>
 			</label>
 			<label class="checkbox">
 				<input type="radio" name="gt-mode" checked={mode === 'selected'} onchange={() => setMode('selected')} />
@@ -203,8 +205,8 @@
 				></textarea>
 				<span class="hint">
 					One per line: a keyword matched against repository names,
-					<code class="code-inline">affiliated</code>, or <code class="code-inline">all</code> (every repository
-					the token can read, other users' public ones included; not on gitea.com).
+					<code class="code-inline">affiliated</code>, or <code class="code-inline">all</code> (every repository the token
+					can read, other users' public ones included; not on gitea.com).
 				</span>
 			</div>
 		{/if}
@@ -266,7 +268,9 @@
 					{disabled}
 					onchange={writeExclusions}
 				></textarea>
-				<span class="hint">One regular expression per line, matched against <code class="code-inline">owner/name</code>.</span>
+				<span class="hint"
+					>One regular expression per line, matched against <code class="code-inline">owner/name</code>.</span
+				>
 			</div>
 			<label class="checkbox">
 				<input type="checkbox" bind:checked={excludeArchived} {disabled} onchange={writeExclusions} />
@@ -295,15 +299,14 @@
 			{#if authType === 'none'}
 				<div class="alert alert-warning perm-alert" role="status">
 					Every Sourcegull user can search every repository of this connection, including private ones. To apply Gitea
-					permissions, set up <a href={configSectionURL('auth')}>sign-in with Gitea</a> and choose the second option,
-					or use a site administrator's token and choose the third.
+					permissions, set up <a href={configSectionURL('auth')}>sign-in with Gitea</a> and choose the second option, or use
+					a site administrator's token and choose the third.
 				</div>
 			{:else if authType === 'oauth'}
 				<span class="hint">
 					Needs a Gitea sign-in provider for {host} in the
 					<a href={configSectionURL('auth')}>site configuration</a>; sign-in then asks for the
-					<code class="code-inline">read:repository</code> scope. Users who never signed in with Gitea see only public
-					repositories.
+					<code class="code-inline">read:repository</code> scope. Users who never signed in with Gitea see only public repositories.
 				</span>
 			{:else}
 				<span class="hint">

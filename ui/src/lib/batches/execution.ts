@@ -7,14 +7,7 @@ import type { BatchSpecState } from './spec.ts';
 import type { BatchSpecExecutionQuery, BatchSpecWorkspaceQuery } from '#lib/graphql-types.ts';
 
 export type WorkspaceState =
-	| 'SKIPPED'
-	| 'PENDING'
-	| 'QUEUED'
-	| 'PROCESSING'
-	| 'FAILED'
-	| 'COMPLETED'
-	| 'CANCELING'
-	| 'CANCELED';
+	'SKIPPED' | 'PENDING' | 'QUEUED' | 'PROCESSING' | 'FAILED' | 'COMPLETED' | 'CANCELING' | 'CANCELED';
 
 const WORKSPACE_LIST_FIELDS = `fragment ExecutionWorkspaceFields on BatchSpecWorkspace {
 	__typename
@@ -223,10 +216,12 @@ export interface WorkspaceDetail extends ExecutionWorkspace {
 	executor?: { hostname: string } | null;
 	stages?: { setup: LogEntry[]; srcExec: LogEntry[]; teardown: LogEntry[] } | null;
 	steps?: WorkspaceStep[];
-	changesetSpecs?: {
-		id: string;
-		description: { __typename: string; title?: string; headRef?: string; diffStat?: DiffStat };
-	}[] | null;
+	changesetSpecs?:
+		| {
+				id: string;
+				description: { __typename: string; title?: string; headRef?: string; diffStat?: DiffStat };
+		  }[]
+		| null;
 }
 
 export type BatchSpecWorkspaceResult = BatchSpecWorkspaceQuery;
@@ -267,7 +262,10 @@ export function canModifyExecution(
 	return viewer.siteAdmin || (spec.creator !== null && spec.creator.id === viewer.id);
 }
 
-export function canCancel(spec: Pick<ExecutionSpec, 'state' | 'creator'>, viewer: { id: string; siteAdmin: boolean } | null): boolean {
+export function canCancel(
+	spec: Pick<ExecutionSpec, 'state' | 'creator'>,
+	viewer: { id: string; siteAdmin: boolean } | null
+): boolean {
 	return (spec.state === 'QUEUED' || spec.state === 'PROCESSING') && canModifyExecution(spec, viewer);
 }
 
@@ -344,14 +342,18 @@ export function parseOutputLine(line: string): OutputLine {
 }
 
 /** What a step's status badge says. */
-export function stepStatus(step: Pick<WorkspaceStep, 'skipped' | 'cachedResultFound' | 'exitCode' | 'startedAt' | 'finishedAt'>): {
+export function stepStatus(
+	step: Pick<WorkspaceStep, 'skipped' | 'cachedResultFound' | 'exitCode' | 'startedAt' | 'finishedAt'>
+): {
 	label: string;
 	tone: 'success' | 'danger' | 'info' | 'warning' | 'muted';
 } {
 	if (step.skipped) return { label: 'skipped', tone: 'muted' };
 	if (step.cachedResultFound) return { label: 'cached', tone: 'success' };
 	if (step.exitCode !== null) {
-		return step.exitCode === 0 ? { label: 'exit 0', tone: 'success' } : { label: `exit ${step.exitCode}`, tone: 'danger' };
+		return step.exitCode === 0
+			? { label: 'exit 0', tone: 'success' }
+			: { label: `exit ${step.exitCode}`, tone: 'danger' };
 	}
 	if (step.startedAt && !step.finishedAt) return { label: 'running', tone: 'info' };
 	return { label: 'not run', tone: 'muted' };
@@ -364,7 +366,9 @@ export function formatOutputValue(value: unknown): string {
 }
 
 /** Where a queued workspace stands, e.g. `#2 in your queue, #5 overall`. */
-export function queuePosition(ws: Pick<ExecutionWorkspace, 'state' | 'placeInQueue' | 'placeInGlobalQueue'>): string | null {
+export function queuePosition(
+	ws: Pick<ExecutionWorkspace, 'state' | 'placeInQueue' | 'placeInGlobalQueue'>
+): string | null {
 	if (ws.state !== 'QUEUED') return null;
 	const parts: string[] = [];
 	if (ws.placeInQueue !== null) parts.push(`#${ws.placeInQueue} in your queue`);

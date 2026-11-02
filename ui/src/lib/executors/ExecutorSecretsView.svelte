@@ -73,18 +73,18 @@
 		error = null;
 		try {
 			if (namespace === 'global') {
-				const data = await graphql<GlobalExecutorSecretsResult, ListVariables>(
-					GLOBAL_EXECUTOR_SECRETS,
-					{ scope, first: 500 }
-				);
+				const data = await graphql<GlobalExecutorSecretsResult, ListVariables>(GLOBAL_EXECUTOR_SECRETS, {
+					scope,
+					first: 500
+				});
 				secrets = data.executorSecrets.nodes;
 				totalCount = data.executorSecrets.totalCount;
 				exclusive = isExclusive(data.site.declaredConfigFiles, 'executorSecrets');
 			} else {
-				const data = await graphql<UserExecutorSecretsResult, ListVariables>(
-					USER_EXECUTOR_SECRETS,
-					{ scope, first: 500 }
-				);
+				const data = await graphql<UserExecutorSecretsResult, ListVariables>(USER_EXECUTOR_SECRETS, {
+					scope,
+					first: 500
+				});
 				namespaceId = data.currentUser?.id ?? null;
 				secrets = data.currentUser?.executorSecrets.nodes ?? [];
 				totalCount = data.currentUser?.executorSecrets.totalCount ?? 0;
@@ -100,8 +100,7 @@
 	 * Whether the secret belongs to the namespace shown (global ones are read-only for users) and
 	 * is not owned by the resources file.
 	 */
-	const editable = (s: ExecutorSecretNode) =>
-		(namespace === 'global') === (s.namespace === null) && !s.managedBy;
+	const editable = (s: ExecutorSecretNode) => (namespace === 'global') === (s.namespace === null) && !s.managedBy;
 
 	async function create(event: SubmitEvent): Promise<void> {
 		event.preventDefault();
@@ -199,10 +198,10 @@
 </div>
 
 <p class="muted">
-	Executor secrets are passed to executor jobs as environment variables named by their key, and
-	their values are replaced in the jobs' logs. Values are encrypted and can't be read back. A secret
-	named <code>DOCKER_AUTH_CONFIG</code> holds registry credentials for pulling the jobs' images (a
-	Docker <code>config.json</code> with <code>auths</code>).
+	Executor secrets are passed to executor jobs as environment variables named by their key, and their values are
+	replaced in the jobs' logs. Values are encrypted and can't be read back. A secret named <code>DOCKER_AUTH_CONFIG</code
+	>
+	holds registry credentials for pulling the jobs' images (a Docker <code>config.json</code> with <code>auths</code>).
 	{#if namespace === 'user'}
 		Your secrets overwrite global secrets with the same key.
 	{/if}
@@ -297,9 +296,7 @@
 									newValue = '';
 								}}>Update value</button
 							>
-							<button class="btn btn-sm btn-danger" type="button" onclick={() => remove(secret)}
-								>Delete</button
-							>
+							<button class="btn btn-sm btn-danger" type="button" onclick={() => remove(secret)}>Delete</button>
 						{/if}
 					</td>
 				</tr>
@@ -308,17 +305,9 @@
 						<td colspan="5">
 							<form class="update" onsubmit={(e) => update(e, secret)}>
 								<label for="secret-new-value">New value of <code>{secret.key}</code></label>
-								<textarea
-									id="secret-new-value"
-									class="input mono"
-									rows="3"
-									bind:value={newValue}
-									required
-								></textarea>
+								<textarea id="secret-new-value" class="input mono" rows="3" bind:value={newValue} required></textarea>
 								<div class="toolbar">
-									<button class="btn btn-primary btn-sm" type="submit" disabled={submitting || !newValue}
-										>Save</button
-									>
+									<button class="btn btn-primary btn-sm" type="submit" disabled={submitting || !newValue}>Save</button>
 									<button class="btn btn-sm" type="button" onclick={() => (editing = null)}>Cancel</button>
 								</div>
 							</form>

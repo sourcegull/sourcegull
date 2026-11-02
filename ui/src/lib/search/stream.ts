@@ -103,14 +103,7 @@ export interface TeamMatch {
 	displayName: string;
 }
 
-export type SearchMatch =
-	| ContentMatch
-	| PathMatch
-	| SymbolMatch
-	| CommitMatch
-	| RepoMatch
-	| PersonMatch
-	| TeamMatch;
+export type SearchMatch = ContentMatch | PathMatch | SymbolMatch | CommitMatch | RepoMatch | PersonMatch | TeamMatch;
 
 export interface Skipped {
 	reason: string;

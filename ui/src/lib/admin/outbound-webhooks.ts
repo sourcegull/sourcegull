@@ -151,10 +151,7 @@ export interface OutboundWebhookDetail extends OutboundWebhookSummary {
 export type OutboundWebhookResult = OutboundWebhookQuery;
 
 /** The form's event type selection as API input: one entry per checked type, keeping scopes. */
-export function eventTypesInput(
-	checked: Record<string, boolean>,
-	scopes: Record<string, string>
-): ScopedEventType[] {
+export function eventTypesInput(checked: Record<string, boolean>, scopes: Record<string, string>): ScopedEventType[] {
 	return Object.keys(checked)
 		.filter((k) => checked[k])
 		.sort()
@@ -165,12 +162,7 @@ export function eventTypesInput(
 }
 
 /** Validates the form; returns the problems. Editing, an empty URL keeps the stored one. */
-export function validateWebhookForm(
-	url: string,
-	secret: string,
-	isNew: boolean,
-	types: ScopedEventType[]
-): string[] {
+export function validateWebhookForm(url: string, secret: string, isNew: boolean, types: ScopedEventType[]): string[] {
 	const problems: string[] = [];
 	if (isNew || url.trim() !== '') {
 		try {

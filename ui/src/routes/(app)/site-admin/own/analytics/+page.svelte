@@ -74,8 +74,8 @@
 	<div>
 		<h1>Ownership analytics</h1>
 		<p class="page-description">
-			Files on each repository's default branch with an owner from a CODEOWNERS file or an assignment.
-			Updated daily and after pushes.
+			Files on each repository's default branch with an owner from a CODEOWNERS file or an assignment. Updated daily and
+			after pushes.
 		</p>
 	</div>
 </div>
@@ -158,7 +158,9 @@
 	</table>
 </div>
 {#if hasNextPage}
-	<div class="more"><button class="btn" type="button" disabled={loading} onclick={() => load(endCursor)}>Load more</button></div>
+	<div class="more">
+		<button class="btn" type="button" disabled={loading} onclick={() => load(endCursor)}>Load more</button>
+	</div>
 {/if}
 
 <style>

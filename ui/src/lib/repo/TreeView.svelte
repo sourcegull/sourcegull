@@ -86,13 +86,11 @@
 		<PathBreadcrumbs {repo} {urlRev} {path} isFile={false} />
 		<div class="spacer"></div>
 		<div class="toolbar">
-			<button
-				type="button"
-				class="btn btn-sm"
-				aria-pressed={showOwners}
-				onclick={() => (showOwners = !showOwners)}><Icon name="users" size={14} /> Owners</button
+			<button type="button" class="btn btn-sm" aria-pressed={showOwners} onclick={() => (showOwners = !showOwners)}
+				><Icon name="users" size={14} /> Owners</button
 			>
-			<a class="btn btn-sm" href={repoPageURL(repo, urlRev, 'commits', path)}><Icon name="clock" size={14} /> History</a>
+			<a class="btn btn-sm" href={repoPageURL(repo, urlRev, 'commits', path)}><Icon name="clock" size={14} /> History</a
+			>
 			{#if archiveURL}
 				<a class="btn btn-sm" href={archiveURL} download>Download ZIP</a>
 			{/if}
@@ -112,14 +110,25 @@
 			<tbody>
 				{#if path !== ''}
 					<tr>
-						<td class="mono"><a class="entry" href={repoPageURL(repo, urlRev, parentPath(path) === '' ? 'root' : 'tree', parentPath(path))}><span class="entry-icon"><Icon name="folder" size={15} /></span>..</a></td>
+						<td class="mono"
+							><a
+								class="entry"
+								href={repoPageURL(repo, urlRev, parentPath(path) === '' ? 'root' : 'tree', parentPath(path))}
+								><span class="entry-icon"><Icon name="folder" size={15} /></span>..</a
+							></td
+						>
 					</tr>
 				{/if}
 				{#each shown as e (e.path)}
 					<tr>
 						<td class="mono">
-							<a class="entry" href={repoPageURL(repo, urlRev, e.isDirectory ? 'tree' : 'blob', e.path)} class:dir={e.isDirectory}>
-								<span class="entry-icon"><Icon name={e.isDirectory ? 'folder' : 'file'} size={15} /></span>{e.name}{e.isDirectory ? '/' : ''}
+							<a
+								class="entry"
+								href={repoPageURL(repo, urlRev, e.isDirectory ? 'tree' : 'blob', e.path)}
+								class:dir={e.isDirectory}
+							>
+								<span class="entry-icon"><Icon name={e.isDirectory ? 'folder' : 'file'} size={15} /></span
+								>{e.name}{e.isDirectory ? '/' : ''}
 							</a>
 							{#if e.kind === 'SUBMODULE'}<span class="badge">submodule</span>{/if}
 							{#if e.kind === 'SYMLINK'}<span class="badge">symlink</span>{/if}

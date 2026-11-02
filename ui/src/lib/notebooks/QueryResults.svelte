@@ -5,7 +5,14 @@
 <script lang="ts">
 	import SearchResult from '#lib/search/SearchResult.svelte';
 	import { parsePatternType, searchQueryURL, searchURL, type PatternType } from '#lib/search/query.ts';
-	import { matchCount, matchKey, streamSearch, type Alert, type Progress, type SearchMatch } from '#lib/search/stream.ts';
+	import {
+		matchCount,
+		matchKey,
+		streamSearch,
+		type Alert,
+		type Progress,
+		type SearchMatch
+	} from '#lib/search/stream.ts';
 
 	interface Props {
 		query: string;

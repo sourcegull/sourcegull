@@ -5,9 +5,7 @@
 	/** The links to show; defaults to those of the current site admin route. */
 	let { links }: { links?: RelatedLink[] } = $props();
 	// Pages that share one list (such as the code intelligence pages) leave out themselves.
-	const shown = $derived(
-		(links ?? relatedForRoute(page.route.id)).filter((l) => l.href !== page.url.pathname)
-	);
+	const shown = $derived((links ?? relatedForRoute(page.route.id)).filter((l) => l.href !== page.url.pathname));
 </script>
 
 {#if shown.length > 0}

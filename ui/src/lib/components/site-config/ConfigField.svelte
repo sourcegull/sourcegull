@@ -154,8 +154,13 @@
 		</span>
 		<code class="field-key">{field.key}</code>
 		{#if isSet && !field.required}
-			<button class="btn btn-link btn-sm reset" type="button" onclick={reset} {disabled}
-				title="Remove {field.key} from the configuration so the default applies">
+			<button
+				class="btn btn-link btn-sm reset"
+				type="button"
+				onclick={reset}
+				{disabled}
+				title="Remove {field.key} from the configuration so the default applies"
+			>
 				{fallback !== undefined ? 'Reset to default' : 'Clear'}
 			</button>
 		{/if}
@@ -347,7 +352,9 @@
 							}
 						}}
 					/>
-					<button class="btn btn-sm" type="button" onclick={addItem} disabled={disabled || !itemDraft.trim()}>Add</button>
+					<button class="btn btn-sm" type="button" onclick={addItem} disabled={disabled || !itemDraft.trim()}
+						>Add</button
+					>
 				</div>
 			</div>
 		{:else}

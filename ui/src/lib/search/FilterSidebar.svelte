@@ -81,7 +81,9 @@
 								title={active ? `Remove ${f.value}` : `Add ${f.value}`}
 								onclick={() => (active ? onchange([f.value], []) : onchange([], [f.value]))}
 							>
-								<span class="label">{#if active}<Icon name="check" size={14} />{/if}<span class="label-text">{f.label}</span></span>
+								<span class="label"
+									>{#if active}<Icon name="check" size={14} />{/if}<span class="label-text">{f.label}</span></span
+								>
 								<span class="count">{f.count}{f.exhaustive ? '' : '+'}</span>
 							</button>
 						</li>

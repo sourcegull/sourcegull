@@ -260,10 +260,10 @@
 			return r.searchContexts.nodes.map((c) => c.spec);
 		}
 		if (field === 'repo') {
-			const r = await graphql<RepositoryNamesResult, { query: string | null; first: number }>(
-				REPOSITORY_NAMES,
-				{ query: prefix.replace(/^\^|\$$/g, '').replace(/\\/g, '') || null, first: 10 }
-			);
+			const r = await graphql<RepositoryNamesResult, { query: string | null; first: number }>(REPOSITORY_NAMES, {
+				query: prefix.replace(/^\^|\$$/g, '').replace(/\\/g, '') || null,
+				first: 10
+			});
 			return r.repositories.nodes.map((n) => exactRepo(n.name));
 		}
 		return [];
@@ -273,9 +273,12 @@
 	$effect(() => {
 		const el = sentinel;
 		if (!el) return;
-		const io = new IntersectionObserver((entries) => {
-			if (entries.some((e) => e.isIntersecting)) rendered += RENDER_STEP;
-		}, { rootMargin: '600px' });
+		const io = new IntersectionObserver(
+			(entries) => {
+				if (entries.some((e) => e.isIntersecting)) rendered += RENDER_STEP;
+			},
+			{ rootMargin: '600px' }
+		);
 		io.observe(el);
 		return () => io.disconnect();
 	});
@@ -305,18 +308,15 @@
 		if (!user || !submitted) return;
 		saveError = null;
 		try {
-			const r = await graphql<CreateSavedSearchMutation, CreateSavedSearchVariables>(
-				CREATE_SAVED_SEARCH,
-				{
-					input: {
-						owner: user.id,
-						description: saveDescription.trim() || submitted.query,
-						query: withPatternType(submitted.query, submitted.patternType),
-						draft: false,
-						visibility: 'SECRET'
-					}
+			const r = await graphql<CreateSavedSearchMutation, CreateSavedSearchVariables>(CREATE_SAVED_SEARCH, {
+				input: {
+					owner: user.id,
+					description: saveDescription.trim() || submitted.query,
+					query: withPatternType(submitted.query, submitted.patternType),
+					draft: false,
+					visibility: 'SECRET'
 				}
-			);
+			});
 			savedURL = r.createSavedSearch.url;
 			saving = false;
 			saveDescription = '';
@@ -448,7 +448,8 @@
 						<tbody>
 							{#each $recent.slice(0, 10) as e (e.query)}
 								<tr>
-									<td class="recent-panel-query"><a href={searchQueryURL(e.query)}><QueryText query={e.query} /></a></td>
+									<td class="recent-panel-query"><a href={searchQueryURL(e.query)}><QueryText query={e.query} /></a></td
+									>
 									<td class="muted num">{resultCountLabel(e)}</td>
 									<td class="muted" title={e.timestamp}>{relativeTime(e.timestamp)}</td>
 								</tr>
@@ -499,7 +500,12 @@
 				</span>
 				<span class="spacer"></span>
 				<div class="actions">
-					<button type="button" class="btn btn-sm btn-ghost" aria-pressed={showAggregations} onclick={() => (showAggregations = !showAggregations)}>
+					<button
+						type="button"
+						class="btn btn-sm btn-ghost"
+						aria-pressed={showAggregations}
+						onclick={() => (showAggregations = !showAggregations)}
+					>
 						<Icon name="insights" size={14} /> Group by
 					</button>
 					{#if submitted}
@@ -522,7 +528,10 @@
 							>
 						{/if}
 						{#if submitted && /(^|[\s(])type:(commit|diff)\b/i.test(submitted.query)}
-							<a class="btn btn-sm btn-ghost" href={`/watches/new?q=${encodeURIComponent(withPatternType(submitted.query, submitted.patternType))}`}>
+							<a
+								class="btn btn-sm btn-ghost"
+								href={`/watches/new?q=${encodeURIComponent(withPatternType(submitted.query, submitted.patternType))}`}
+							>
 								<Icon name="monitor" size={14} /> Watch
 							</a>
 						{/if}
@@ -577,7 +586,10 @@
 					</summary>
 					<ul>
 						{#each skipped as s, i (i)}
-							<li><strong>{s.title}</strong>{#if s.message} — {s.message}{/if}</li>
+							<li>
+								<strong>{s.title}</strong>{#if s.message}
+									— {s.message}{/if}
+							</li>
 						{/each}
 					</ul>
 				</details>

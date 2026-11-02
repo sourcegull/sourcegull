@@ -23,9 +23,7 @@ describe('outbound webhook helpers', () => {
 	it('validates the form', () => {
 		const t = [{ eventType: 'x', scope: null }];
 		expect(validateWebhookForm('https://hooks.example.com/', 's', true, t)).toEqual([]);
-		expect(validateWebhookForm('ftp://x', 's', true, t)).toEqual([
-			'The URL must be http or https.'
-		]);
+		expect(validateWebhookForm('ftp://x', 's', true, t)).toEqual(['The URL must be http or https.']);
 		expect(validateWebhookForm('nope', '', true, [])).toHaveLength(3);
 		expect(validateWebhookForm('http://x', '', false, t)).toEqual([]);
 		// Editing, an empty URL keeps the stored one; creating needs one.

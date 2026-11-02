@@ -31,8 +31,8 @@
 
 {#if !data.auth.emailEnabled}
 	<div class="alert alert-danger" role="alert">
-		Email is not set up on this instance, so reset links cannot be emailed. Ask a site admin to
-		create a reset link for you (Site admin &gt; Users &gt; Reset password), or to set up email.
+		Email is not set up on this instance, so reset links cannot be emailed. Ask a site admin to create a reset link for
+		you (Site admin &gt; Users &gt; Reset password), or to set up email.
 	</div>
 {:else if sent}
 	<div class="alert alert-success" role="status">
@@ -45,14 +45,7 @@
 	<form {onsubmit}>
 		<div class="field">
 			<label class="label" for="email">Email</label>
-			<input
-				class="input"
-				id="email"
-				type="email"
-				bind:value={email}
-				required
-				autocomplete="email"
-			/>
+			<input class="input" id="email" type="email" bind:value={email} required autocomplete="email" />
 		</div>
 		<button class="btn btn-primary" type="submit" disabled={submitting}>
 			{submitting ? 'Sending…' : 'Send reset link'}

@@ -37,14 +37,11 @@
 	<div class="card-header"><h2>Sync from GitLab groups</h2></div>
 	<p>
 		With <code>"own.syncTeamsFromGitLabGroups": true</code> in the
-		<a href="/site-admin/configuration">site configuration</a>, the worker turns every GitLab group
-		that a code host connection's token can see into a read-only team each hour: nested groups become
-		child teams, and group members with a linked GitLab account become team members. Groups that
-		disappear delete their teams.
+		<a href="/site-admin/configuration">site configuration</a>, the worker turns every GitLab group that a code host
+		connection's token can see into a read-only team each hour: nested groups become child teams, and group members with
+		a linked GitLab account become team members. Groups that disappear delete their teams.
 	</p>
-	<button class="btn btn-primary" type="button" onclick={sync} disabled={busy}
-		>{busy ? 'Syncing…' : 'Sync now'}</button
-	>
+	<button class="btn btn-primary" type="button" onclick={sync} disabled={busy}>{busy ? 'Syncing…' : 'Sync now'}</button>
 	{#if error}<div class="alert alert-danger" role="alert">{error}</div>{/if}
 	{#if result}
 		<div class="alert alert-success" role="status">

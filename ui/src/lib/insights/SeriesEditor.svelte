@@ -72,7 +72,9 @@
 					{#if queryError}
 						<span class="error" role="alert">{queryError}</span>
 					{:else}
-						<span class="hint muted">Do not include the <code>repo:</code> filter; it will be added automatically, if needed.</span>
+						<span class="hint muted"
+							>Do not include the <code>repo:</code> filter; it will be added automatically, if needed.</span
+						>
 					{/if}
 				</div>
 				{#if colors}

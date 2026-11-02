@@ -109,7 +109,9 @@ export const serverBackend: RecentSearchesBackend = {
 };
 
 /** Local storage; storage that is missing, full or blocked reads as empty and drops writes. */
-export function localBackend(storage: () => Storage | undefined = () => globalThis.localStorage): RecentSearchesBackend {
+export function localBackend(
+	storage: () => Storage | undefined = () => globalThis.localStorage
+): RecentSearchesBackend {
 	const readAll = (): Record<string, unknown> => {
 		try {
 			const raw = storage()?.getItem(LOCAL_STORAGE_KEY);

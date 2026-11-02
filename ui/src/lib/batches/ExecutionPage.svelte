@@ -28,7 +28,13 @@
 		type ExecutionSpec,
 		type WorkspaceState
 	} from './execution.ts';
-	import { batchChangeURLFromRoute, editURL, loadBatchesAccess, type BatchesAccess, type NamespaceKind } from './spec.ts';
+	import {
+		batchChangeURLFromRoute,
+		editURL,
+		loadBatchesAccess,
+		type BatchesAccess,
+		type NamespaceKind
+	} from './spec.ts';
 
 	interface Props {
 		kind: NamespaceKind;
@@ -62,7 +68,9 @@
 	const canModify = $derived(spec !== null && canModifyExecution(spec, viewer));
 	const resolution = $derived(spec?.workspaceResolution ?? null);
 	const progress = $derived(
-		resolution ? executionProgress(resolution.all.stats, resolution.all.totalCount, resolution.skipped.totalCount) : null
+		resolution
+			? executionProgress(resolution.all.stats, resolution.all.totalCount, resolution.skipped.totalCount)
+			: null
 	);
 	const workspaces = $derived(resolution?.workspaces.nodes ?? []);
 	const selectedState = $derived(workspaces.find((w) => w.id === selected)?.state);
@@ -137,7 +145,8 @@
 
 	const time = (iso: string | null) => (iso ? new Date(iso).toLocaleString() : '—');
 	/** Percentage of the workspaces that run, for the progress bar's segments. */
-	const share = (n: number) => (progress && progress.total > 0 ? Math.round((100 * Math.min(n, progress.total)) / progress.total) : 0);
+	const share = (n: number) =>
+		progress && progress.total > 0 ? Math.round((100 * Math.min(n, progress.total)) / progress.total) : 0;
 </script>
 
 <svelte:head><title>Execution · {name} · Bulk changes · Sourcegull</title></svelte:head>
@@ -183,7 +192,8 @@
 				{#if spec.creator}Run by <strong>{spec.creator.username}</strong> ·{/if}
 				started {time(spec.startedAt)}
 				{#if elapsed(spec.startedAt, spec.finishedAt, now) !== null}
-					· {spec.finishedAt ? 'took' : 'running for'} {formatDuration(elapsed(spec.startedAt, spec.finishedAt, now) ?? 0)}
+					· {spec.finishedAt ? 'took' : 'running for'}
+					{formatDuration(elapsed(spec.startedAt, spec.finishedAt, now) ?? 0)}
 				{/if}
 				{#if spec.noCache}· cache disabled{/if}
 				{#if spec.diffStat}
@@ -259,7 +269,8 @@
 									{#if queuePosition(ws)}· {queuePosition(ws)}{/if}
 									{#if ws.cachedResultFound}· cached{/if}
 									{#if ws.diffStat}
-										· <span class="added">+{ws.diffStat.added}</span> <span class="deleted">−{ws.diffStat.deleted}</span>
+										· <span class="added">+{ws.diffStat.added}</span>
+										<span class="deleted">−{ws.diffStat.deleted}</span>
 									{/if}
 									{#if elapsed(ws.startedAt, ws.finishedAt, now) !== null}
 										· {formatDuration(elapsed(ws.startedAt, ws.finishedAt, now) ?? 0)}
@@ -272,7 +283,9 @@
 					{/each}
 				</ul>
 				{#if resolution && resolution.workspaces.totalCount > workspaces.length}
-					<p class="muted small">Showing {workspaces.length} of {resolution.workspaces.totalCount}; filter to find others.</p>
+					<p class="muted small">
+						Showing {workspaces.length} of {resolution.workspaces.totalCount}; filter to find others.
+					</p>
 				{/if}
 			</section>
 			<div class="pane">

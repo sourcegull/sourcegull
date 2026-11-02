@@ -9,7 +9,7 @@
 		formatFinalSettings,
 		type OrganizationSettingsResult,
 		type Vars
-} from '#lib/orgs/queries.ts';
+	} from '#lib/orgs/queries.ts';
 
 	const name = $derived(page.params.name ?? '');
 	let org = $state<OrganizationSettingsResult['organization']>(null);
@@ -76,8 +76,9 @@
 	<section>
 		<h2>Organization settings</h2>
 		<p class="muted">
-			Apply to every member, over the global settings and under each member's own settings. JSON with
-			comments; press <kbd>Ctrl</kbd>/<kbd>⌘</kbd>+<kbd>S</kbd> to save.
+			Apply to every member, over the global settings and under each member's own settings. JSON with comments; press <kbd
+				>Ctrl</kbd
+			>/<kbd>⌘</kbd>+<kbd>S</kbd> to save.
 		</p>
 		<SettingsEditor
 			subject={org.id}

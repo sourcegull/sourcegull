@@ -74,8 +74,7 @@
 	<div>
 		<h1>User activity</h1>
 		<p class="page-description">
-			Last activity and usage events per user, from this instance's event logs. Event counts update
-			every half hour.
+			Last activity and usage events per user, from this instance's event logs. Event counts update every half hour.
 		</p>
 		<RelatedLinks />
 	</div>
@@ -107,11 +106,26 @@
 	<table class="table table-bordered table-sm" aria-busy={loading}>
 		<thead>
 			<tr>
-				<th scope="col" aria-sort={ariaSort('USERNAME')}><button type="button" class="link" onclick={() => sortBy('USERNAME')}>User{arrow('USERNAME')}</button></th>
-				<th scope="col" aria-sort={ariaSort('EMAIL')}><button type="button" class="link" onclick={() => sortBy('EMAIL')}>Email{arrow('EMAIL')}</button></th>
-				<th scope="col" aria-sort={ariaSort('LAST_ACTIVE_AT')}><button type="button" class="link" onclick={() => sortBy('LAST_ACTIVE_AT')}>Last active{arrow('LAST_ACTIVE_AT')}</button></th>
-				<th scope="col" class="num" aria-sort={ariaSort('EVENTS_COUNT')}><button type="button" class="link" onclick={() => sortBy('EVENTS_COUNT')}>Events{arrow('EVENTS_COUNT')}</button></th>
-				<th scope="col" aria-sort={ariaSort('CREATED_AT')}><button type="button" class="link" onclick={() => sortBy('CREATED_AT')}>Created{arrow('CREATED_AT')}</button></th>
+				<th scope="col" aria-sort={ariaSort('USERNAME')}
+					><button type="button" class="link" onclick={() => sortBy('USERNAME')}>User{arrow('USERNAME')}</button></th
+				>
+				<th scope="col" aria-sort={ariaSort('EMAIL')}
+					><button type="button" class="link" onclick={() => sortBy('EMAIL')}>Email{arrow('EMAIL')}</button></th
+				>
+				<th scope="col" aria-sort={ariaSort('LAST_ACTIVE_AT')}
+					><button type="button" class="link" onclick={() => sortBy('LAST_ACTIVE_AT')}
+						>Last active{arrow('LAST_ACTIVE_AT')}</button
+					></th
+				>
+				<th scope="col" class="num" aria-sort={ariaSort('EVENTS_COUNT')}
+					><button type="button" class="link" onclick={() => sortBy('EVENTS_COUNT')}
+						>Events{arrow('EVENTS_COUNT')}</button
+					></th
+				>
+				<th scope="col" aria-sort={ariaSort('CREATED_AT')}
+					><button type="button" class="link" onclick={() => sortBy('CREATED_AT')}>Created{arrow('CREATED_AT')}</button
+					></th
+				>
 			</tr>
 		</thead>
 		<tbody>
@@ -124,7 +138,9 @@
 						{#if u.locked}<span class="badge badge-warning">locked</span>{/if}
 					</td>
 					<td>{u.email ?? '–'}</td>
-					<td title={u.lastActiveAt ? new Date(u.lastActiveAt).toLocaleString() : undefined}>{relativeTime(u.lastActiveAt)}</td>
+					<td title={u.lastActiveAt ? new Date(u.lastActiveAt).toLocaleString() : undefined}
+						>{relativeTime(u.lastActiveAt)}</td
+					>
 					<td class="num">{u.eventsCount}</td>
 					<td>{new Date(u.createdAt).toLocaleDateString()}</td>
 				</tr>

@@ -113,12 +113,11 @@
 <h2 class="section">Code host tokens</h2>
 <p class="muted">
 	{#if scope === 'site'}
-		Changesets are published with the token of the user who applied the bulk change; users without
-		one fall back to the site's token for that code host. Tokens need the <code>api</code> scope and
-		write access to the repositories.
+		Changesets are published with the token of the user who applied the bulk change; users without one fall back to the
+		site's token for that code host. Tokens need the <code>api</code> scope and write access to the repositories.
 	{:else}
-		Your tokens publish your bulk changes' changesets, so merge requests are opened as you. Without
-		one, the site's token is used if a site admin added it. Tokens need the <code>api</code> scope.
+		Your tokens publish your bulk changes' changesets, so merge requests are opened as you. Without one, the site's
+		token is used if a site admin added it. Tokens need the <code>api</code> scope.
 	{/if}
 </p>
 
@@ -166,8 +165,9 @@
 				<form class="add" onsubmit={(e) => add(e, host)} aria-label="Add token">
 					<p class="muted small">
 						Create a personal access token with the <code>api</code> scope on
-						<a href={tokenPageURL(host.externalServiceURL)} rel="noopener noreferrer">{codeHostName(host.externalServiceURL)}</a>.
-						It is checked with the code host before it is saved.
+						<a href={tokenPageURL(host.externalServiceURL)} rel="noopener noreferrer"
+							>{codeHostName(host.externalServiceURL)}</a
+						>. It is checked with the code host before it is saved.
 					</p>
 					{#if host.requiresUsername}
 						<div class="field">
@@ -203,7 +203,9 @@
 	{:else}
 		{#if !loading}
 			<li class="empty muted">
-				No code host connections. {scope === 'site' ? 'Add a GitLab connection first.' : 'Ask a site admin to connect GitLab.'}
+				No code host connections. {scope === 'site'
+					? 'Add a GitLab connection first.'
+					: 'Ask a site admin to connect GitLab.'}
 			</li>
 		{/if}
 	{/each}

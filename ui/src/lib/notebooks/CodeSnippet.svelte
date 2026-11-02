@@ -81,22 +81,20 @@
 		return { start, end: Math.max(start, end), cut: !lines && total > MAX_LINES };
 	});
 
-	const content = $derived(
-		blob ? blob.content.split('\n').slice(shown.start, shown.end).join('\n') : ''
-	);
+	const content = $derived(blob ? blob.content.split('\n').slice(shown.start, shown.end).join('\n') : '');
 	const occurrences = $derived(
 		allOccurrences
 			.filter((o) => o.line >= shown.start && o.line < shown.end)
 			.map((o) => ({ ...o, line: o.line - shown.start }))
 	);
 	const docSelection = $derived(
-		selection
-			? { start: selection.start - shown.start, end: selection.end - shown.start }
-			: null
+		selection ? { start: selection.start - shown.start, end: selection.end - shown.start } : null
 	);
 	const fileURL = $derived(
 		repoPageURL(repo, rev || null, 'blob', path) +
-			(lines ? `#${formatLineRange({ start: lines.startLine + 1, end: Math.max(lines.startLine + 1, lines.endLine) })}` : '')
+			(lines
+				? `#${formatLineRange({ start: lines.startLine + 1, end: Math.max(lines.startLine + 1, lines.endLine) })}`
+				: '')
 	);
 
 	// Code navigation: positions in the snippet are shifted to the file's.

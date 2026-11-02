@@ -161,10 +161,10 @@
 
 	async function onfiltersave(f: InsightFilters): Promise<void> {
 		if (!view) return;
-		await graphql<unknown, { id: string; input: UpdateLineChartSearchInsightInput }>(
-			UPDATE_LINE_CHART_SEARCH_INSIGHT,
-			{ id, input: updateFiltersInput(view, f) }
-		);
+		await graphql<unknown, { id: string; input: UpdateLineChartSearchInsightInput }>(UPDATE_LINE_CHART_SEARCH_INSIGHT, {
+			id,
+			input: updateFiltersInput(view, f)
+		});
 		original = f;
 		filters = f;
 		filtersOpen = false;
@@ -275,14 +275,19 @@
 				{/if}
 			</h3>
 			{#if view && isLoadingData(view)}
-				<small class="muted">Datapoints shown may be undercounted. Processing time may vary depending on the trend’s scope.</small>
+				<small class="muted"
+					>Datapoints shown may be undercounted. Processing time may vary depending on the trend’s scope.</small
+				>
 			{/if}
 		</div>
 		{#if view}
 			<div class="actions">
 				{#if incompleteAlert}
-					<span class="badge incomplete" role="img" aria-label="Trend is in incomplete state" title={incompleteAlertMessage(incompleteAlert)}
-						>incomplete</span
+					<span
+						class="badge incomplete"
+						role="img"
+						aria-label="Trend is in incomplete state"
+						title={incompleteAlertMessage(incompleteAlert)}>incomplete</span
 					>
 				{/if}
 				{#if copied}<span class="muted copied" role="status">Copied!</span>{/if}
@@ -299,7 +304,10 @@
 						}}
 					>
 						<svg viewBox="0 0 24 24" width="16" height="16" aria-hidden="true"
-							><path fill="currentColor" d="M3 5h18l-7 8.5V20l-4-2v-4.5L3 5Zm4.3 2 4.7 5.7V16.8l0 0V12.7L16.7 7H7.3Z" /></svg
+							><path
+								fill="currentColor"
+								d="M3 5h18l-7 8.5V20l-4-2v-4.5L3 5Zm4.3 2 4.7 5.7V16.8l0 0V12.7L16.7 7H7.3Z"
+							/></svg
 						>
 					</button>
 				{/if}

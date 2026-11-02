@@ -71,7 +71,14 @@
 		{#if chartWidth > 0 && chartHeight > 0}
 			<div class="canvas" role="presentation" onpointerenter={() => logEvent(EVENTS.insightHover, { type: kind })}>
 				{#if kind === 'line'}
-					<LineChart series={shown} width={chartWidth} height={chartHeight} {zeroYAxisMin} {hoveredId} onpointclick={pointClicked} />
+					<LineChart
+						series={shown}
+						width={chartWidth}
+						height={chartHeight}
+						{zeroYAxisMin}
+						{hoveredId}
+						onpointclick={pointClicked}
+					/>
 				{:else if kind === 'bar'}
 					<BarChart data={bars} width={chartWidth} height={chartHeight} />
 				{:else if slices.length > 0}
@@ -122,7 +129,9 @@
 							<span class="name">{s.name}</span>
 						</button>
 					{:else}
-						<span class="item"><span class="swatch" style:background={s.color}></span><span class="name">{s.name}</span></span>
+						<span class="item"
+							><span class="swatch" style:background={s.color}></span><span class="name">{s.name}</span></span
+						>
 					{/if}
 					{#if s.alerts.length > 0}
 						<span class="incomplete" role="img" aria-label="Trend is in incomplete state" title={alertTitle(s)}>!</span>

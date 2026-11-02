@@ -48,10 +48,11 @@
 		error = null;
 		try {
 			const scopes = sudo ? [SCOPE_USER_ALL, SCOPE_SITE_ADMIN_SUDO] : [SCOPE_USER_ALL];
-			const data = await graphql<CreateAccessTokenResult, CreateAccessTokenVariables>(
-				CREATE_ACCESS_TOKEN,
-				{ user: user.id, scopes, note: note.trim() }
-			);
+			const data = await graphql<CreateAccessTokenResult, CreateAccessTokenVariables>(CREATE_ACCESS_TOKEN, {
+				user: user.id,
+				scopes,
+				note: note.trim()
+			});
 			newToken = data.createAccessToken;
 			copied = false;
 			creating = false;
@@ -140,24 +141,17 @@
 		<div class="field">
 			<label for="token-note">Note</label>
 			<!-- svelte-ignore a11y_autofocus -->
-			<input
-				id="token-note"
-				class="input"
-				bind:value={note}
-				required
-				placeholder="What's this token for?"
-				autofocus
-			/>
+			<input id="token-note" class="input" bind:value={note} required placeholder="What's this token for?" autofocus />
 		</div>
 		<fieldset class="field">
 			<legend class="label">Scopes</legend>
-			<label class="checkbox"><input type="checkbox" checked disabled /> <code>{SCOPE_USER_ALL}</code> — full
-				access as you</label
+			<label class="checkbox"
+				><input type="checkbox" checked disabled /> <code>{SCOPE_USER_ALL}</code> — full access as you</label
 			>
 			{#if user?.siteAdmin}
 				<label class="checkbox"
-					><input type="checkbox" bind:checked={sudo} /> <code>{SCOPE_SITE_ADMIN_SUDO}</code> — act as
-					any user (site admins only)</label
+					><input type="checkbox" bind:checked={sudo} /> <code>{SCOPE_SITE_ADMIN_SUDO}</code> — act as any user (site admins
+					only)</label
 				>
 			{/if}
 		</fieldset>

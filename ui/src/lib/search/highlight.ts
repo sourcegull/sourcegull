@@ -85,9 +85,7 @@ export function commitLines(m: CommitMatch): { language: string; lines: LineView
 	const body = all.slice(1, all[all.length - 1] === '```' ? -1 : undefined);
 	const diff = language === 'diff';
 	const lines = body.map((text, i) => {
-		const ranges: [number, number][] = m.ranges
-			.filter(([l]) => l === i + 1)
-			.map(([, c, n]) => [c, c + n]);
+		const ranges: [number, number][] = m.ranges.filter(([l]) => l === i + 1).map(([, c, n]) => [c, c + n]);
 		const view: LineView = { number: i + 1, segments: segments(text, ranges) };
 		if (diff) view.marker = text.startsWith('@@') ? '@' : (text[0] ?? ' ');
 		return view;

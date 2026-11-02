@@ -18,8 +18,7 @@
 	<section class="card declared" aria-labelledby="declared-title">
 		<div class="card-header"><h2 id="declared-title">Configuration files</h2></div>
 		<p class="muted">
-			The worker applies these files on the server. What they declare is read-only here; change the
-			files instead.
+			The worker applies these files on the server. What they declare is read-only here; change the files instead.
 		</p>
 		<div class="table-scroll">
 			<table class="table table-sm">
@@ -46,7 +45,8 @@
 									{f.kinds.map(kindLabel).join(', ')}
 								{/if}
 								{#if f.exclusive}
-									<span class="badge badge-info" title="Every object of these kinds comes from the file">exclusive</span>
+									<span class="badge badge-info" title="Every object of these kinds comes from the file">exclusive</span
+									>
 								{/if}
 							</td>
 							<td>
@@ -62,8 +62,11 @@
 							<tr class="failure">
 								<td colspan="3">
 									<div class="alert alert-danger" role="alert">
-										<strong>Could not apply the file{#if f.errorAt}
-												({relativeTime(f.errorAt)}){/if}.</strong> What it applied before stays.
+										<strong
+											>Could not apply the file{#if f.errorAt}
+												({relativeTime(f.errorAt)}){/if}.</strong
+										>
+										What it applied before stays.
 										<pre class="error-text">{f.error}</pre>
 									</div>
 								</td>

@@ -6,12 +6,8 @@
 	import Icon from '#lib/components/Icon.svelte';
 	import type { SetupStep } from '#lib/admin/setup.ts';
 
-	let {
-		title,
-		steps,
-		titleId,
-		actions
-	}: { title: string; steps: SetupStep[]; titleId: string; actions?: Snippet } = $props();
+	let { title, steps, titleId, actions }: { title: string; steps: SetupStep[]; titleId: string; actions?: Snippet } =
+		$props();
 	const done = $derived(steps.filter((s) => s.done).length);
 </script>
 
@@ -24,7 +20,9 @@
 	<ol role="list">
 		{#each steps as step (step.id)}
 			<li class:done={step.done}>
-				<span class="mark" aria-hidden="true">{#if step.done}<Icon name="check" size={14} />{/if}</span>
+				<span class="mark" aria-hidden="true"
+					>{#if step.done}<Icon name="check" size={14} />{/if}</span
+				>
 				<div class="body">
 					<strong>{step.title}</strong>
 					<span class="visually-hidden">{step.done ? '(done)' : '(to do)'}</span>

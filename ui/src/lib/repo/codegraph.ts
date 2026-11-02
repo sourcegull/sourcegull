@@ -179,9 +179,7 @@ export function displayRoot(root: string): string {
 }
 
 /** The steps of a job as rows of the log view: label, configuration and log entry. */
-export function stepRows(
-	steps: IndexSteps
-): { label: string; detail: string; entry: ExecutionLogEntry | null }[] {
+export function stepRows(steps: IndexSteps): { label: string; detail: string; entry: ExecutionLogEntry | null }[] {
 	const rows: { label: string; detail: string; entry: ExecutionLogEntry | null }[] = [];
 	for (const e of steps.setup) rows.push({ label: 'Setup', detail: e.command.join(' '), entry: e });
 	steps.preIndex.forEach((s, i) =>

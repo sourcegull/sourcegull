@@ -66,7 +66,8 @@
 		<div class="page-header">
 			<div>
 				<h1>
-					{#if type === 'search'}Create trend{:else if type === 'capture-group'}Create detect and track patterns trend{:else if type === 'compute'}Create group results trend{:else}Set up new language usage trend{/if}
+					{#if type === 'search'}Create trend{:else if type === 'capture-group'}Create detect and track patterns trend{:else if type === 'compute'}Create
+						group results trend{:else}Set up new language usage trend{/if}
 				</h1>
 				<p class="page-description">
 					{#if type === 'search'}
@@ -118,4 +119,3 @@
 		{/key}
 	{/if}
 </div>
-

@@ -57,8 +57,7 @@
 
 	function reclone(): void {
 		if (!repo) return;
-		if (!confirm(`Clone ${repo.name} again from its code host? The current copy is replaced.`))
-			return;
+		if (!confirm(`Clone ${repo.name} again from its code host? The current copy is replaced.`)) return;
 		void run(RECLONE_REPOSITORY, { repo: repo.id }, 'Re-clone queued.');
 	}
 
@@ -92,25 +91,17 @@
 				class="btn btn-sm"
 				type="button"
 				disabled={busy}
-				onclick={() =>
-					repo && run(UPDATE_MIRROR_REPOSITORY, { repository: repo.id }, 'Fetch queued.')}
+				onclick={() => repo && run(UPDATE_MIRROR_REPOSITORY, { repository: repo.id }, 'Fetch queued.')}
 				>Fetch now</button
 			>
 			<button
 				class="btn btn-sm"
 				type="button"
 				disabled={busy}
-				onclick={() =>
-					repo &&
-					run(
-						REINDEX_REPOSITORY,
-						{ repository: repo.id },
-						'Reindex queued on the repo node.'
-					)}>Re-index</button
+				onclick={() => repo && run(REINDEX_REPOSITORY, { repository: repo.id }, 'Reindex queued on the repo node.')}
+				>Re-index</button
 			>
-			<button class="btn btn-sm btn-danger" type="button" disabled={busy} onclick={reclone}
-				>Re-clone</button
-			>
+			<button class="btn btn-sm btn-danger" type="button" disabled={busy} onclick={reclone}>Re-clone</button>
 		</div>
 	{/if}
 </div>
@@ -194,8 +185,7 @@
 				<dd class="mono">{ix.host?.name ?? '—'}</dd>
 				<dt>Status</dt>
 				<dd>
-					{#if ix.status}<span class="badge badge-success">indexed</span>{:else}<span class="badge"
-							>not indexed</span
+					{#if ix.status}<span class="badge badge-success">indexed</span>{:else}<span class="badge">not indexed</span
 						>{/if}
 					{#if ix.queued}<span class="badge badge-info">build queued</span>{/if}
 				</dd>
@@ -204,16 +194,12 @@
 				{#if ix.status}
 					<dt>Files</dt>
 					<dd>
-						{ix.status.contentFilesCount.toLocaleString()} ({formatBytes(
-							ix.status.contentByteSize
-						)} of text)
+						{ix.status.contentFilesCount.toLocaleString()} ({formatBytes(ix.status.contentByteSize)} of text)
 					</dd>
 					<dt>Lines</dt>
 					<dd>
 						{ix.status.newLinesCount.toLocaleString()}
-						<span class="muted"
-							>({ix.status.defaultBranchNewLinesCount.toLocaleString()} on the default branch)</span
-						>
+						<span class="muted">({ix.status.defaultBranchNewLinesCount.toLocaleString()} on the default branch)</span>
 					</dd>
 					<dt>Index size</dt>
 					<dd>{formatBytes(ix.status.indexByteSize)} in {ix.status.indexShardsCount} file(s)</dd>

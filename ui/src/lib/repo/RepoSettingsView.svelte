@@ -141,7 +141,8 @@
 				{#each pairs as p (p.key)}
 					<tr>
 						<td>
-							{#if searchURL(p)}<a class="mono" href={searchURL(p)}>{p.key}</a>{:else}<span class="mono">{p.key}</span>{/if}
+							{#if searchURL(p)}<a class="mono" href={searchURL(p)}>{p.key}</a>{:else}<span class="mono">{p.key}</span
+								>{/if}
 						</td>
 						<td>
 							{#if editing === p.key}

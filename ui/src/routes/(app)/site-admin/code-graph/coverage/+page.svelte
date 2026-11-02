@@ -80,9 +80,8 @@
 	<div>
 		<h1>Precise index coverage</h1>
 		<p class="page-description">
-			Which repositories have a current precise index on their default branch, which fail to
-			index, and which have none. Code navigation in repositories without a current index falls
-			back to search-based results. Policies are on the
+			Which repositories have a current precise index on their default branch, which fail to index, and which have none.
+			Code navigation in repositories without a current index falls back to search-based results. Policies are on the
 			<a href="/site-admin/code-graph">Code graph policies</a> page.
 		</p>
 		<RelatedLinks />
@@ -94,8 +93,8 @@
 {/if}
 {#if coverage && !coverage.autoIndexingEnabled}
 	<div class="alert alert-info" role="status">
-		Auto-indexing is off (<code>codeIntelAutoIndexing.enabled</code>), so no repository is
-		targeted by indexing policies; only uploaded indexes are counted.
+		Auto-indexing is off (<code>codeIntelAutoIndexing.enabled</code>), so no repository is targeted by indexing
+		policies; only uploaded indexes are counted.
 	</div>
 {/if}
 
@@ -131,12 +130,7 @@
 		aria-label="Filter repositories"
 		bind:value={query}
 	/>
-	<select
-		class="select"
-		aria-label="Coverage state"
-		bind:value={stateFilter}
-		onchange={() => void load()}
-	>
+	<select class="select" aria-label="Coverage state" bind:value={stateFilter} onchange={() => void load()}>
 		<option value="">All states</option>
 		{#each COVERAGE_STATES as s (s.state)}
 			<option value={s.state}>{s.label}</option>
@@ -144,14 +138,7 @@
 	</select>
 	<label class="days">
 		Stale after
-		<input
-			class="input"
-			type="number"
-			min="1"
-			max="365"
-			bind:value={staleAfterDays}
-			onchange={() => void load()}
-		/>
+		<input class="input" type="number" min="1" max="365" bind:value={staleAfterDays} onchange={() => void load()} />
 		days
 	</label>
 </form>
@@ -189,9 +176,7 @@
 				</tr>
 			{:else}
 				<tr>
-					<td colspan="4" class="empty-cell"
-						>{loading ? 'Loading…' : 'No repositories match.'}</td
-					>
+					<td colspan="4" class="empty-cell">{loading ? 'Loading…' : 'No repositories match.'}</td>
 				</tr>
 			{/each}
 		</tbody>
@@ -205,8 +190,7 @@
 			<button
 				class="btn btn-sm"
 				disabled={loading}
-				onclick={() => void load(coverage?.repositories.pageInfo.endCursor ?? null)}
-				>Show more</button
+				onclick={() => void load(coverage?.repositories.pageInfo.endCursor ?? null)}>Show more</button
 			>
 		{/if}
 	</div>

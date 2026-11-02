@@ -33,8 +33,8 @@
 	<div>
 		<h1>Global settings</h1>
 		<p class="page-description">
-			Settings for every user, overridden by organization and user settings (the settings cascade).
-			JSON with comments{#if !readOnly}; press <kbd>Ctrl</kbd>/<kbd>⌘</kbd>+<kbd>S</kbd> to save{/if}.
+			Settings for every user, overridden by organization and user settings (the settings cascade). JSON with comments{#if !readOnly};
+				press <kbd>Ctrl</kbd>/<kbd>⌘</kbd>+<kbd>S</kbd> to save{/if}.
 		</p>
 	</div>
 </div>
@@ -43,8 +43,7 @@
 {#if readOnly}
 	<div class="alert alert-info" role="status" data-testid="global-settings-read-only">
 		These settings are read from SOURCEGULL_GLOBAL_SETTINGS_FILE{#if filePath}
-			(<code class="code-inline">{filePath}</code>){/if} on the server, so they can't be changed here. Edit the
-		file instead.
+			(<code class="code-inline">{filePath}</code>){/if} on the server, so they can't be changed here. Edit the file instead.
 	</div>
 {/if}
 {#if site}
