@@ -105,6 +105,7 @@ Site configuration:
 |---|---|---|
 | `mcp.oauth.enabled` | `true` | Off: the OAuth endpoints answer 404, OAuth tokens stop working, and clients need access tokens. |
 | `mcp.oauth.dynamicClientRegistration` | `true` | Off: only clients with a client ID metadata document can sign in. |
+| `mcp.oauth.clientIdMetadataDocuments` | `true` | Accept clients that identify with a client ID metadata document (an `https` URL as `client_id`, such as Claude Code), which the server fetches when a user signs in. Off: the server does not offer them, so clients register through dynamic client registration instead. Turn it off when the server cannot reach the client's host; signing in then fails with "could not be fetched from …". |
 | `mcp.oauth.accessTokenTTL` | `"1h"` | Access token lifetime. |
 | `mcp.oauth.refreshTokenTTL` | `"30d"` | Refresh token lifetime; a grant not refreshed within it ends. |
 | `mcp.oauth.allowedRedirectHosts` | `[]` (any) | Hosts `https` redirect URIs may use, e.g. `["vscode.dev", "*.example.com"]`. Loopback redirect URIs are always allowed. |

@@ -747,6 +747,58 @@ async fn metadata_documents_need_sign_in() {
 }
 
 #[tokio::test]
+async fn metadata_documents_switched_off() {
+    let Some(env) = setup().await else { return };
+    let (_, asm) = env
+        .get_json("/.well-known/oauth-authorization-server")
+        .await;
+    assert_eq!(asm["client_id_metadata_document_supported"], json!(true));
+
+    env.config.store(
+        2,
+        SiteConfig {
+            external_url: Some(EXTERNAL.into()),
+            mcp_oauth_client_id_metadata_documents: false,
+            ..SiteConfig::default()
+        },
+    );
+    let (_, asm) = env
+        .get_json("/.well-known/oauth-authorization-server")
+        .await;
+    assert!(asm.get("client_id_metadata_document_supported").is_none());
+    assert!(asm.get("registration_endpoint").is_some());
+
+    // A metadata document client is refused with the reason, without a fetch.
+    let (port, connections) = counting_listener().await;
+    let client_id = format!("https://127.0.0.1:{port}/client.json");
+    let to = env
+        .http
+        .get(format!("{}/.oauth/authorize", env.base))
+        .query(&[("client_id", client_id.as_str())])
+        .header("cookie", &env.cookie)
+        .send()
+        .await
+        .unwrap()
+        .headers()["location"]
+        .to_str()
+        .unwrap()
+        .to_owned();
+    assert_eq!(
+        param(&to, "error").as_deref(),
+        Some(sourcegull_oauth_server::clients::DOCUMENTS_OFF)
+    );
+    tokio::time::sleep(std::time::Duration::from_millis(100)).await;
+    assert_eq!(connections.load(std::sync::atomic::Ordering::SeqCst), 0);
+
+    // Registered clients still sign in.
+    let client_id = env.register().await;
+    let code = env
+        .authorize(&client_id, "verifier-verifier-verifier-verifier-verifier")
+        .await;
+    assert!(!code.is_empty());
+}
+
+#[tokio::test]
 async fn janitor_deletes_expired_and_unused() {
     let Some(env) = setup().await else { return };
     let store = env.db.oauth();

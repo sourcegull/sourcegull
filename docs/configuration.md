@@ -117,7 +117,7 @@ Frequently used keys:
 | `externalURL` | The URL users reach Sourcegull at; used for OAuth callbacks, webhooks and links in emails. |
 | `updateCheck` | Whether Site admin shows that a newer release is out (default `true`). When a site admin opens the overview, the server asks the GitHub releases API for the latest release (at most every 12 hours) and compares it locally; the request carries nothing about the instance. Turn it off without internet access. |
 | `auth.providers`, `auth.public`, `auth.sessionExpiry`, `auth.passwordPolicy`, `auth.lockout`, `auth.rateLimits`, `auth.accessTokens`, `auth.accessRequest`, `auth.allowedIpAddress`, `auth.enableUsernameChanges` | Sign-in and accounts ([permissions](permissions.md)). |
-| `mcp.oauth.enabled`, `mcp.oauth.dynamicClientRegistration`, `mcp.oauth.accessTokenTTL`, `mcp.oauth.refreshTokenTTL`, `mcp.oauth.allowedRedirectHosts` | OAuth sign-in of MCP clients ([MCP](mcp.md#oauth-sign-in)). |
+| `mcp.oauth.enabled`, `mcp.oauth.dynamicClientRegistration`, `mcp.oauth.clientIdMetadataDocuments`, `mcp.oauth.accessTokenTTL`, `mcp.oauth.refreshTokenTTL`, `mcp.oauth.allowedRedirectHosts` | OAuth sign-in of MCP clients ([MCP](mcp.md#oauth-sign-in)). |
 | `permissions.userMapping`, `authz.enforceForSiteAdmins`, `permissions.sync*` | Repository permissions. |
 | `scim.authToken` | Enables SCIM provisioning. |
 | `repoListUpdateInterval`, `gitUpdateInterval`, `disableAutoGitUpdates`, `gitMaxConcurrentClones` | Discovery and fetching. |

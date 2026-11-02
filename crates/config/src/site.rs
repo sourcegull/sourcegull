@@ -95,6 +95,13 @@ pub struct SiteConfig {
     #[serde(rename = "mcp.oauth.dynamicClientRegistration")]
     pub mcp_oauth_dynamic_client_registration: bool,
 
+    /// Accept MCP clients that identify with a client ID metadata document (an `https` URL as
+    /// `client_id`), which the server fetches when a user signs in. Off: the server does not
+    /// offer them, and clients register through Dynamic Client Registration instead. Turn it
+    /// off when the server cannot reach the internet.
+    #[serde(rename = "mcp.oauth.clientIdMetadataDocuments")]
+    pub mcp_oauth_client_id_metadata_documents: bool,
+
     /// Lifetime of the access tokens MCP clients get through OAuth.
     #[serde(rename = "mcp.oauth.accessTokenTTL")]
     pub mcp_oauth_access_token_ttl: ConfigDuration,
@@ -511,6 +518,7 @@ impl Default for SiteConfig {
             auth_enable_username_changes: false,
             mcp_oauth_enabled: true,
             mcp_oauth_dynamic_client_registration: true,
+            mcp_oauth_client_id_metadata_documents: true,
             mcp_oauth_access_token_ttl: ConfigDuration::from_secs(3600),
             mcp_oauth_refresh_token_ttl: ConfigDuration::from_secs(30 * 86_400),
             mcp_oauth_allowed_redirect_hosts: Vec::new(),

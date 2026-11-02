@@ -10,7 +10,8 @@
 //! - **Clients** ([`clients`]): Dynamic Client Registration (RFC 7591) at `/.oauth/register`,
 //!   rate limited and switchable off (`mcp.oauth.dynamicClientRegistration`), and client ID
 //!   metadata documents (an `https` URL as `client_id`, fetched for a signed-in user only,
-//!   never from a private address or a host in `webhooks.outbound.allowedHosts`, and cached).
+//!   never from a private address or a host in `webhooks.outbound.allowedHosts`, and cached;
+//!   switchable off with `mcp.oauth.clientIdMetadataDocuments`).
 //!   Clients are public: they authenticate with PKCE, not a secret.
 //!   Redirect URIs are loopback (any port, RFC 8252) or `https`, restricted to
 //!   `mcp.oauth.allowedRedirectHosts` when it is set.
@@ -186,14 +187,12 @@ async fn authorization_server_metadata(
         "revocation_endpoint_auth_methods_supported": ["none"],
         "scopes_supported": [SCOPE_MCP],
         "authorization_response_iss_parameter_supported": true,
-        "client_id_metadata_document_supported": true,
     });
-    if state
-        .config
-        .load()
-        .value
-        .mcp_oauth_dynamic_client_registration
-    {
+    let config = state.config.load();
+    if config.value.mcp_oauth_client_id_metadata_documents {
+        doc["client_id_metadata_document_supported"] = json!(true);
+    }
+    if config.value.mcp_oauth_dynamic_client_registration {
         doc["registration_endpoint"] = json!(format!("{issuer}{REGISTER_PATH}"));
     }
     public_json(doc)

@@ -254,21 +254,34 @@ pub async fn stored(state: &AppState, client_id: &str) -> Result<OAuthClient, Cl
         .ok_or_else(|| ClientError::Invalid(format!("Unknown client {client_id:?}.")))
 }
 
+/// What the user sees when an app identifies with a metadata document while
+/// `mcp.oauth.clientIdMetadataDocuments` is off.
+pub const DOCUMENTS_OFF: &str = "This app identifies itself with a client metadata document, \
+    which this Sourcegull server does not accept. Connect the app again so that it registers \
+    with the server.";
+
 /// The client with `client_id` for an authorization request: a stored registered client, or
 /// the client of the metadata document at that URL, fetched when not cached or stale. Only a
-/// request of a signed-in user (`signed_in`) fetches a document.
+/// request of a signed-in user (`signed_in`) fetches a document, and only while
+/// `mcp.oauth.clientIdMetadataDocuments` is on.
 pub async fn resolve(
     state: &AppState,
     client_id: &str,
     signed_in: bool,
 ) -> Result<OAuthClient, ClientError> {
+    let documents = state
+        .config
+        .load()
+        .value
+        .mcp_oauth_client_id_metadata_documents;
     let store = state.db.oauth();
     let cached = store.client(client_id).await?;
     if let Some(client) = &cached
         && (client.kind == OAuthClientKind::Registered
-            || client
-                .fetched_at
-                .is_some_and(|t| t > Utc::now() - METADATA_DOCUMENT_TTL))
+            || documents
+                && client
+                    .fetched_at
+                    .is_some_and(|t| t > Utc::now() - METADATA_DOCUMENT_TTL))
     {
         return Ok(client.clone());
     }
@@ -276,6 +289,9 @@ pub async fn resolve(
         return Err(ClientError::Invalid(format!(
             "Unknown client {client_id:?}."
         )));
+    }
+    if !documents {
+        return Err(ClientError::Invalid(DOCUMENTS_OFF.to_owned()));
     }
     if !signed_in {
         return Err(ClientError::SignInRequired);
@@ -294,8 +310,77 @@ pub async fn resolve(
     Ok(client)
 }
 
-/// What the user sees when a metadata document cannot be fetched; the reason is logged.
+/// What the user sees when fetching a metadata document was refused (a private address or a
+/// host in `webhooks.outbound.allowedHosts`), so that the reason does not reveal the internal
+/// network; the reason is logged.
 pub const FETCH_FAILED: &str = "The app's client metadata document could not be fetched.";
+
+/// Why a metadata document fetch failed, as far as the user is told.
+#[derive(Debug, PartialEq, Eq)]
+enum FetchFailure {
+    /// The guard refused the address; the user is not told why.
+    Refused,
+    TimedOut,
+    Unreachable,
+    Status(reqwest::StatusCode),
+    TooLarge,
+    Failed,
+}
+
+impl FetchFailure {
+    fn of(e: &reqwest::Error) -> Self {
+        let mut source: Option<&(dyn std::error::Error + 'static)> = Some(e);
+        while let Some(err) = source {
+            if err.is::<guard::GuardError>() {
+                return Self::Refused;
+            }
+            source = err.source();
+        }
+        if e.is_timeout() {
+            Self::TimedOut
+        } else if e.is_connect() {
+            Self::Unreachable
+        } else {
+            Self::Failed
+        }
+    }
+
+    /// What the user sees when fetching from `host` failed this way.
+    fn message(&self, host: &str) -> String {
+        let what = format!("The app's client metadata document could not be fetched from {host}");
+        let unreachable = format!(
+            "This server may not be able to reach {host}. A site admin can allow it outbound \
+             HTTPS to {host}, or turn off mcp.oauth.clientIdMetadataDocuments so that apps \
+             register with the server instead."
+        );
+        match self {
+            Self::Refused => FETCH_FAILED.to_owned(),
+            Self::TimedOut => format!("{what}: the connection timed out. {unreachable}"),
+            Self::Unreachable => format!("{what}: the connection failed. {unreachable}"),
+            Self::Status(status) => format!("{what}: {host} answered {status}."),
+            Self::TooLarge => format!(
+                "{what}: the document is larger than {} KB.",
+                MAX_DOCUMENT_BYTES / 1024
+            ),
+            Self::Failed => format!("{what}: the request failed."),
+        }
+    }
+}
+
+/// `e` and its sources, joined by ": ".
+fn error_chain(e: &dyn std::error::Error) -> String {
+    let mut out = e.to_string();
+    let mut source = e.source();
+    while let Some(err) = source {
+        let s = err.to_string();
+        if !out.ends_with(&s) {
+            out.push_str(": ");
+            out.push_str(&s);
+        }
+        source = err.source();
+    }
+    out
+}
 
 /// Resolves host names for metadata document fetches: fails for a host name in
 /// `webhooks.outbound.allowedHosts` or one resolving to an address in it, then checks the
@@ -337,34 +422,46 @@ fn internal_host(url: &Url, internal: &Allowlist) -> bool {
 
 async fn fetch_metadata_document(state: &AppState, url: &str) -> Result<ClientMetadata, String> {
     let config = state.config.load();
-    let fail = |reason: &dyn std::fmt::Display| {
-        tracing::warn!(url, reason = %reason, "fetching an OAuth client metadata document");
-        FETCH_FAILED.to_owned()
-    };
     let internal = Allowlist::new(&config.value.webhooks_outbound_allowed_hosts);
-    let parsed = Url::parse(url).map_err(|e| fail(&e))?;
+    let parsed = Url::parse(url).map_err(|e| {
+        tracing::warn!(url, reason = %e, "fetching an OAuth client metadata document");
+        FETCH_FAILED.to_owned()
+    })?;
+    let host = parsed.host_str().unwrap_or_default().to_owned();
+    let fail = |failure: FetchFailure, reason: &dyn std::fmt::Display| {
+        tracing::warn!(url, reason = %reason, "fetching an OAuth client metadata document");
+        failure.message(&host)
+    };
+    let request_failed = |e: reqwest::Error| fail(FetchFailure::of(&e), &error_chain(&e));
     if internal_host(&parsed, &internal) {
-        return Err(fail(&"the host is in webhooks.outbound.allowedHosts"));
+        return Err(fail(
+            FetchFailure::Refused,
+            &"the host is in webhooks.outbound.allowedHosts",
+        ));
     }
     // No exemptions: private addresses are refused whatever webhooks may reach.
     let allow = Arc::new(Allowlist::default());
-    guard::check_url(&parsed, &allow).map_err(|e| fail(&e))?;
+    guard::check_url(&parsed, &allow).map_err(|e| fail(FetchFailure::Refused, &e))?;
     let client = guard::client(allow, Arc::new(DeniedHosts(internal)), FETCH_TIMEOUT)
-        .map_err(|e| fail(&e))?;
+        .map_err(|e| fail(FetchFailure::Failed, &error_chain(&e)))?;
     let mut resp = client
         .get(parsed)
         .header(reqwest::header::ACCEPT, "application/json")
         .send()
         .await
-        .map_err(|e| fail(&e))?;
+        .map_err(request_failed)?;
     if !resp.status().is_success() {
-        return Err(fail(&format_args!("status {}", resp.status())));
+        let status = resp.status();
+        return Err(fail(
+            FetchFailure::Status(status),
+            &format_args!("status {status}"),
+        ));
     }
     let mut body = Vec::new();
-    while let Some(chunk) = resp.chunk().await.map_err(|e| fail(&e))? {
+    while let Some(chunk) = resp.chunk().await.map_err(request_failed)? {
         body.extend_from_slice(&chunk);
         if body.len() > MAX_DOCUMENT_BYTES {
-            return Err(fail(&"the document is too large"));
+            return Err(fail(FetchFailure::TooLarge, &"the document is too large"));
         }
     }
     parse_metadata_document(url, &body, &config.value.mcp_oauth_allowed_redirect_hosts)
@@ -461,6 +558,68 @@ pub async fn register(
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[tokio::test]
+    async fn fetch_failures() {
+        // A guard refusal, through the resolver.
+        let client = guard::client(
+            Arc::new(Allowlist::default()),
+            Arc::new(SystemLookup),
+            Duration::from_secs(2),
+        )
+        .unwrap();
+        let e = client.get("http://localhost:9/").send().await.unwrap_err();
+        assert_eq!(FetchFailure::of(&e), FetchFailure::Refused, "{e:?}");
+
+        // Nothing listening.
+        let closed = std::net::TcpListener::bind("127.0.0.1:0").unwrap();
+        let port = closed.local_addr().unwrap().port();
+        drop(closed);
+        let e = reqwest::Client::new()
+            .get(format!("http://127.0.0.1:{port}/"))
+            .send()
+            .await
+            .unwrap_err();
+        assert_eq!(FetchFailure::of(&e), FetchFailure::Unreachable, "{e:?}");
+        assert!(
+            error_chain(&e).contains("tcp connect error"),
+            "{}",
+            error_chain(&e)
+        );
+
+        // Listening, never answering.
+        let silent = tokio::net::TcpListener::bind("127.0.0.1:0").await.unwrap();
+        let port = silent.local_addr().unwrap().port();
+        let e = reqwest::Client::builder()
+            .timeout(Duration::from_millis(200))
+            .build()
+            .unwrap()
+            .get(format!("http://127.0.0.1:{port}/"))
+            .send()
+            .await
+            .unwrap_err();
+        assert_eq!(FetchFailure::of(&e), FetchFailure::TimedOut, "{e:?}");
+        drop(silent);
+    }
+
+    #[test]
+    fn fetch_failure_messages() {
+        assert_eq!(FetchFailure::Refused.message("claude.ai"), FETCH_FAILED);
+        let timed_out = FetchFailure::TimedOut.message("claude.ai");
+        assert!(
+            timed_out.contains("from claude.ai: the connection timed out"),
+            "{timed_out}"
+        );
+        assert!(
+            timed_out.contains("mcp.oauth.clientIdMetadataDocuments"),
+            "{timed_out}"
+        );
+        let status = FetchFailure::Status(reqwest::StatusCode::NOT_FOUND).message("claude.ai");
+        assert!(
+            status.ends_with("claude.ai answered 404 Not Found."),
+            "{status}"
+        );
+    }
 
     #[test]
     fn redirect_uri_rules() {
