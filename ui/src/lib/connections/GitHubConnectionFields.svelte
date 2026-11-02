@@ -5,6 +5,7 @@
 	when they lose focus, so typing a new line isn't undone by the round trip.
 -->
 <script lang="ts">
+	import { configSectionURL } from '#lib/admin/related.ts';
 	import { untrack } from 'svelte';
 	import {
 		AFFILIATED,
@@ -404,7 +405,7 @@
 			{#if syncsPerms}
 				<span class="hint">
 					Needs a GitHub sign-in provider for {host} in the
-					<a href="/site-admin/configuration">site configuration</a>; sign-in then asks for the
+					<a href={configSectionURL('auth')}>site configuration</a>; sign-in then asks for the
 					<code class="code-inline">repo</code> scope. Users who never signed in with GitHub see only public
 					repositories. Per-repository syncs need a token with admin access to the repositories, or a GitHub App
 					with the <code class="code-inline">Members</code> read permission.
@@ -424,7 +425,7 @@
 			{:else}
 				<div class="alert alert-warning perm-alert" role="status">
 					Every Sourcegull user can search every repository of this connection, including private ones. To apply GitHub
-					permissions, set up <a href="/site-admin/configuration">sign-in with GitHub</a> and choose the second
+					permissions, set up <a href={configSectionURL('auth')}>sign-in with GitHub</a> and choose the second
 					option.
 				</div>
 			{/if}

@@ -154,10 +154,52 @@ export function tokenPageURL(url: unknown, scopes: string[]): string {
 	return `${gitlabBase(url)}/-/user_settings/personal_access_tokens?name=Sourcegull&scopes=${scopes.join(',')}`;
 }
 
+/**
+ * Where GitLab sends the browser after the admin allows the OAuth application. Nothing listens
+ * there: the page fails to load and the `code` is read from the address bar.
+ */
+export const OAUTH_REDIRECT = 'http://localhost/';
+
+/** GitLab's page that asks the signed-in user to allow the OAuth application `clientID`. */
+export function oauthAuthorizeURL(url: unknown, clientID: string, scopes: string[]): string {
+	const params = new URLSearchParams({
+		client_id: clientID || '<application id>',
+		redirect_uri: OAUTH_REDIRECT,
+		response_type: 'code',
+		scope: scopes.join(' ')
+	});
+	return `${gitlabBase(url)}/oauth/authorize?${params.toString()}`;
+}
+
+/** The command that exchanges the authorization code for an access and a refresh token. */
+export function oauthTokenCommand(url: unknown, clientID: string): string {
+	return [
+		`curl -s ${gitlabBase(url)}/oauth/token \\`,
+		`  -d grant_type=authorization_code \\`,
+		`  -d client_id=${clientID || '<application id>'} \\`,
+		`  -d client_secret='<secret>' \\`,
+		`  -d redirect_uri=${OAUTH_REDIRECT} \\`,
+		`  -d code='<code>'`
+	].join('\n');
+}
+
+/** The edits that switch the token type; an access token drops the OAuth-only keys. */
+export function tokenTypeEdits(type: 'pat' | 'oauth'): Edit[] {
+	if (type === 'oauth') return [[['token.type'], 'oauth']];
+	return [
+		[['token.type'], undefined],
+		[['token.oauth.refresh'], undefined],
+		[['token.oauth.expiry'], undefined]
+	];
+}
+
 /** The top-level keys the form edits; anything else is only in the JSON view. */
 export const FORM_KEYS = [
 	'url',
 	'token',
+	'token.type',
+	'token.oauth.refresh',
+	'token.oauth.expiry',
 	'projectQuery',
 	'projects',
 	'exclude',

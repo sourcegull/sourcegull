@@ -7,10 +7,13 @@ import {
 	jsonOnlyKeys,
 	lines,
 	normalizePath,
+	oauthAuthorizeURL,
+	oauthTokenCommand,
 	projectEdits,
 	readExclusions,
 	readProjects,
 	tokenPageURL,
+	tokenTypeEdits,
 	type Edit
 } from './gitlab-form.ts';
 import { DEFAULT_GITLAB_CONFIG } from './queries.ts';
@@ -93,6 +96,26 @@ describe('GitLab connection form', () => {
 			'https://gitlab.example.com/-/user_settings/personal_access_tokens?name=Sourcegull&scopes=read_api'
 		);
 		expect(tokenPageURL('not a url', ['api'])).toContain('https://gitlab.com/-/user_settings/');
+	});
+
+	it('builds the OAuth authorization link and token command', () => {
+		expect(oauthAuthorizeURL('https://gitlab.example.com/', 'abc', ['read_api'])).toBe(
+			'https://gitlab.example.com/oauth/authorize?client_id=abc&redirect_uri=http%3A%2F%2Flocalhost%2F&response_type=code&scope=read_api'
+		);
+		expect(oauthAuthorizeURL('https://gitlab.com', '', ['api'])).toContain('client_id=%3Capplication+id%3E');
+		const cmd = oauthTokenCommand('https://gitlab.example.com', 'abc');
+		expect(cmd).toContain('https://gitlab.example.com/oauth/token');
+		expect(cmd).toContain('client_id=abc');
+		expect(cmd).toContain('redirect_uri=http://localhost/');
+	});
+
+	it('drops the OAuth keys when switching to an access token', () => {
+		const text = '{\n  "url": "https://gitlab.com",\n  "token": "t"\n}';
+		const oauth = apply(text, [...tokenTypeEdits('oauth'), [['token.oauth.refresh'], 'r']]);
+		expect(parseJsonc(oauth)).toMatchObject({ 'token.type': 'oauth', 'token.oauth.refresh': 'r' });
+		const pat = parseJsonc(apply(oauth, tokenTypeEdits('pat')))!;
+		expect(Object.keys(pat)).toEqual(['url', 'token']);
+		expect(jsonOnlyKeys(parseJsonc(oauth)!)).toEqual([]);
 	});
 
 	it('lists the settings only the JSON view shows', () => {
