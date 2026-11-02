@@ -208,6 +208,7 @@ use that only on throwaway installs.
 | 0.2.2 | Sourcegull 0.4.0 |
 | 0.2.3 | Sourcegull 0.5.0 |
 | 0.2.4 | Sourcegull 0.6.0 |
+| 0.2.5 | Sourcegull 0.6.1 |
 
 ## Testing the chart
 
