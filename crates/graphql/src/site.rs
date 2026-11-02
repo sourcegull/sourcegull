@@ -213,6 +213,14 @@ impl SiteConfiguration {
         }
     }
 
+    /// The external URL the server uses: the document's `externalURL`, or, when the document
+    /// does not set it, the deployment's default (`SOURCEGULL_EXTERNAL_URL`). Null when neither
+    /// sets it.
+    #[graphql(name = "externalURL")]
+    async fn external_url(&self, ctx: &Context<'_>) -> Result<Option<String>> {
+        Ok(services(ctx)?.config.load().value.external_url.clone())
+    }
+
     /// Whether edits are rejected because the configuration comes from a file.
     async fn read_only(&self) -> bool {
         self.read_only

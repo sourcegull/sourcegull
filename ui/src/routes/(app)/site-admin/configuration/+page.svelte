@@ -67,6 +67,14 @@
 	const parsed = $derived(parseJsonc(contents));
 	const savedDoc = $derived(loaded ? parseJsonc(loaded.effectiveContents) : null);
 	const sections = $derived(schema ? sectionsOf(schema, parsed) : []);
+	/**
+	 * The external URL the deployment sets (`SOURCEGULL_EXTERNAL_URL`, the Helm chart's
+	 * `externalURL`), when the saved document does not set its own.
+	 */
+	const deploymentExternalURL = $derived(
+		loaded?.externalURL && savedDoc && savedDoc.externalURL === undefined ? loaded.externalURL : undefined
+	);
+	const DEPLOYMENT_NOTE = 'Set by the deployment (SOURCEGULL_EXTERNAL_URL); a value here overrides it.';
 	const selected = $derived(
 		sections.find((s) => s.id === selectedId) ?? (view === 'settings' ? sections[0] : null) ?? null
 	);
@@ -453,6 +461,18 @@
 									{issues}
 									disabled={readOnly}
 									onchange={setValue}
+									defaultExternalURL={deploymentExternalURL}
+								/>
+							{:else if field.key === 'externalURL' && deploymentExternalURL}
+								<ConfigField
+									{field}
+									doc={parsed}
+									saved={savedDoc}
+									{issues}
+									disabled={readOnly}
+									onchange={setValue}
+									inheritedDefault={deploymentExternalURL}
+									defaultNote={DEPLOYMENT_NOTE}
 								/>
 							{:else}
 								<ConfigField {field} doc={parsed} saved={savedDoc} {issues} disabled={readOnly} onchange={setValue} />
@@ -491,6 +511,9 @@
 												{#if row.set}
 													<code title={row.value}>{row.value}</code>
 													{#if row.isDefault}<span class="badge">default</span>{/if}
+												{:else if row.key === 'externalURL' && deploymentExternalURL}
+													<code title={deploymentExternalURL}>{JSON.stringify(deploymentExternalURL)}</code>
+													<span class="badge" title={DEPLOYMENT_NOTE}>deployment</span>
 												{:else}
 													<span class="muted">not set</span>
 												{/if}

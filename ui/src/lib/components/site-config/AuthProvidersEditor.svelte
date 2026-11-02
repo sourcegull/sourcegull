@@ -39,9 +39,11 @@
 		issues: ConfigIssue[];
 		disabled?: boolean;
 		onchange: (path: ConfigPath, value: unknown) => void;
+		/** The external URL the deployment sets outside the document, used when the document has none. */
+		defaultExternalURL?: string;
 	}
 
-	let { schema, doc, saved, issues, disabled = false, onchange }: Props = $props();
+	let { schema, doc, saved, issues, disabled = false, onchange, defaultExternalURL }: Props = $props();
 
 	const KEY = 'auth.providers';
 	/** Field order per provider type (the schema lists properties alphabetically). */
@@ -76,7 +78,7 @@
 		)
 	);
 	const savedProviders = $derived(saved && Array.isArray(saved[KEY]) ? (saved[KEY] as unknown[]) : null);
-	const externalURL = $derived(doc.externalURL);
+	const externalURL = $derived(doc.externalURL ?? defaultExternalURL);
 	const externalURLField = $derived(
 		buildField(schema, 'externalURL', schema.properties?.externalURL ?? {}, ['externalURL'])
 	);

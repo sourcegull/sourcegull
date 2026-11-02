@@ -36,6 +36,7 @@ export const SITE_CONFIGURATION = `query SiteConfiguration {
 		configuration {
 			id
 			effectiveContents
+			externalURL
 			validationMessages
 			readOnly
 		}

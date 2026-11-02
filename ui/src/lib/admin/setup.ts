@@ -19,6 +19,8 @@ export interface SetupStep {
 export interface SetupState {
 	/** The site configuration document (JSONC), or null when it could not be read. */
 	siteConfig: string | null;
+	/** The external URL the server uses (the document's, or the deployment's default). */
+	externalURL: string | null;
 	connections: number;
 	users: number;
 	emailEnabled: boolean;
@@ -60,7 +62,7 @@ export function enforcesPermissions(connectionConfig: string): boolean {
 /** The overview page's checklist, in the order an admin works through it. */
 export function setupSteps(s: SetupState): SetupStep[] {
 	const doc = s.siteConfig === null ? null : parseJsoncObject(s.siteConfig);
-	const externalURL = doc?.externalURL;
+	const externalURL = s.externalURL ?? doc?.externalURL;
 	const signIn = providers(doc).some((p) => p.type !== 'builtin');
 	return [
 		{
