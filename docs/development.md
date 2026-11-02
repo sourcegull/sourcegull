@@ -152,7 +152,8 @@ cargo run -p sourcegull -- run --roles=all    # UI and API on :7080, metrics on 
   `scripts/dev test-*` command and are skipped otherwise.
 - UI: `npm test` (Vitest), `npm run check` (`svelte-check`) and `npm run format:check`
   (Prettier, `ui/.prettierrc`) in `ui/`, all part of `scripts/dev check`; `npm run format`
-  formats `ui/src`. `ui/src/lib/graphql-types.ts` holds the result and variable types of
+  formats `ui/src`. Commits that only reformat go in `.git-blame-ignore-revs`; for `git blame` to skip
+  them, run `git config blame.ignoreRevsFile .git-blame-ignore-revs` once. `ui/src/lib/graphql-types.ts` holds the result and variable types of
   every GraphQL operation the UI exports (`<Name>Query`, `<Name>Mutation`, `…Variables`),
   generated from `ui/schema.graphql`; `npm test` fails when it is stale, and
   `npm run graphql-types` rewrites it. Operation names must be unique. Operations are exported
