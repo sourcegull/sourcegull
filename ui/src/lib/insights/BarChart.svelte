@@ -20,13 +20,7 @@
 	let active = $state<number | null>(null);
 	const activeDatum = $derived(active === null ? undefined : data[active]);
 
-	const y = $derived(
-		niceTicks(
-			0,
-			Math.max(0, ...data.map((d) => d.value)),
-			Math.max(2, Math.floor(height / 50))
-		)
-	);
+	const y = $derived(niceTicks(0, Math.max(0, ...data.map((d) => d.value)), Math.max(2, Math.floor(height / 50))));
 	const yLabels = $derived(y.ticks.map(formatValue));
 	const left = $derived(12 + Math.max(...yLabels.map((l) => l.length), 1) * 7);
 	const innerW = $derived(Math.max(width - left - RIGHT, 10));

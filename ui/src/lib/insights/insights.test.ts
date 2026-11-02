@@ -181,7 +181,10 @@ describe('filters', () => {
 		expect(
 			hasActiveFilters({
 				...EMPTY_FILTERS,
-				seriesDisplayOptions: { ...EMPTY_FILTERS.seriesDisplayOptions, sortOptions: { mode: 'RESULT_COUNT', direction: 'ASC' } }
+				seriesDisplayOptions: {
+					...EMPTY_FILTERS.seriesDisplayOptions,
+					sortOptions: { mode: 'RESULT_COUNT', direction: 'ASC' }
+				}
 			})
 		).toBe(true);
 		expect(filtersEqual(saved, { ...saved, includeRepoRegexp: ' acme/ ' })).toBe(true);
@@ -197,7 +200,11 @@ describe('filters', () => {
 			excludeRepoRegex: null,
 			searchContexts: ['@alice/ctx']
 		});
-		expect(toFiltersInput(EMPTY_FILTERS)).toEqual({ includeRepoRegex: null, excludeRepoRegex: null, searchContexts: [] });
+		expect(toFiltersInput(EMPTY_FILTERS)).toEqual({
+			includeRepoRegex: null,
+			excludeRepoRegex: null,
+			searchContexts: []
+		});
 		expect(toDisplayOptionsInput(saved)).toEqual({
 			sortOptions: { mode: 'LEXICOGRAPHICAL', direction: 'ASC' },
 			limit: 5,
@@ -255,7 +262,10 @@ describe('views', () => {
 		const v = view();
 		expect(insightType(v)).toBe('search');
 		expect(
-			insightType({ ...v, dataSeriesDefinitions: [{ ...v.dataSeriesDefinitions[0]!, generatedFromCaptureGroups: true }] })
+			insightType({
+				...v,
+				dataSeriesDefinitions: [{ ...v.dataSeriesDefinitions[0]!, generatedFromCaptureGroups: true }]
+			})
 		).toBe('capture-group');
 		expect(insightType({ ...v, dataSeriesDefinitions: [{ ...v.dataSeriesDefinitions[0]!, groupBy: 'REPO' }] })).toBe(
 			'compute'

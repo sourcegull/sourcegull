@@ -19,10 +19,10 @@
 	async function load(): Promise<void> {
 		error = null;
 		try {
-			const result = await graphql<
-				ExecutorsResult,
-				{ query: string | null; active: boolean | null; first: number }
-			>(EXECUTORS, { query: query.trim() || null, active: activeOnly || null, first: 200 });
+			const result = await graphql<ExecutorsResult, { query: string | null; active: boolean | null; first: number }>(
+				EXECUTORS,
+				{ query: query.trim() || null, active: activeOnly || null, first: 200 }
+			);
 			configured = result.areExecutorsConfigured;
 			executors = result.executors.nodes;
 			totalCount = result.executors.totalCount;
@@ -58,8 +58,9 @@
 	<div>
 		<h1>Executors</h1>
 		<p class="page-description">
-			Executors run auto-indexing jobs in containers. They connect to this instance with the token
-			set in <code class="code-inline">executors.accessToken</code>.
+			Executors run auto-indexing jobs in containers. They connect to this instance with the token set in <code
+				class="code-inline">executors.accessToken</code
+			>.
 		</p>
 		<RelatedLinks />
 	</div>
@@ -71,8 +72,8 @@
 {#if !configured}
 	<div class="alert alert-warning" role="status">
 		Executors cannot connect: set <code>executors.accessToken</code> (20 characters or more) in the
-		<a href="/site-admin/configuration">site configuration</a>, and give executors the same value
-		as <code>SOURCEGULL_EXECUTOR_TOKEN</code>.
+		<a href="/site-admin/configuration">site configuration</a>, and give executors the same value as
+		<code>SOURCEGULL_EXECUTOR_TOKEN</code>.
 	</div>
 {/if}
 {#if error}
@@ -114,11 +115,7 @@
 			{#each executors as executor (executor.id)}
 				<tr>
 					<td>
-						<span
-							class="dot"
-							class:on={executor.active}
-							title={executor.active ? 'Active' : 'Inactive'}
-						></span>
+						<span class="dot" class:on={executor.active} title={executor.active ? 'Active' : 'Inactive'}></span>
 						<span class="visually-hidden">{executor.active ? 'Active' : 'Inactive'}:</span>
 						<strong class="mono">{executor.hostname}</strong>
 						<div class="muted small">{executor.os}/{executor.architecture}</div>
@@ -149,8 +146,7 @@
 				</tr>
 			{:else}
 				<tr>
-					<td colspan="5" class="empty-cell"
-						>{loading ? 'Loading…' : 'No executors have connected in the last day.'}</td
+					<td colspan="5" class="empty-cell">{loading ? 'Loading…' : 'No executors have connected in the last day.'}</td
 					>
 				</tr>
 			{/each}

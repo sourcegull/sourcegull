@@ -31,7 +31,10 @@ describe('.snb.md serialization', () => {
 			`${ORIGIN}/${REPO}@feature/-/blob/client/web/index.ts`
 		);
 		expect(
-			serializeBlock({ type: 'file', input: { ...input, revision: '', lineRange: { startLine: 100, endLine: 123 } } }, ORIGIN)
+			serializeBlock(
+				{ type: 'file', input: { ...input, revision: '', lineRange: { startLine: 100, endLine: 123 } } },
+				ORIGIN
+			)
 		).toBe(`${ORIGIN}/${REPO}/-/blob/client/web/index.ts?L101-123`);
 	});
 
@@ -191,12 +194,22 @@ ${url}#L7-9
 			{
 				id: '4',
 				type: 'file',
-				input: { repositoryName: REPO, revision: '', filePath: 'cmd/my file+x.go', lineRange: { startLine: 9, endLine: 20 } }
+				input: {
+					repositoryName: REPO,
+					revision: '',
+					filePath: 'cmd/my file+x.go',
+					lineRange: { startLine: 9, endLine: 20 }
+				}
 			},
 			{
 				id: '5',
 				type: 'file',
-				input: { repositoryName: REPO, revision: 'v1.2.0', filePath: 'README.md', lineRange: { startLine: 4, endLine: 5 } }
+				input: {
+					repositoryName: REPO,
+					revision: 'v1.2.0',
+					filePath: 'README.md',
+					lineRange: { startLine: 4, endLine: 5 }
+				}
 			},
 			{
 				id: '6',
@@ -217,7 +230,12 @@ ${url}#L7-9
 		const back = markdownToBlocks(text);
 		expect(back).toEqual(blocks.map(({ id: _id, ...rest }) => rest));
 		// Export → import → export is stable.
-		expect(serializeNotebook(back.map((b, i) => ({ ...b, id: String(i) })), ORIGIN)).toBe(text);
+		expect(
+			serializeNotebook(
+				back.map((b, i) => ({ ...b, id: String(i) })),
+				ORIGIN
+			)
+		).toBe(text);
 	});
 });
 

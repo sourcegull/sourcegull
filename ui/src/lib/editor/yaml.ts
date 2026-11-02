@@ -123,8 +123,9 @@ const theme = EditorView.theme({
 	'.cm-scroller': { fontFamily: 'var(--font-mono)', lineHeight: '1.55' },
 	'.cm-content': { caretColor: 'var(--color-text)' },
 	'.cm-cursor, .cm-dropCursor': { borderLeftColor: 'var(--color-text)' },
-	'&.cm-focused > .cm-scroller > .cm-selectionLayer .cm-selectionBackground, .cm-selectionBackground':
-		{ backgroundColor: 'var(--editor-selection)' },
+	'&.cm-focused > .cm-scroller > .cm-selectionLayer .cm-selectionBackground, .cm-selectionBackground': {
+		backgroundColor: 'var(--editor-selection)'
+	},
 	'.cm-gutters': {
 		backgroundColor: 'var(--editor-gutter)',
 		color: 'var(--color-text-muted)',

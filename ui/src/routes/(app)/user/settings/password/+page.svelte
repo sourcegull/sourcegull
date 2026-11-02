@@ -54,9 +54,7 @@
 <div class="page-header">
 	<div>
 		<h1>Password</h1>
-		<p class="page-description">
-			Changing your password signs you out everywhere else; this browser stays signed in.
-		</p>
+		<p class="page-description">Changing your password signs you out everywhere else; this browser stays signed in.</p>
 	</div>
 </div>
 
@@ -69,16 +67,37 @@
 		{#if hasPassword}
 			<div class="field">
 				<label for="old-password">Current password</label>
-				<input id="old-password" class="input" type="password" bind:value={oldPassword} autocomplete="current-password" required />
+				<input
+					id="old-password"
+					class="input"
+					type="password"
+					bind:value={oldPassword}
+					autocomplete="current-password"
+					required
+				/>
 			</div>
 		{/if}
 		<div class="field">
 			<label for="new-password">New password</label>
-			<input id="new-password" class="input" type="password" bind:value={newPassword} autocomplete="new-password" required />
+			<input
+				id="new-password"
+				class="input"
+				type="password"
+				bind:value={newPassword}
+				autocomplete="new-password"
+				required
+			/>
 		</div>
 		<div class="field">
 			<label for="confirm-password">Confirm new password</label>
-			<input id="confirm-password" class="input" type="password" bind:value={confirmPassword} autocomplete="new-password" required />
+			<input
+				id="confirm-password"
+				class="input"
+				type="password"
+				bind:value={confirmPassword}
+				autocomplete="new-password"
+				required
+			/>
 		</div>
 		<button class="btn btn-primary" type="submit" disabled={busy}>
 			{hasPassword ? 'Change password' : 'Set password'}

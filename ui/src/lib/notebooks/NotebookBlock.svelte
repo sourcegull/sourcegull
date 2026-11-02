@@ -89,7 +89,10 @@
 				return;
 			}
 		}
-		if (b.type === 'symbol' && (!b.input.repositoryName.trim() || !b.input.filePath.trim() || !b.input.symbolName.trim())) {
+		if (
+			b.type === 'symbol' &&
+			(!b.input.repositoryName.trim() || !b.input.filePath.trim() || !b.input.symbolName.trim())
+		) {
 			formError = 'Pick a symbol, or fill in its repository, file and name.';
 			return;
 		}
@@ -109,12 +112,29 @@
 		formError = null;
 		if (draft.type === 'file') {
 			const input = parsed.type === 'file' ? parsed.input : { ...parsed.input, lineRange: null };
-			draft = { id: draft.id, type: 'file', input: { repositoryName: input.repositoryName, revision: input.revision, filePath: input.filePath, lineRange: input.lineRange } };
+			draft = {
+				id: draft.id,
+				type: 'file',
+				input: {
+					repositoryName: input.repositoryName,
+					revision: input.revision,
+					filePath: input.filePath,
+					lineRange: input.lineRange
+				}
+			};
 			lineRangeText = serializeLineRange(input.lineRange);
 		} else if (draft.type === 'symbol' && parsed.type === 'symbol') {
 			draft = { id: draft.id, type: 'symbol', input: parsed.input };
 		} else if (draft.type === 'symbol') {
-			draft = { ...draft, input: { ...draft.input, repositoryName: parsed.input.repositoryName, revision: parsed.input.revision, filePath: parsed.input.filePath } };
+			draft = {
+				...draft,
+				input: {
+					...draft.input,
+					repositoryName: parsed.input.repositoryName,
+					revision: parsed.input.revision,
+					filePath: parsed.input.filePath
+				}
+			};
 		}
 	}
 
@@ -134,7 +154,11 @@
 		symbolSearching = true;
 		const found: { match: SymbolMatch; index: number }[] = [];
 		void streamSearch(
-			{ query: /\btype:symbol\b/.test(q) ? q : `type:symbol ${q}`, patternType: parsePatternType(patternType), display: 30 },
+			{
+				query: /\btype:symbol\b/.test(q) ? q : `type:symbol ${q}`,
+				patternType: parsePatternType(patternType),
+				display: 30
+			},
 			{
 				onMatches: (ms) => {
 					for (const m of ms) if (m.type === 'symbol') m.symbols.forEach((_, i) => found.push({ match: m, index: i }));
@@ -185,8 +209,22 @@
 			{#if !editing}
 				<button type="button" class="btn btn-sm" onclick={() => onedit(true)}>Edit</button>
 			{/if}
-			<button type="button" class="btn btn-sm" title="Move up" aria-label="Move block up" disabled={index === 0} onclick={() => onmove(-1)}>↑</button>
-			<button type="button" class="btn btn-sm" title="Move down" aria-label="Move block down" disabled={index === count - 1} onclick={() => onmove(1)}>↓</button>
+			<button
+				type="button"
+				class="btn btn-sm"
+				title="Move up"
+				aria-label="Move block up"
+				disabled={index === 0}
+				onclick={() => onmove(-1)}>↑</button
+			>
+			<button
+				type="button"
+				class="btn btn-sm"
+				title="Move down"
+				aria-label="Move block down"
+				disabled={index === count - 1}
+				onclick={() => onmove(1)}>↓</button
+			>
 			<button type="button" class="btn btn-sm" onclick={onduplicate}>Duplicate</button>
 			<button type="button" class="btn btn-sm btn-danger" onclick={ondelete}>Delete</button>
 		</div>
@@ -202,7 +240,13 @@
 		>
 			{#if draft.type === 'md'}
 				<label class="visually-hidden" for="md-{block.id}">Markdown</label>
-				<textarea id="md-{block.id}" class="input mono" rows="8" bind:value={draft.input.text} placeholder="Markdown text…"></textarea>
+				<textarea
+					id="md-{block.id}"
+					class="input mono"
+					rows="8"
+					bind:value={draft.input.text}
+					placeholder="Markdown text…"
+				></textarea>
 			{:else if draft.type === 'query'}
 				<QueryInput
 					bind:value={draft.input.query}
@@ -214,7 +258,12 @@
 			{:else}
 				<div class="row">
 					<label class="visually-hidden" for="url-{block.id}">File link</label>
-					<input id="url-{block.id}" class="input" placeholder="Paste a link to a file or line range…" bind:value={urlText} />
+					<input
+						id="url-{block.id}"
+						class="input"
+						placeholder="Paste a link to a file or line range…"
+						bind:value={urlText}
+					/>
 					<button type="button" class="btn" onclick={fromURL}>Use link</button>
 				</div>
 				{#if draft.type === 'symbol'}
@@ -254,7 +303,9 @@
 				<div class="grid">
 					<label>Repository <input class="input mono" required bind:value={draft.input.repositoryName} /></label>
 					<label>File path <input class="input mono" required bind:value={draft.input.filePath} /></label>
-					<label>Revision <input class="input mono" placeholder="default branch" bind:value={draft.input.revision} /></label>
+					<label
+						>Revision <input class="input mono" placeholder="default branch" bind:value={draft.input.revision} /></label
+					>
 					{#if draft.type === 'file'}
 						<label>Lines <input class="input mono" placeholder="all, or 10-20" bind:value={lineRangeText} /></label>
 					{:else}
@@ -266,7 +317,15 @@
 								{#each SYMBOL_KINDS as k (k)}<option value={k}>{k.toLowerCase()}</option>{/each}
 							</select>
 						</label>
-						<label>Lines of context <input class="input" type="number" min="0" max="1000" bind:value={draft.input.lineContext} /></label>
+						<label
+							>Lines of context <input
+								class="input"
+								type="number"
+								min="0"
+								max="1000"
+								bind:value={draft.input.lineContext}
+							/></label
+						>
 					{/if}
 				</div>
 			{/if}
@@ -283,7 +342,9 @@
 			{#if block.input.text.trim()}
 				<Markdown source={block.input.text} />
 			{:else if canManage && !editing}
-				<p class="muted">Empty Markdown block. <button type="button" class="link" onclick={() => onedit(true)}>Edit</button></p>
+				<p class="muted">
+					Empty Markdown block. <button type="button" class="link" onclick={() => onedit(true)}>Edit</button>
+				</p>
 			{/if}
 		{:else if block.type === 'query'}
 			{#if !editing}

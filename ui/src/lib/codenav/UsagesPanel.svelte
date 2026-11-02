@@ -158,7 +158,14 @@
 				<div class="file">
 					<div class="file-name">
 						{#if g.repo !== target.repository}<span class="repo">{g.repo}</span> ›{/if}
-						<a href={repoPageURL(g.repo, g.repo === target.repository && g.revision === target.revision ? urlRev : g.revision, 'blob', g.path)}>{g.path}</a>
+						<a
+							href={repoPageURL(
+								g.repo,
+								g.repo === target.repository && g.revision === target.revision ? urlRev : g.revision,
+								'blob',
+								g.path
+							)}>{g.path}</a
+						>
 						{#if g.searchBased}<span class="badge">{provenanceLabel('SEARCH_BASED')}</span>{/if}
 					</div>
 					<ul>

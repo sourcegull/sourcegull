@@ -62,9 +62,9 @@
 	<div>
 		<h1>Outbound requests</h1>
 		<p class="page-description">
-			Requests Sourcegull sent to code hosts, newest first, with tokens and other secrets redacted. The
-			log keeps the newest <code class="code-inline">outboundRequestLogLimit</code> requests (site
-			configuration); with the default of 0 nothing is logged.
+			Requests Sourcegull sent to code hosts, newest first, with tokens and other secrets redacted. The log keeps the
+			newest <code class="code-inline">outboundRequestLogLimit</code> requests (site configuration); with the default of 0
+			nothing is logged.
 		</p>
 		<RelatedLinks />
 	</div>
@@ -74,7 +74,13 @@
 </div>
 
 <div class="toolbar list-toolbar">
-	<input class="input filter" type="search" placeholder="Filter by method, URL or status" bind:value={filter} aria-label="Filter" />
+	<input
+		class="input filter"
+		type="search"
+		placeholder="Filter by method, URL or status"
+		bind:value={filter}
+		aria-label="Filter"
+	/>
 	<span class="muted small" aria-live="polite">{total.toLocaleString('en-US')} requests logged.</span>
 </div>
 
@@ -100,15 +106,19 @@
 							<dl class="facts small">
 								<dt>Client</dt>
 								<dd>{r.creationStackFrame || '—'}</dd>
-								{#if r.callStack}<dt>Caller</dt><dd class="mono">{r.callStack}</dd>{/if}
+								{#if r.callStack}<dt>Caller</dt>
+									<dd class="mono">{r.callStack}</dd>{/if}
 								<dt>Request headers</dt>
 								<dd>
 									{#each r.requestHeaders as h (h.name)}<div class="mono">{h.name}: {h.values.join(', ')}</div>{/each}
 								</dd>
-								{#if r.requestBody}<dt>Request body</dt><dd><pre class="code">{prettyBody(r.requestBody)}</pre></dd>{/if}
+								{#if r.requestBody}<dt>Request body</dt>
+									<dd><pre class="code">{prettyBody(r.requestBody)}</pre></dd>{/if}
 								<dt>Response headers</dt>
 								<dd>
-									{#each r.responseHeaders as h (h.name)}<div class="mono">{h.name}: {h.values.join(', ')}</div>{:else}—{/each}
+									{#each r.responseHeaders as h (h.name)}<div class="mono">
+											{h.name}: {h.values.join(', ')}
+										</div>{:else}—{/each}
 								</dd>
 							</dl>
 						</details>
@@ -118,8 +128,7 @@
 						><span
 							class="badge {statusClass(r.statusCode)}"
 							class:badge-success={statusClass(r.statusCode) === 'ok'}
-							class:badge-danger={statusClass(r.statusCode) === 'bad'}
-							>{r.statusCode || 'no response'}</span
+							class:badge-danger={statusClass(r.statusCode) === 'bad'}>{r.statusCode || 'no response'}</span
 						></td
 					>
 					<td class="num">{formatMs(r.durationMs)}</td>

@@ -9,7 +9,7 @@
 		type OrganizationResult,
 		type OrgHeader,
 		type Vars
-} from '#lib/orgs/queries.ts';
+	} from '#lib/orgs/queries.ts';
 	import type { LayoutProps } from './$types';
 
 	let { children }: LayoutProps = $props();

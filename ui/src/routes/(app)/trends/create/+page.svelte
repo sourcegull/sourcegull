@@ -8,7 +8,11 @@
 
 	const CARDS: { type: InsightType; title: string; example?: string }[] = [
 		{ type: 'search', title: 'Track changes', example: 'Tracking architecture, naming, or language migrations.' },
-		{ type: 'capture-group', title: 'Detect and track patterns', example: 'Detecting and tracking language or package versions.' },
+		{
+			type: 'capture-group',
+			title: 'Detect and track patterns',
+			example: 'Detecting and tracking language or package versions.'
+		},
 		{ type: 'compute', title: 'Group results', example: 'Tracking a migration by repository.' },
 		{ type: 'language-stats', title: 'Language usage' }
 	];
@@ -34,11 +38,11 @@
 						define <strong>manually.</strong>
 					{:else if c.type === 'capture-group'}
 						Trend <strong>based on a search query</strong> that automatically generates data series for each unique
-						value of the <strong>regular expression capture group</strong> included in the search query. Chart will be
-						updated as new values appear in the code.
+						value of the <strong>regular expression capture group</strong> included in the search query. Chart will be updated
+						as new values appear in the code.
 					{:else if c.type === 'compute'}
-						Trend based on a custom search query that <strong>groups results by</strong> repository, language, path,
-						author or date.
+						Trend based on a custom search query that <strong>groups results by</strong> repository, language, path, author
+						or date.
 					{:else}
 						Shows language usage in your repository based on number of lines of code.
 					{/if}

@@ -93,7 +93,12 @@ export async function answerAuthorization(
 }
 
 /** The name to show for a client: its own, or the host of its metadata document or redirect URI. */
-export function clientLabel(c: { clientName: string; clientID: string; redirectHost?: string; redirectHosts?: string[] }): string {
+export function clientLabel(c: {
+	clientName: string;
+	clientID: string;
+	redirectHost?: string;
+	redirectHosts?: string[];
+}): string {
 	if (c.clientName.trim()) return c.clientName.trim();
 	try {
 		const url = new URL(c.clientID);

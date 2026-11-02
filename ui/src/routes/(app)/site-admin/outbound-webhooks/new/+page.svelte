@@ -29,10 +29,9 @@
 		secret: string | null;
 		eventTypes: { eventType: string; scope: string | null }[];
 	}): Promise<void> {
-		const r = await graphql<CreateOutboundWebhookMutation, { input: unknown }>(
-			CREATE_OUTBOUND_WEBHOOK,
-			{ input: { url: input.url, secret: input.secret ?? '', eventTypes: input.eventTypes } }
-		);
+		const r = await graphql<CreateOutboundWebhookMutation, { input: unknown }>(CREATE_OUTBOUND_WEBHOOK, {
+			input: { url: input.url, secret: input.secret ?? '', eventTypes: input.eventTypes }
+		});
 		await goto(`/site-admin/outbound-webhooks/${encodeURIComponent(r.createOutboundWebhook.id)}`);
 	}
 </script>
@@ -43,9 +42,7 @@
 <div class="page-header">
 	<div>
 		<h1>New outbound webhook</h1>
-		<p class="page-description">
-			Sourcegull posts the selected events to this URL as JSON, signed with the secret.
-		</p>
+		<p class="page-description">Sourcegull posts the selected events to this URL as JSON, signed with the secret.</p>
 		<RelatedLinks />
 	</div>
 </div>

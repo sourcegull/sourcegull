@@ -144,7 +144,14 @@
 							}}
 						>
 							<circle class="hit" cx={px(p.x)} cy={py(p.y)} r="8" />
-							<circle class="dot" class:active={isActive} cx={px(p.x)} cy={py(p.y)} r={isActive ? 5 : 3.5} fill={s.color} />
+							<circle
+								class="dot"
+								class:active={isActive}
+								cx={px(p.x)}
+								cy={py(p.y)}
+								r={isActive ? 5 : 3.5}
+								fill={s.color}
+							/>
 						</a>
 					{/each}
 				</g>

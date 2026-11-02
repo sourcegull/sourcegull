@@ -10,7 +10,7 @@
 		type OrganizationsResult,
 		type OrgSummary,
 		type Vars
-} from '#lib/orgs/queries.ts';
+	} from '#lib/orgs/queries.ts';
 
 	let orgs = $state<OrgSummary[]>([]);
 	let totalCount = $state(0);
@@ -91,8 +91,7 @@
 	<div>
 		<h1>Organizations</h1>
 		<p class="page-description">
-			{totalCount} total. Organizations share settings, saved searches and bulk changes among their
-			members.
+			{totalCount} total. Organizations share settings, saved searches and bulk changes among their members.
 		</p>
 		<RelatedLinks />
 	</div>
@@ -100,20 +99,22 @@
 
 <section class="card create-card">
 	<div class="card-header"><h2>New organization</h2></div>
-<form
-	class="toolbar create-row"
-	onsubmit={(event) => {
-		event.preventDefault();
-		void create();
-	}}
->
-	<label class="visually-hidden" for="org-name">Name</label>
-	<input id="org-name" class="input" placeholder="Name (e.g. acme)" bind:value={name} required />
-	<label class="visually-hidden" for="org-display-name">Display name</label>
-	<input id="org-display-name" class="input" placeholder="Display name (optional)" bind:value={displayName} />
-	<button class="btn btn-primary" type="submit" disabled={busy !== null || !name.trim()}>Create organization</button>
-</form>
-<p class="muted small hint">You become the first member of an organization you create; invite others from its page.</p>
+	<form
+		class="toolbar create-row"
+		onsubmit={(event) => {
+			event.preventDefault();
+			void create();
+		}}
+	>
+		<label class="visually-hidden" for="org-name">Name</label>
+		<input id="org-name" class="input" placeholder="Name (e.g. acme)" bind:value={name} required />
+		<label class="visually-hidden" for="org-display-name">Display name</label>
+		<input id="org-display-name" class="input" placeholder="Display name (optional)" bind:value={displayName} />
+		<button class="btn btn-primary" type="submit" disabled={busy !== null || !name.trim()}>Create organization</button>
+	</form>
+	<p class="muted small hint">
+		You become the first member of an organization you create; invite others from its page.
+	</p>
 </section>
 
 <div class="field filter">

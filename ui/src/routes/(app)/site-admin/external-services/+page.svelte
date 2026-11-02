@@ -34,10 +34,10 @@
 		loading = true;
 		error = null;
 		try {
-			const r = await graphql<ExternalServicesResult, { first: number; after: string | null }>(
-				EXTERNAL_SERVICES,
-				{ first: PAGE, after }
-			);
+			const r = await graphql<ExternalServicesResult, { first: number; after: string | null }>(EXTERNAL_SERVICES, {
+				first: PAGE,
+				after
+			});
 			services = after ? [...services, ...r.externalServices.nodes] : r.externalServices.nodes;
 			totalCount = r.externalServices.totalCount;
 			exclusive = isExclusive(r.site.declaredConfigFiles, 'connections');
@@ -71,8 +71,8 @@
 	<div>
 		<h1>Code host connections</h1>
 		<p class="page-description">
-			Each connection mirrors the repositories its configuration lists from a GitLab, GitHub or
-			Gitea instance and keeps them in sync.
+			Each connection mirrors the repositories its configuration lists from a GitLab, GitHub or Gitea instance and keeps
+			them in sync.
 		</p>
 		<RelatedLinks />
 	</div>
@@ -155,8 +155,7 @@
 							No code host connections yet. Add a
 							<a href="/site-admin/external-services/new?kind=gitlab">GitLab</a>,
 							<a href="/site-admin/external-services/new?kind=github">GitHub</a> or
-							<a href="/site-admin/external-services/new?kind=gitea">Gitea</a> connection to start mirroring
-							repositories.
+							<a href="/site-admin/external-services/new?kind=gitea">Gitea</a> connection to start mirroring repositories.
 						</td>
 					</tr>
 				{/if}

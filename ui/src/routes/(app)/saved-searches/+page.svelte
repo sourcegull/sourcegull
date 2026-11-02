@@ -79,10 +79,9 @@
 		createBusy = true;
 		createError = null;
 		try {
-			const r = await graphql<CreateSavedSearchMutation, CreateSavedSearchVariables>(
-				CREATE_SAVED_SEARCH,
-				{ input: { owner: user.id, ...v, visibility: 'SECRET' } }
-			);
+			const r = await graphql<CreateSavedSearchMutation, CreateSavedSearchVariables>(CREATE_SAVED_SEARCH, {
+				input: { owner: user.id, ...v, visibility: 'SECRET' }
+			});
 			await goto(r.createSavedSearch.url);
 		} catch (err) {
 			createError = errorMessage(err);
@@ -135,7 +134,14 @@
 
 	<div class="filter-bar">
 		<label class="visually-hidden" for="ss-filter">Filter saved searches</label>
-		<input id="ss-filter" class="input" type="search" placeholder="Filter by description or query…" bind:value={filter} {oninput} />
+		<input
+			id="ss-filter"
+			class="input"
+			type="search"
+			placeholder="Filter by description or query…"
+			bind:value={filter}
+			{oninput}
+		/>
 		{#if user}
 			<div class="btn-group" role="group" aria-label="Owner">
 				<button

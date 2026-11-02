@@ -149,7 +149,9 @@
 								<details>
 									<summary class="mono">{l.job.eventType}{l.job.scope ? ` (${l.job.scope})` : ''}</summary>
 									<div class="muted small mono">{l.request.method} {l.request.url}</div>
-									{#each l.request.headers as h (h.name)}<div class="mono small">{h.name}: {h.values.join(', ')}</div>{/each}
+									{#each l.request.headers as h (h.name)}<div class="mono small">
+											{h.name}: {h.values.join(', ')}
+										</div>{/each}
 									<pre class="code">{prettyBody(l.request.body)}</pre>
 									{#if l.response}
 										<div class="muted small">Response</div>
@@ -162,8 +164,7 @@
 								><span
 									class="badge {statusClass(l.statusCode)}"
 									class:badge-success={statusClass(l.statusCode) === 'ok'}
-									class:badge-danger={statusClass(l.statusCode) === 'bad'}
-									>{l.statusCode || 'no response'}</span
+									class:badge-danger={statusClass(l.statusCode) === 'bad'}>{l.statusCode || 'no response'}</span
 								></td
 							>
 						</tr>

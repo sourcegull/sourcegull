@@ -78,10 +78,10 @@
 		const mine = ++generation;
 		validating = true;
 		try {
-			const r = await graphql<ValidateConfigResult, { kind: ExternalServiceKind; config: string }>(
-				VALIDATE_CONFIG,
-				{ kind, config: text }
-			);
+			const r = await graphql<ValidateConfigResult, { kind: ExternalServiceKind; config: string }>(VALIDATE_CONFIG, {
+				kind,
+				config: text
+			});
 			if (mine !== generation) return;
 			problems = r.validateExternalServiceConfig.errors;
 			warnings = r.validateExternalServiceConfig.warnings;
@@ -183,8 +183,7 @@
 			<div class="field">
 				<span class="hint">
 					JSON with comments, checked against the {label} connection schema as you type. Secrets show as
-					<code>REDACTED</code>; leave them so to keep the stored values. Press <kbd>Ctrl</kbd>/<kbd>⌘</kbd>+<kbd
-						>S</kbd
+					<code>REDACTED</code>; leave them so to keep the stored values. Press <kbd>Ctrl</kbd>/<kbd>⌘</kbd>+<kbd>S</kbd
 					> to save.
 				</span>
 				<JsoncEditor bind:value={config} label="Connection configuration (JSON with comments)" onsave={submit} />

@@ -17,9 +17,7 @@ export const CODE_HOST_SIGN_INS_NEEDED = `query CodeHostSignInsNeeded {
 	}
 }`;
 
-export type CodeHostSignIn = NonNullable<
-	CodeHostSignInsNeededQuery['currentUser']
->['codeHostSignInsNeeded'][number];
+export type CodeHostSignIn = NonNullable<CodeHostSignInsNeededQuery['currentUser']>['codeHostSignInsNeeded'][number];
 
 export interface SignInPrompt {
 	key: string;

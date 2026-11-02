@@ -76,17 +76,17 @@
 		<h1>Add {label} connection</h1>
 		<p class="page-description">
 			{#if kind === 'GITHUB'}
-				Connect github.com or a GitHub Enterprise Server: enter its URL and an access token, choose which
-				repositories to mirror, and test the connection.
+				Connect github.com or a GitHub Enterprise Server: enter its URL and an access token, choose which repositories
+				to mirror, and test the connection.
 			{:else if kind === 'GITEA'}
-				Connect a Gitea instance: enter its URL and an access token, choose which repositories to mirror, and
-				test the connection.
+				Connect a Gitea instance: enter its URL and an access token, choose which repositories to mirror, and test the
+				connection.
 			{:else}
-				Connect gitlab.com or a self-managed GitLab: enter its URL and an access token, choose which projects to
-				mirror, and test the connection.
+				Connect gitlab.com or a self-managed GitLab: enter its URL and an access token, choose which projects to mirror,
+				and test the connection.
 			{/if}
-			The first sync starts as soon as the connection is saved; the token is stored encrypted. To let people
-			sign in with their {label} accounts, add {label} as a sign-in provider under
+			The first sync starts as soon as the connection is saved; the token is stored encrypted. To let people sign in with
+			their {label} accounts, add {label} as a sign-in provider under
 			<a href={configSectionURL('auth')}>Authentication &amp; sign-in</a>.
 		</p>
 		<RelatedLinks />

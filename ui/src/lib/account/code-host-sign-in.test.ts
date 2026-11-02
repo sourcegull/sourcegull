@@ -32,8 +32,7 @@ describe('code host sign-in prompts', () => {
 			},
 			{
 				key: 'gitea https://gitea.example.com/',
-				message:
-					'Your Gitea sign-in has expired. Sign in again with Gitea to see your private repositories.',
+				message: 'Your Gitea sign-in has expired. Sign in again with Gitea to see your private repositories.',
 				href: null,
 				linkText: 'Sign in with Gitea'
 			}

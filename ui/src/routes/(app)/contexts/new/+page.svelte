@@ -90,4 +90,3 @@
 		<p class="loading"><span class="spinner"></span>Loading…</p>
 	{/if}
 </div>
-

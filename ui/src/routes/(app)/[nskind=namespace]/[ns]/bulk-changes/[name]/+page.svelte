@@ -49,10 +49,9 @@
 		error = null;
 		try {
 			const idQuery = kind === 'users' ? USER_ID : ORG_ID;
-			const r = await graphql<Partial<BatchChangeUserIdQuery & BatchChangeOrgIdQuery>, { name: string }>(
-				idQuery,
-				{ name: ns }
-			);
+			const r = await graphql<Partial<BatchChangeUserIdQuery & BatchChangeOrgIdQuery>, { name: string }>(idQuery, {
+				name: ns
+			});
 			const nsId = r.user?.id ?? r.organization?.id;
 			if (!nsId) {
 				error = `No ${kind === 'users' ? 'user' : 'organization'} named ${ns}.`;
@@ -178,8 +177,8 @@
 			<form class="card close-form" onsubmit={close} aria-label="Close bulk change">
 				<h2>Close bulk change</h2>
 				<p>
-					Closing the bulk change stops updating its changesets. It can't be reopened, but a new
-					spec can be applied to a bulk change of the same name.
+					Closing the bulk change stops updating its changesets. It can't be reopened, but a new spec can be applied to
+					a bulk change of the same name.
 				</p>
 				<label class="checkbox">
 					<input type="checkbox" bind:checked={closeChangesets} />
@@ -217,16 +216,24 @@
 			</div>
 			<dl class="counts">
 				{#each statsEntries(s) as e (e.key)}
-					<div data-stat={e.key}><dt>{e.label}</dt><dd>{e.count}</dd></div>
+					<div data-stat={e.key}>
+						<dt>{e.label}</dt>
+						<dd>{e.count}</dd>
+					</div>
 				{/each}
-				<div data-stat="total"><dt>Total</dt><dd>{s.total}</dd></div>
+				<div data-stat="total">
+					<dt>Total</dt>
+					<dd>{s.total}</dd>
+				</div>
 			</dl>
 		</section>
 
 		{#if s.scheduled > 0}
 			<div class="alert alert-info" role="note">
-				{s.scheduled} {s.scheduled === 1 ? 'changeset is' : 'changesets are'} waiting for a rollout window
-				(<code>batchChanges.rolloutWindows</code>); the list shows when each is expected to be published.
+				{s.scheduled}
+				{s.scheduled === 1 ? 'changeset is' : 'changesets are'} waiting for a rollout window (<code
+					>batchChanges.rolloutWindows</code
+				>); the list shows when each is expected to be published.
 			</div>
 		{/if}
 

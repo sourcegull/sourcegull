@@ -94,7 +94,11 @@
 	}
 
 	function entryDuration(e: LogEntry): string {
-		return e.durationMilliseconds !== null ? formatDuration(e.durationMilliseconds) : e.exitCode === null ? 'running' : '';
+		return e.durationMilliseconds !== null
+			? formatDuration(e.durationMilliseconds)
+			: e.exitCode === null
+				? 'running'
+				: '';
 	}
 
 	const time = (iso: string | null) => (iso ? new Date(iso).toLocaleString() : '—');
@@ -124,22 +128,32 @@
 			<p class="muted">You may not read this repository; its execution is not shown.</p>
 		{/if}
 		<dl class="facts small">
-			{#if ws.branch}<dt>Branch</dt><dd class="mono">{ws.branch.displayName}</dd>{/if}
-			{#if ws.path !== undefined}<dt>Path</dt><dd class="mono">{ws.path || '/'}</dd>{/if}
-			{#if queuePosition(ws)}<dt>Queue</dt><dd>{queuePosition(ws)}</dd>{/if}
-			<dt>Queued</dt><dd>{time(ws.queuedAt)}</dd>
-			<dt>Started</dt><dd>{time(ws.startedAt)}</dd>
-			<dt>Finished</dt><dd>{time(ws.finishedAt)}</dd>
+			{#if ws.branch}<dt>Branch</dt>
+				<dd class="mono">{ws.branch.displayName}</dd>{/if}
+			{#if ws.path !== undefined}<dt>Path</dt>
+				<dd class="mono">{ws.path || '/'}</dd>{/if}
+			{#if queuePosition(ws)}<dt>Queue</dt>
+				<dd>{queuePosition(ws)}</dd>{/if}
+			<dt>Queued</dt>
+			<dd>{time(ws.queuedAt)}</dd>
+			<dt>Started</dt>
+			<dd>{time(ws.startedAt)}</dd>
+			<dt>Finished</dt>
+			<dd>{time(ws.finishedAt)}</dd>
 			{#if elapsed(ws.startedAt, ws.finishedAt, now) !== null}
-				<dt>Duration</dt><dd>{formatDuration(elapsed(ws.startedAt, ws.finishedAt, now) ?? 0)}</dd>
+				<dt>Duration</dt>
+				<dd>{formatDuration(elapsed(ws.startedAt, ws.finishedAt, now) ?? 0)}</dd>
 			{/if}
 			{#if ws.diffStat}
 				<dt>Changes</dt>
 				<dd><span class="added">+{ws.diffStat.added}</span> <span class="deleted">−{ws.diffStat.deleted}</span></dd>
 			{/if}
-			{#if ws.cachedResultFound}<dt>Cache</dt><dd>the whole result came from the cache</dd>
-			{:else if ws.stepCacheResultCount > 0}<dt>Cache</dt><dd>{ws.stepCacheResultCount} cached steps</dd>{/if}
-			{#if ws.executor}<dt>Executor</dt><dd class="mono">{ws.executor.hostname}</dd>{/if}
+			{#if ws.cachedResultFound}<dt>Cache</dt>
+				<dd>the whole result came from the cache</dd>
+			{:else if ws.stepCacheResultCount > 0}<dt>Cache</dt>
+				<dd>{ws.stepCacheResultCount} cached steps</dd>{/if}
+			{#if ws.executor}<dt>Executor</dt>
+				<dd class="mono">{ws.executor.hostname}</dd>{/if}
 		</dl>
 		{#if actionError}<div class="alert alert-danger" role="alert">{actionError}</div>{/if}
 		{#if ws.failureMessage}
@@ -204,7 +218,8 @@
 										{#each step.environment as env (env.name)}
 											<li>
 												<code>{env.name}</code>
-												{#if env.value === null}<span class="muted">(secret)</span>{:else}= <code>{env.value}</code>{/if}
+												{#if env.value === null}<span class="muted">(secret)</span>{:else}= <code>{env.value}</code
+													>{/if}
 											</li>
 										{/each}
 									</ul>
@@ -219,7 +234,11 @@
 								{/if}
 								{#if step.outputLines.nodes.length > 0}
 									<div class="small muted">Output</div>
-									<pre class="log" aria-label="Step {step.number} output">{#each step.outputLines.nodes as raw, i (i)}{@const line = parseOutputLine(raw)}<span class:stderr={line.stream === 'stderr'}>{line.text}</span>{'\n'}{/each}</pre>
+									<pre
+										class="log"
+										aria-label="Step {step.number} output">{#each step.outputLines.nodes as raw, i (i)}{@const line =
+												parseOutputLine(raw)}<span class:stderr={line.stream === 'stderr'}>{line.text}</span
+											>{'\n'}{/each}</pre>
 									{#if step.outputLines.totalCount > step.outputLines.nodes.length}
 										<div class="muted small">
 											Showing the first {step.outputLines.nodes.length} of {step.outputLines.totalCount} lines.

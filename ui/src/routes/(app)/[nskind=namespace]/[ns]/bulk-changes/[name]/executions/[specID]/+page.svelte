@@ -7,5 +7,10 @@
 </script>
 
 {#key page.params.specID}
-	<ExecutionPage {kind} namespace={page.params.ns ?? ''} name={page.params.name ?? ''} specID={page.params.specID ?? ''} />
+	<ExecutionPage
+		{kind}
+		namespace={page.params.ns ?? ''}
+		name={page.params.name ?? ''}
+		specID={page.params.specID ?? ''}
+	/>
 {/key}

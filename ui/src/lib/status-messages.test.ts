@@ -30,20 +30,14 @@ describe('status messages', () => {
 		expect(cloningSummary(cloning as Extract<StatusMessage, { __typename: 'CloningProgress' }>)).toBe(
 			'Cloning repositories: 9 cloned, 4 cloning, 1,413 queued'
 		);
-		expect(cloningSummary({ cloned: 3, cloning: 0, queued: 2 })).toBe(
-			'Cloning repositories: 3 cloned, 2 queued'
-		);
-		expect(indexingSummary({ indexed: 12, notIndexed: 28 })).toBe(
-			'Indexing repositories: 12 of 40 indexed'
-		);
+		expect(cloningSummary({ cloned: 3, cloning: 0, queued: 2 })).toBe('Cloning repositories: 3 cloned, 2 queued');
+		expect(indexingSummary({ indexed: 12, notIndexed: 28 })).toBe('Indexing repositories: 12 of 40 indexed');
 	});
 
 	it('is ok without messages, in progress while cloning, an error when something failed', () => {
 		expect(summarize([]).state).toBe('ok');
 		expect(summarize([cloning]).state).toBe('progress');
-		expect(summarize([{ __typename: 'IndexingProgress', indexed: 1, notIndexed: 2 }]).state).toBe(
-			'progress'
-		);
+		expect(summarize([{ __typename: 'IndexingProgress', indexed: 1, notIndexed: 2 }]).state).toBe('progress');
 		const s = summarize([cloning, paused]);
 		expect(s.state).toBe('error');
 		// Problems first.

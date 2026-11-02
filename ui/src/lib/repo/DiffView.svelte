@@ -87,7 +87,9 @@
 					<tbody>
 						{#each f.hunks as h, hi (hi)}
 							<tr class="hunk-header">
-								<td colspan="3">@@ -{h.oldRange.startLine},{h.oldRange.lines} +{h.newRange.startLine},{h.newRange.lines} @@</td>
+								<td colspan="3"
+									>@@ -{h.oldRange.startLine},{h.oldRange.lines} +{h.newRange.startLine},{h.newRange.lines} @@</td
+								>
 							</tr>
 							{#each diffLines(h.body, h.oldRange.startLine, h.newRange.startLine) as l, li (li)}
 								<tr class="line {l.kind}">

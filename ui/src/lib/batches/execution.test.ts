@@ -95,14 +95,16 @@ describe('execution', () => {
 	});
 
 	it('describes workspaces', () => {
-		expect(queuePosition({ state: 'QUEUED', placeInQueue: 2, placeInGlobalQueue: 5 })).toBe('#2 in your queue, #5 overall');
+		expect(queuePosition({ state: 'QUEUED', placeInQueue: 2, placeInGlobalQueue: 5 })).toBe(
+			'#2 in your queue, #5 overall'
+		);
 		expect(queuePosition({ state: 'PROCESSING', placeInQueue: 1, placeInGlobalQueue: 1 })).toBeNull();
 		expect(
 			workspaceTitle({ repository: { name: 'g/a', url: '/g/a' }, branch: { displayName: 'main' }, path: 'web' })
 		).toBe('g/a@main · web');
-		expect(workspaceTitle({ repository: { name: 'g/a', url: '/g/a' }, branch: { displayName: 'main' }, path: '' })).toBe(
-			'g/a@main'
-		);
+		expect(
+			workspaceTitle({ repository: { name: 'g/a', url: '/g/a' }, branch: { displayName: 'main' }, path: '' })
+		).toBe('g/a@main');
 		expect(workspaceTitle({})).toBe('Hidden repository');
 	});
 });

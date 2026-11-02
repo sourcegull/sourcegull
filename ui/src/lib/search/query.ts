@@ -6,13 +6,7 @@
 
 export type PatternType = 'keyword' | 'standard' | 'literal' | 'regexp' | 'structural';
 
-export const PATTERN_TYPES: readonly PatternType[] = [
-	'keyword',
-	'standard',
-	'literal',
-	'regexp',
-	'structural'
-];
+export const PATTERN_TYPES: readonly PatternType[] = ['keyword', 'standard', 'literal', 'regexp', 'structural'];
 
 export function parsePatternType(s: string | null | undefined): PatternType {
 	const v = (s ?? '').toLowerCase();
@@ -20,15 +14,7 @@ export function parsePatternType(s: string | null | undefined): PatternType {
 }
 
 export type TokenKind =
-	| 'field'
-	| 'value'
-	| 'predicate'
-	| 'negation'
-	| 'pattern'
-	| 'regexp'
-	| 'quoted'
-	| 'keyword'
-	| 'paren';
+	'field' | 'value' | 'predicate' | 'negation' | 'pattern' | 'regexp' | 'quoted' | 'keyword' | 'paren';
 
 /** A highlighted range; offsets in UTF-16 code units. */
 export interface QueryToken {

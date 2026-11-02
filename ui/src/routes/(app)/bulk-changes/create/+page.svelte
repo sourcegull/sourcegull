@@ -69,8 +69,8 @@
 		<div>
 			<h1>Create bulk change</h1>
 			<p class="page-description">
-				A bulk change runs the steps of a bulk change spec in many repositories and opens a merge request for each change.
-				Name it here, then write the spec and run it on the server.
+				A bulk change runs the steps of a bulk change spec in many repositories and opens a merge request for each
+				change. Name it here, then write the spec and run it on the server.
 			</p>
 		</div>
 	</div>

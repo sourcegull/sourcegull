@@ -106,10 +106,9 @@
 		busy = true;
 		actionError = null;
 		try {
-			const r = await graphql<CreateNotebookMutation, { notebook: NotebookInputVariable }>(
-				CREATE_NOTEBOOK,
-				{ notebook: { title, namespace: user.id, public: false, blocks: blocks.map(blockToInput) } }
-			);
+			const r = await graphql<CreateNotebookMutation, { notebook: NotebookInputVariable }>(CREATE_NOTEBOOK, {
+				notebook: { title, namespace: user.id, public: false, blocks: blocks.map(blockToInput) }
+			});
 			await goto(`${notebookURL(r.createNotebook.id)}${blocks.length === 1 ? '?edit=1' : ''}`);
 		} catch (err) {
 			actionError = errorMessage(err);
@@ -150,8 +149,8 @@
 		<div>
 			<h1>Notebooks</h1>
 			<p class="page-description">
-				Markdown mixed with live search, file and symbol blocks: document how code works, write onboarding guides or keep
-				a set of searches together. Export and import them as <code class="code-inline">.snb.md</code> files.
+				Markdown mixed with live search, file and symbol blocks: document how code works, write onboarding guides or
+				keep a set of searches together. Export and import them as <code class="code-inline">.snb.md</code> files.
 			</p>
 		</div>
 		{#if user}

@@ -3,12 +3,7 @@
 	import { goto, replaceState } from '$app/navigation';
 	import { page } from '$app/state';
 	import { errorMessage, graphql } from '#lib/graphql.ts';
-	import {
-		SYMBOL_INFO,
-		type RangeInput,
-		type SymbolInfo,
-		type SymbolInfoResult
-	} from '#lib/codenav/queries.ts';
+	import { SYMBOL_INFO, type RangeInput, type SymbolInfo, type SymbolInfoResult } from '#lib/codenav/queries.ts';
 	import UsagesPanel from '#lib/codenav/UsagesPanel.svelte';
 	import OwnershipPanel from '#lib/own/OwnershipPanel.svelte';
 	import { EVENTS, logEvent, viewBlobArgument } from '#lib/events.ts';
@@ -21,13 +16,7 @@
 	import MarkdownView from './MarkdownView.svelte';
 	import PathBreadcrumbs from './PathBreadcrumbs.svelte';
 	import { BLOB, cloneStateMessage, type BlobNode, type BlobResult } from './queries.ts';
-	import {
-		formatLineRange,
-		parseLineRange,
-		repoPageURL,
-		selectLine,
-		type LineRange
-	} from './url.ts';
+	import { formatLineRange, parseLineRange, repoPageURL, selectLine, type LineRange } from './url.ts';
 
 	interface Props {
 		repo: string;
@@ -130,7 +119,10 @@
 			if (!oid) return;
 			logEvent('findReferences');
 			usagesTarget = {
-				token: blob?.content.split('\n')[info.range.start.line]?.slice(info.range.start.character, info.range.end.character) ?? '',
+				token:
+					blob?.content
+						.split('\n')
+						[info.range.start.line]?.slice(info.range.start.character, info.range.end.character) ?? '',
 				range: { repository: repo, revision: oid, path, start: info.range.start, end: info.range.end }
 			};
 		}
@@ -210,9 +202,7 @@
 		}
 	}
 
-	const permalink = $derived(
-		blob ? `${blob.canonicalURL}${selection ? `#${formatLineRange(selection)}` : ''}` : null
-	);
+	const permalink = $derived(blob ? `${blob.canonicalURL}${selection ? `#${formatLineRange(selection)}` : ''}` : null);
 </script>
 
 <div class="file-view">
@@ -222,38 +212,44 @@
 		{#if blob}
 			<span class="meta">
 				{#if blob.languages.length > 0}<span class="badge">{blob.languages.join(', ')}</span>{/if}
-				<span class="muted">{blob.binary ? '' : `${blob.totalLines.toLocaleString()} lines · `}{formatBytes(blob.byteSize)}</span>
+				<span class="muted"
+					>{blob.binary ? '' : `${blob.totalLines.toLocaleString()} lines · `}{formatBytes(blob.byteSize)}</span
+				>
 			</span>
 			<div class="spacer"></div>
 			<div class="toolbar">
 				{#if markdown}
 					<div class="btn-group" role="group" aria-label="View">
-						<button type="button" class="btn btn-sm" aria-pressed={preview} onclick={() => setView('preview')}>Preview</button>
-						<button type="button" class="btn btn-sm" aria-pressed={!preview} onclick={() => setView('code')}>Code</button>
+						<button type="button" class="btn btn-sm" aria-pressed={preview} onclick={() => setView('preview')}
+							>Preview</button
+						>
+						<button type="button" class="btn btn-sm" aria-pressed={!preview} onclick={() => setView('code')}
+							>Code</button
+						>
 					</div>
 				{/if}
 				{#if !blob.binary}
-					<button
-						type="button"
-						class="btn btn-sm"
-						aria-pressed={showBlame && !preview}
-						onclick={toggleBlame}><Icon name="commit" size={14} /> {showBlame && !preview ? 'Hide blame' : 'Blame'}</button
+					<button type="button" class="btn btn-sm" aria-pressed={showBlame && !preview} onclick={toggleBlame}
+						><Icon name="commit" size={14} /> {showBlame && !preview ? 'Hide blame' : 'Blame'}</button
 					>
 				{/if}
-				<button
-					type="button"
-					class="btn btn-sm"
-					aria-pressed={showOwners}
-					onclick={() => (showOwners = !showOwners)}><Icon name="users" size={14} /> Owners</button
+				<button type="button" class="btn btn-sm" aria-pressed={showOwners} onclick={() => (showOwners = !showOwners)}
+					><Icon name="users" size={14} /> Owners</button
 				>
-				<a class="btn btn-sm" href={repoPageURL(repo, urlRev, 'commits', path)}><Icon name="clock" size={14} /> History</a>
+				<a class="btn btn-sm" href={repoPageURL(repo, urlRev, 'commits', path)}
+					><Icon name="clock" size={14} /> History</a
+				>
 				{#if !blob.binary && !blob.contentTruncated}
-					<button type="button" class="btn btn-sm" title="Copy the file contents" onclick={copyContents}>{copied ? 'Copied' : 'Copy'}</button>
+					<button type="button" class="btn btn-sm" title="Copy the file contents" onclick={copyContents}
+						>{copied ? 'Copied' : 'Copy'}</button
+					>
 					<span class="visually-hidden" aria-live="polite">{copied ? 'File contents copied' : ''}</span>
 				{/if}
 				<a class="btn btn-sm" href={blob.rawURL} target="_blank" rel="noopener">Raw</a>
 				{#if permalink}
-					<a class="btn btn-sm" href={permalink} title="Link to this file at commit {commitOid}"><Icon name="link" size={14} /> Permalink</a>
+					<a class="btn btn-sm" href={permalink} title="Link to this file at commit {commitOid}"
+						><Icon name="link" size={14} /> Permalink</a
+					>
 				{/if}
 			</div>
 		{/if}

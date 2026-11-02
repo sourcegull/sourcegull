@@ -74,15 +74,13 @@
 	<div>
 		<h1>Repo nodes</h1>
 		<p class="page-description">
-			Repo nodes store the repositories and their search index shards. Repository sizes are as last
-			measured after a fetch; disk space and shard sizes are read from each node now.
+			Repo nodes store the repositories and their search index shards. Repository sizes are as last measured after a
+			fetch; disk space and shard sizes are read from each node now.
 		</p>
 		<RelatedLinks />
 	</div>
 	<div class="page-actions">
-		<button class="btn btn-secondary" type="button" disabled={loading} onclick={() => void load()}
-			>Refresh</button
-		>
+		<button class="btn btn-secondary" type="button" disabled={loading} onclick={() => void load()}>Refresh</button>
 	</div>
 </div>
 
@@ -127,8 +125,7 @@
 								<span style:width="{used}%" class:high={used >= 90}></span>
 							</div>
 							<div class="small">
-								{formatBytes(n.freeDiskSpaceBytes)} free of {formatBytes(n.totalDiskSpaceBytes)} ({used}%
-								used)
+								{formatBytes(n.freeDiskSpaceBytes)} free of {formatBytes(n.totalDiskSpaceBytes)} ({used}% used)
 							</div>
 							{#if n.clonePauseThresholdBytes !== null}
 								<div class="muted small">
@@ -172,18 +169,15 @@
 	<div class="section-header">
 		<h2 id="rebalance-heading">Rebalancing</h2>
 		{#if rebalance && rebalance.failed > 0}
-			<button
-				class="btn btn-sm"
-				type="button"
-				disabled={retrying}
-				onclick={() => void retryFailed()}>Retry failed moves</button
+			<button class="btn btn-sm" type="button" disabled={retrying} onclick={() => void retryFailed()}
+				>Retry failed moves</button
 			>
 		{/if}
 	</div>
 	<p class="muted">
-		When repo nodes are added or removed, each repository whose node changes is copied from its old
-		node, checked, switched over, and removed from the old node a few minutes later. Searches and
-		git requests keep working during a move.
+		When repo nodes are added or removed, each repository whose node changes is copied from its old node, checked,
+		switched over, and removed from the old node a few minutes later. Searches and git requests keep working during a
+		move.
 	</p>
 	{#if rebalanceError}
 		<div class="alert alert-danger" role="alert">{rebalanceError}</div>
@@ -220,8 +214,8 @@
 										class="badge"
 										class:badge-danger={m.state === 'failed'}
 										class:badge-success={m.state === 'done'}
-										class:badge-info={m.state === 'copying' || m.state === 'flipped'}
-									>{m.state}</span>
+										class:badge-info={m.state === 'copying' || m.state === 'flipped'}>{m.state}</span
+									>
 									{#if m.kind === 'reclone'}
 										<div class="muted small">old node gone: cloning from the code host</div>
 									{:else if Number(m.bytesCopied) > 0}

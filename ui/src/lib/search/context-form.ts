@@ -20,9 +20,7 @@ export function parseRepositoryLines(text: string): { name: string; revisions: s
 
 export function formatRepositoryLines(repos: { name: string; revisions: string[] }[]): string {
 	return repos
-		.map((r) =>
-			r.revisions.length === 1 && r.revisions[0] === 'HEAD' ? r.name : `${r.name}@${r.revisions.join(',')}`
-		)
+		.map((r) => (r.revisions.length === 1 && r.revisions[0] === 'HEAD' ? r.name : `${r.name}@${r.revisions.join(',')}`))
 		.join('\n');
 }
 

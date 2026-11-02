@@ -122,12 +122,7 @@
 		<button role="tab" class="tab" aria-selected={tab === 'policies'} onclick={() => (tab = 'policies')}>
 			Configuration policies
 		</button>
-		<button
-			role="tab"
-			class="tab"
-			aria-selected={tab === 'configuration'}
-			onclick={() => (tab = 'configuration')}
-		>
+		<button role="tab" class="tab" aria-selected={tab === 'configuration'} onclick={() => (tab = 'configuration')}>
 			Index configuration
 		</button>
 	</div>
@@ -141,8 +136,8 @@
 			<span class="muted">{total} precise {total === 1 ? 'index' : 'indexes'}</span>
 		</div>
 		<p class="muted intro">
-			SCIP indexes uploaded for this repository (for example by <code>src code-intel upload</code> in CI) and
-			auto-indexing jobs run by executors. Completed indexes give precise code navigation at their commit.
+			SCIP indexes uploaded for this repository (for example by <code>src code-intel upload</code> in CI) and auto-indexing
+			jobs run by executors. Completed indexes give precise code navigation at their commit.
 		</p>
 
 		<div class="filters">
@@ -219,12 +214,19 @@
 							</td>
 							<td class="nowrap">
 								<span class="badge state-{s.tone}">{s.text}</span>
-								{#if n.expired && n.state === 'COMPLETED'}<span class="badge state-muted" title="No retention policy keeps it">expired</span>{/if}
+								{#if n.expired && n.state === 'COMPLETED'}<span
+										class="badge state-muted"
+										title="No retention policy keeps it">expired</span
+									>{/if}
 								{#if n.placeInQueue !== null}<span class="muted">#{n.placeInQueue}</span>{/if}
-								{#if n.shouldReindex}<span class="badge state-muted" title="A new index job replaces it">reindexing</span>{/if}
+								{#if n.shouldReindex}<span class="badge state-muted" title="A new index job replaces it"
+										>reindexing</span
+									>{/if}
 							</td>
 							<td class="muted nowrap" title={n.uploadedAt ?? n.queuedAt ?? ''}>
-								{#if n.uploadedAt}{relativeDate(n.uploadedAt)}{:else if n.queuedAt}queued {relativeDate(n.queuedAt)}{/if}
+								{#if n.uploadedAt}{relativeDate(n.uploadedAt)}{:else if n.queuedAt}queued {relativeDate(
+										n.queuedAt
+									)}{/if}
 							</td>
 							<td class="muted num nowrap">{n.uploadSize === null ? '' : formatBytes(n.uploadSize)}</td>
 							{#if siteAdmin}

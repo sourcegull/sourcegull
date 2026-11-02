@@ -103,13 +103,16 @@ export function agentGuides(url: string, token: string = TOKEN_PLACEHOLDER): Age
 			id: 'vscode',
 			label: 'VS Code / Copilot',
 			docs: 'https://code.visualstudio.com/docs/copilot/reference/mcp-configuration',
-			intro: 'For GitHub Copilot agent mode. VS Code asks for the token the first time the server starts and stores it securely, so the file can be committed.',
+			intro:
+				'For GitHub Copilot agent mode. VS Code asks for the token the first time the server starts and stores it securely, so the file can be committed.',
 			snippets: [
 				{
 					title: 'Workspace configuration',
 					where: '.vscode/mcp.json',
 					code: json({
-						inputs: [{ type: 'promptString', id: 'sourcegull-token', description: 'Sourcegull access token', password: true }],
+						inputs: [
+							{ type: 'promptString', id: 'sourcegull-token', description: 'Sourcegull access token', password: true }
+						],
 						servers: {
 							[SERVER_NAME]: { type: 'http', url, headers: { Authorization: 'Bearer ${input:sourcegull-token}' } }
 						}
@@ -125,7 +128,8 @@ export function agentGuides(url: string, token: string = TOKEN_PLACEHOLDER): Age
 			snippets: [
 				{
 					title: 'Configuration',
-					where: '~/.codeium/windsurf/mcp_config.json (newer builds: Settings → Cascade → MCP servers → View raw config)',
+					where:
+						'~/.codeium/windsurf/mcp_config.json (newer builds: Settings → Cascade → MCP servers → View raw config)',
 					code: json({
 						mcpServers: {
 							[SERVER_NAME]: { serverUrl: url, headers: { Authorization: `Bearer \${env:${TOKEN_ENV}}` } }
@@ -188,7 +192,8 @@ export function agentGuides(url: string, token: string = TOKEN_PLACEHOLDER): Age
 			id: 'jetbrains',
 			label: 'JetBrains',
 			docs: 'https://www.jetbrains.com/help/ai-assistant/mcp.html',
-			intro: 'AI Assistant and Junie run local (stdio) MCP servers reliably, so these use the mcp-remote bridge, which needs Node.js.',
+			intro:
+				'AI Assistant and Junie run local (stdio) MCP servers reliably, so these use the mcp-remote bridge, which needs Node.js.',
 			snippets: [
 				{
 					title: 'AI Assistant',
@@ -247,7 +252,8 @@ export function agentGuides(url: string, token: string = TOKEN_PLACEHOLDER): Age
 			id: 'other',
 			label: 'Other (stdio)',
 			docs: 'https://github.com/geelen/mcp-remote',
-			intro: 'For clients that only start local (stdio) servers. mcp-remote bridges stdio to Sourcegull over HTTP; it needs Node.js.',
+			intro:
+				'For clients that only start local (stdio) servers. mcp-remote bridges stdio to Sourcegull over HTTP; it needs Node.js.',
 			snippets: [
 				{
 					title: 'Command',
@@ -337,7 +343,10 @@ export const MCP_TOOLS: { name: string; description: string }[] = [
 	{ name: 'find_symbols', description: 'Find where functions, types, constants … are defined, by name.' },
 	{ name: 'go_to_definition', description: 'Jump from an identifier on a line to its definition.' },
 	{ name: 'find_references', description: 'Find the usages of an identifier across repositories.' },
-	{ name: 'find_implementations', description: 'Find the implementations of an interface or method, and what a type implements.' },
+	{
+		name: 'find_implementations',
+		description: 'Find the implementations of an interface or method, and what a type implements.'
+	},
 	{ name: 'list_repos', description: 'List the repositories you can search.' },
 	{ name: 'list_branches', description: 'List the branches and tags of a repository.' },
 	{ name: 'commit_log', description: 'Commit history of a revision or path, one line per commit.' },
@@ -363,34 +372,42 @@ This organisation's code is indexed by Sourcegull, available through the \`sourc
 export const EXAMPLE_PROMPTS: { title: string; prompt: string }[] = [
 	{
 		title: 'Callers across repositories',
-		prompt: 'Using Sourcegull, find every caller of `parseConfig` across all repositories and summarize how it is used: which arguments are common, and which callers handle its errors differently.'
+		prompt:
+			'Using Sourcegull, find every caller of `parseConfig` across all repositories and summarize how it is used: which arguments are common, and which callers handle its errors differently.'
 	},
 	{
 		title: 'Where a config key is read',
-		prompt: 'Using Sourcegull, find where the config key `payments.retry_limit` is read, in code and in deployment files, and list each place with its default value.'
+		prompt:
+			'Using Sourcegull, find where the config key `payments.retry_limit` is read, in code and in deployment files, and list each place with its default value.'
 	},
 	{
 		title: "This week's changes",
-		prompt: "Using Sourcegull, summarize what changed in `platform/billing` in the last 7 days: group the commits by topic and call out anything that changes an API or a database schema."
+		prompt:
+			'Using Sourcegull, summarize what changed in `platform/billing` in the last 7 days: group the commits by topic and call out anything that changes an API or a database schema.'
 	},
 	{
 		title: 'Service to service',
-		prompt: 'Using Sourcegull, explain how `orders-service` calls `inventory-service`: the client code, the endpoints or RPCs used, retries and timeouts, and the handler on the other side.'
+		prompt:
+			'Using Sourcegull, explain how `orders-service` calls `inventory-service`: the client code, the endpoints or RPCs used, retries and timeouts, and the handler on the other side.'
 	},
 	{
 		title: 'Similar implementations',
-		prompt: 'Using Sourcegull, find other implementations of rate limiting across our repositories, compare their approaches, and recommend one to reuse here.'
+		prompt:
+			'Using Sourcegull, find other implementations of rate limiting across our repositories, compare their approaches, and recommend one to reuse here.'
 	},
 	{
 		title: 'Impact of a change',
-		prompt: 'I want to change the signature of `UserRepository.findByEmail`. Using Sourcegull, find all references in every repository and list what would need to change.'
+		prompt:
+			'I want to change the signature of `UserRepository.findByEmail`. Using Sourcegull, find all references in every repository and list what would need to change.'
 	},
 	{
 		title: 'Onboarding tour',
-		prompt: 'Using Sourcegull, give me a tour of `group/project`: the main entry points, how a request flows through it, and the five files I should read first, with line ranges.'
+		prompt:
+			'Using Sourcegull, give me a tour of `group/project`: the main entry points, how a request flows through it, and the five files I should read first, with line ranges.'
 	},
 	{
 		title: 'Who knows this code',
-		prompt: 'Using Sourcegull, look at the commit history and blame of `src/auth/` in `group/project` and tell me who has worked on it most recently and what the last few changes were about.'
+		prompt:
+			'Using Sourcegull, look at the commit history and blame of `src/auth/` in `group/project` and tell me who has worked on it most recently and what the last few changes were about.'
 	}
 ];

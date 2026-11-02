@@ -156,7 +156,9 @@ export interface TriggerEventNode {
 	resultCount: number;
 	query: string | null;
 	ranges: { repository: string; revision: string; from: string | null; to: string }[];
-	actions: { nodes: { __typename: MonitorActionNode['__typename']; id: string; events: { nodes: ActionEventNode[] } }[] };
+	actions: {
+		nodes: { __typename: MonitorActionNode['__typename']; id: string; events: { nodes: ActionEventNode[] } }[];
+	};
 }
 
 export type MonitorEventsResult = CodeMonitorEventsQuery;

@@ -62,17 +62,14 @@
 	}
 
 	function toggleRole(id: string): void {
-		selectedRoles = selectedRoles.includes(id)
-			? selectedRoles.filter((r) => r !== id)
-			: [...selectedRoles, id];
+		selectedRoles = selectedRoles.includes(id) ? selectedRoles.filter((r) => r !== id) : [...selectedRoles, id];
 	}
 
 	async function saveRoles(user: UserNode): Promise<void> {
 		pending = user.id;
 		try {
 			const adminRole = availableRoles.find((r) => r.name === 'SITE_ADMINISTRATOR');
-			if (!adminRole)
-				throw new Error('Could not load system roles. Reload this page and try again.');
+			if (!adminRole) throw new Error('Could not load system roles. Reload this page and try again.');
 			await graphql(SET_ROLES, {
 				user: user.id,
 				roles: [...selectedRoles, ...(user.siteAdmin ? [adminRole.id] : [])]
@@ -232,11 +229,11 @@
 {#if resetLink}
 	<div class="alert {data.auth.emailEnabled ? 'alert-success' : 'alert-warning'}" role="status">
 		{#if data.auth.emailEnabled}
-			Reset link for {resetLink.username} created and emailed to their verified address, if they
-			have one. You can also send it yourself:
+			Reset link for {resetLink.username} created and emailed to their verified address, if they have one. You can also send
+			it yourself:
 		{:else}
-			Email is not set up (<a href={EMAIL_SETTINGS_URL}>set it up</a>), so nothing was emailed. Send
-			this single-use reset link to {resetLink.username} privately:
+			Email is not set up (<a href={EMAIL_SETTINGS_URL}>set it up</a>), so nothing was emailed. Send this single-use
+			reset link to {resetLink.username} privately:
 		{/if}
 		<code class="mono reset-link">{resetLink.url}</code>
 	</div>
@@ -271,11 +268,10 @@
 					<td>{user.displayName ?? ''}</td>
 					<td>{formatDate(user.createdAt)}</td>
 					<td>
-						{#if user.siteAdmin}<span class="badge badge-primary">Site admin</span>{:else}<span
-								class="badge">User</span
+						{#if user.siteAdmin}<span class="badge badge-primary">Site admin</span>{:else}<span class="badge">User</span
 							>{/if}
-						{#each user.roles.nodes.filter((role) => !role.system) as role (role.id)}<span
-								class="badge">{role.name}</span
+						{#each user.roles.nodes.filter((role) => !role.system) as role (role.id)}<span class="badge"
+								>{role.name}</span
 							>{/each}
 					</td>
 					<td class="actions">
@@ -289,36 +285,34 @@
 								>
 							{/if}
 						{:else}
-						{#if !siteAdminsExclusive}
-							<button
-								class="btn btn-sm"
-								type="button"
-								disabled={pending === user.id}
-								onclick={() => toggleSiteAdmin(user)}
-							>
-								{user.siteAdmin ? 'Revoke site admin' : 'Promote to site admin'}
-							</button>
-						{/if}
-						<button class="btn btn-sm" type="button" onclick={() => editRoles(user)}
-							>Edit roles</button
-						>
-						{#if data.auth.builtin && !user.scimControlled}
-							<button
-								class="btn btn-sm"
-								type="button"
-								disabled={pending === user.id}
-								title="Create a single-use link to set a new password; the current one keeps working until it is used"
-								onclick={() => createResetLink(user)}>Reset password</button
-							>
-						{/if}
-						{#if !user.scimControlled && user.id !== data.auth.user?.id}
-							<button
-								class="btn btn-sm btn-danger"
-								type="button"
-								disabled={pending === user.id}
-								onclick={() => setActive(user, false)}>Deactivate</button
-							>
-						{/if}
+							{#if !siteAdminsExclusive}
+								<button
+									class="btn btn-sm"
+									type="button"
+									disabled={pending === user.id}
+									onclick={() => toggleSiteAdmin(user)}
+								>
+									{user.siteAdmin ? 'Revoke site admin' : 'Promote to site admin'}
+								</button>
+							{/if}
+							<button class="btn btn-sm" type="button" onclick={() => editRoles(user)}>Edit roles</button>
+							{#if data.auth.builtin && !user.scimControlled}
+								<button
+									class="btn btn-sm"
+									type="button"
+									disabled={pending === user.id}
+									title="Create a single-use link to set a new password; the current one keeps working until it is used"
+									onclick={() => createResetLink(user)}>Reset password</button
+								>
+							{/if}
+							{#if !user.scimControlled && user.id !== data.auth.user?.id}
+								<button
+									class="btn btn-sm btn-danger"
+									type="button"
+									disabled={pending === user.id}
+									onclick={() => setActive(user, false)}>Deactivate</button
+								>
+							{/if}
 						{/if}
 					</td>
 				</tr>
@@ -343,9 +337,7 @@
 									disabled={pending === user.id}
 									onclick={() => saveRoles(user)}>Save roles</button
 								>
-								<button class="btn btn-sm" type="button" onclick={() => (editing = null)}
-									>Cancel</button
-								>
+								<button class="btn btn-sm" type="button" onclick={() => (editing = null)}>Cancel</button>
 							</div>
 						</td></tr
 					>

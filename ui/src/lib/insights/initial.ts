@@ -265,7 +265,11 @@ export function initialFields<T extends InsightType>(
 	storage: DraftStorage | null = browserStorage()
 ): CreationFields[T] {
 	const fromURL =
-		type === 'search' ? searchFieldsFromURL(params) : type === 'capture-group' ? captureGroupFieldsFromURL(params) : null;
+		type === 'search'
+			? searchFieldsFromURL(params)
+			: type === 'capture-group'
+				? captureGroupFieldsFromURL(params)
+				: null;
 	if (fromURL) return fromURL as CreationFields[T];
 	const draft = loadDraft(type, storage);
 	if (draft) return draft;

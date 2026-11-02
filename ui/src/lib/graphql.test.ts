@@ -48,9 +48,7 @@ describe('graphql', () => {
 				errors: [{ message: 'must be site admin', extensions: { code: 'FORBIDDEN' } }]
 			})
 		);
-		const err = await graphql('query X { site { id } }', undefined, { fetch: fetchMock }).catch(
-			(e: unknown) => e
-		);
+		const err = await graphql('query X { site { id } }', undefined, { fetch: fetchMock }).catch((e: unknown) => e);
 		expect(err).toBeInstanceOf(GraphQLRequestError);
 		const gqlErr = err as GraphQLRequestError;
 		expect(gqlErr.message).toBe('must be site admin');
@@ -80,13 +78,13 @@ describe('graphql', () => {
 
 describe('isConflictError', () => {
 	it('recognises conflicts by code, status or message', () => {
-		expect(isConflictError(new GraphQLRequestError('x', 200, [{ message: 'x', extensions: { code: 'CONFLICT' } }]))).toBe(true);
+		expect(
+			isConflictError(new GraphQLRequestError('x', 200, [{ message: 'x', extensions: { code: 'CONFLICT' } }]))
+		).toBe(true);
 		expect(isConflictError(new GraphQLRequestError('x', 409))).toBe(true);
 		expect(
 			isConflictError(
-				new GraphQLRequestError('m', 200, [
-					{ message: 'site configuration was modified since lastID 3' }
-				])
+				new GraphQLRequestError('m', 200, [{ message: 'site configuration was modified since lastID 3' }])
 			)
 		).toBe(true);
 		expect(isConflictError(new GraphQLRequestError('m', 200, [{ message: 'invalid JSON at line 2' }]))).toBe(false);

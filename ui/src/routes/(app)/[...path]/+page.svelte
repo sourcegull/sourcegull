@@ -8,7 +8,9 @@
 	const route = $derived(parseRepoRoute(page.url.pathname));
 </script>
 
-<svelte:head>{#if !route}<title>Not found · Sourcegull</title>{/if}</svelte:head>
+<svelte:head
+	>{#if !route}<title>Not found · Sourcegull</title>{/if}</svelte:head
+>
 
 {#if route}
 	<RepoPage {route} />

@@ -155,10 +155,10 @@
 			return;
 		}
 		let stale = false;
-		graphql<AvailableBulkOperationsResult, { batchChange: string; changesets: string[] }>(
-			AVAILABLE_BULK_OPERATIONS,
-			{ batchChange: batchChange.id, changesets: ids }
-		)
+		graphql<AvailableBulkOperationsResult, { batchChange: string; changesets: string[] }>(AVAILABLE_BULK_OPERATIONS, {
+			batchChange: batchChange.id,
+			changesets: ids
+		})
 			.then((r) => {
 				if (stale) return;
 				available = r.node?.availableBulkOperations ?? [];
@@ -362,7 +362,9 @@
 					type="submit"
 					disabled={submitting || (actionInfo.input === 'body' && !commentBody.trim())}
 				>
-					{submitting ? 'Starting…' : `${actionInfo.title} ${selected.size} ${selected.size === 1 ? 'changeset' : 'changesets'}`}
+					{submitting
+						? 'Starting…'
+						: `${actionInfo.title} ${selected.size} ${selected.size === 1 ? 'changeset' : 'changesets'}`}
 				</button>
 			</div>
 		{/if}

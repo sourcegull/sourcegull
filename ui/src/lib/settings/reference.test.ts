@@ -50,11 +50,7 @@ describe('settingsReference', () => {
 		return r;
 	};
 	it('lists keys sorted with descriptions and defaults', () => {
-		expect(ref.map((r) => r.key)).toEqual([
-			'quicklinks',
-			'search.defaultPatternType',
-			'search.includeForks'
-		]);
+		expect(ref.map((r) => r.key)).toEqual(['quicklinks', 'search.defaultPatternType', 'search.includeForks']);
 		const forks = row('search.includeForks');
 		expect(forks).toMatchObject({ type: 'boolean', default: 'false', description: 'Include forks.' });
 	});

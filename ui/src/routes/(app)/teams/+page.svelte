@@ -11,7 +11,7 @@
 		type TeamSummary,
 		type TeamsResult,
 		type Vars
-} from '#lib/orgs/queries.ts';
+	} from '#lib/orgs/queries.ts';
 
 	const PAGE_SIZE = 50;
 
@@ -125,14 +125,7 @@
 
 	<div class="filter-bar">
 		<label class="visually-hidden" for="team-filter">Search teams</label>
-		<input
-			id="team-filter"
-			class="input"
-			type="search"
-			placeholder="Search teams…"
-			bind:value={search}
-			{oninput}
-		/>
+		<input id="team-filter" class="input" type="search" placeholder="Search teams…" bind:value={search} {oninput} />
 		<span class="muted small count">{totalCount} {search.trim() ? 'matching' : 'top-level'}</span>
 	</div>
 
@@ -163,7 +156,13 @@
 						</td>
 					</tr>
 				{:else}
-					{#if !loading}<tr><td colspan="4" class="muted empty">{search.trim() ? 'No teams match.' : 'No teams yet. Create one, or turn on syncing from GitLab groups.'}</td></tr>{/if}
+					{#if !loading}<tr
+							><td colspan="4" class="muted empty"
+								>{search.trim()
+									? 'No teams match.'
+									: 'No teams yet. Create one, or turn on syncing from GitLab groups.'}</td
+							></tr
+						>{/if}
 				{/each}
 			</tbody>
 		</table>

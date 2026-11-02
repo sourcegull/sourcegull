@@ -47,9 +47,7 @@ describe('authRedirect', () => {
 
 	it('lets signed-in users through and bounces them off auth pages', () => {
 		expect(authRedirect(alice, url('/search'))).toBeNull();
-		expect(authRedirect(alice, url('/sign-in?returnTo=%2Fuser%2Fsettings%2Ftokens'))).toBe(
-			'/user/settings/tokens'
-		);
+		expect(authRedirect(alice, url('/sign-in?returnTo=%2Fuser%2Fsettings%2Ftokens'))).toBe('/user/settings/tokens');
 		expect(authRedirect(alice, url('/sign-up'))).toBe('/search');
 	});
 
@@ -132,9 +130,7 @@ describe('auth endpoints', () => {
 describe('providerSignInURL', () => {
 	it('appends an encoded returnTo', () => {
 		const p = { type: 'gitlab', displayName: 'GitLab', authenticationURL: '/.auth/gitlab/login?pc=app' };
-		expect(providerSignInURL(p, '/search?q=a b')).toBe(
-			'/.auth/gitlab/login?pc=app&returnTo=%2Fsearch%3Fq%3Da%20b'
-		);
+		expect(providerSignInURL(p, '/search?q=a b')).toBe('/.auth/gitlab/login?pc=app&returnTo=%2Fsearch%3Fq%3Da%20b');
 		expect(providerSignInURL({ ...p, authenticationURL: '/.auth/x' }, '/')).toBe('/.auth/x?returnTo=%2F');
 	});
 });

@@ -84,8 +84,8 @@
 	<div>
 		<h1>Background jobs</h1>
 		<p class="page-description">
-			Routines that one worker runs at a time under a lease, and the job queues every worker takes
-			jobs from. Runs and lease holders are kept for seven days; the page refreshes every ten seconds.
+			Routines that one worker runs at a time under a lease, and the job queues every worker takes jobs from. Runs and
+			lease holders are kept for seven days; the page refreshes every ten seconds.
 		</p>
 	</div>
 	<div class="page-actions">
@@ -122,12 +122,30 @@
 				{#if r.queue}
 					{@const q = r.queue}
 					<dl class="counts">
-						<div><dt>Queued</dt><dd>{q.queued.toLocaleString('en-US')}</dd></div>
-						<div><dt>Processing</dt><dd>{q.processing.toLocaleString('en-US')}</dd></div>
-						<div><dt>Completed</dt><dd>{q.completed.toLocaleString('en-US')}</dd></div>
-						<div><dt>Errored</dt><dd class:bad={q.errored > 0}>{q.errored.toLocaleString('en-US')}</dd></div>
-						<div><dt>Failed</dt><dd class:bad={q.failed > 0}>{q.failed.toLocaleString('en-US')}</dd></div>
-						<div><dt>Canceled</dt><dd>{q.canceled.toLocaleString('en-US')}</dd></div>
+						<div>
+							<dt>Queued</dt>
+							<dd>{q.queued.toLocaleString('en-US')}</dd>
+						</div>
+						<div>
+							<dt>Processing</dt>
+							<dd>{q.processing.toLocaleString('en-US')}</dd>
+						</div>
+						<div>
+							<dt>Completed</dt>
+							<dd>{q.completed.toLocaleString('en-US')}</dd>
+						</div>
+						<div>
+							<dt>Errored</dt>
+							<dd class:bad={q.errored > 0}>{q.errored.toLocaleString('en-US')}</dd>
+						</div>
+						<div>
+							<dt>Failed</dt>
+							<dd class:bad={q.failed > 0}>{q.failed.toLocaleString('en-US')}</dd>
+						</div>
+						<div>
+							<dt>Canceled</dt>
+							<dd>{q.canceled.toLocaleString('en-US')}</dd>
+						</div>
 						<div>
 							<dt>Oldest queued</dt>
 							<dd>
@@ -154,7 +172,10 @@
 									<tbody>
 										{#each q.activeJobs as j (j.id)}
 											<tr>
-												<td class="mono">{j.id}<div class="muted small">{j.state}</div></td>
+												<td class="mono"
+													>{j.id}
+													<div class="muted small">{j.state}</div></td
+												>
 												<td class="small" title={formatDate(j.queuedAt)}>{relativeTime(j.queuedAt)}</td>
 												<td class="small">
 													{j.startedAt ? relativeTime(j.startedAt) : '—'}
@@ -196,7 +217,10 @@
 									<tbody>
 										{#each q.recentFailures as f (f.id)}
 											<tr>
-												<td class="mono">{f.id}<div class="muted small">{f.state}</div></td>
+												<td class="mono"
+													>{f.id}
+													<div class="muted small">{f.state}</div></td
+												>
 												<td class="small">
 													{f.finishedAt ? relativeTime(f.finishedAt) : '—'}
 													{#if f.workerHostname}<div class="muted">{f.workerHostname}</div>{/if}
@@ -230,9 +254,7 @@
 									{#if isRunning(i)}
 										<span class="ok">holds the lease</span> since {relativeTime(i.lastStartedAt!)}
 									{:else}
-										<span class="muted"
-											>stopped {i.lastStoppedAt ? relativeTime(i.lastStoppedAt) : ''}</span
-										>
+										<span class="muted">stopped {i.lastStoppedAt ? relativeTime(i.lastStoppedAt) : ''}</span>
 									{/if}
 								</div>
 							{:else}
@@ -242,8 +264,7 @@
 						<dt>Last 7 days</dt>
 						<dd>
 							{r.stats.runCount.toLocaleString('en-US')} runs,
-							<span class:bad={r.stats.errorCount > 0}
-								>{r.stats.errorCount.toLocaleString('en-US')} errors</span
+							<span class:bad={r.stats.errorCount > 0}>{r.stats.errorCount.toLocaleString('en-US')} errors</span
 							>{#if r.stats.runCount > 0}; duration min {formatMs(r.stats.minDurationMs)}, avg {formatMs(
 									r.stats.avgDurationMs
 								)}, max {formatMs(r.stats.maxDurationMs)}{/if}

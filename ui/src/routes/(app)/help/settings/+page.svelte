@@ -1,11 +1,6 @@
 <script lang="ts">
 	import { onMount } from 'svelte';
-	import {
-		SETTINGS_SCHEMA_URL,
-		settingsReference,
-		type SchemaNode,
-		type SettingRow
-	} from '#lib/settings/reference.ts';
+	import { SETTINGS_SCHEMA_URL, settingsReference, type SchemaNode, type SettingRow } from '#lib/settings/reference.ts';
 
 	let settings = $state.raw<SettingRow[]>([]);
 	let error = $state<string | null>(null);
@@ -31,7 +26,9 @@
 	{#if row.values.length}
 		<ul class="values">
 			{#each row.values as v (v.value)}
-				<li><code>"{v.value}"</code>{#if v.description}: {v.description}{/if}</li>
+				<li>
+					<code>"{v.value}"</code>{#if v.description}: {v.description}{/if}
+				</li>
 			{/each}
 		</ul>
 	{/if}
@@ -55,8 +52,8 @@
 			<h1>Settings reference</h1>
 			<p class="page-description">
 				Settings are JSON with comments. They apply in a cascade: global settings (Site admin), then each
-				organization's, then the user's own; later ones override earlier ones key by key. Keys not listed
-				here are kept as they are and passed to the UI. The JSON Schema is at
+				organization's, then the user's own; later ones override earlier ones key by key. Keys not listed here are kept
+				as they are and passed to the UI. The JSON Schema is at
 				<a href={SETTINGS_SCHEMA_URL} target="_blank" rel="noopener">{SETTINGS_SCHEMA_URL}</a>.
 			</p>
 		</div>
@@ -79,7 +76,9 @@
 					<tr id={row.key}>
 						<td><code>{row.key}</code></td>
 						<td>{row.type}</td>
-						<td>{#if row.default !== null}<code>{row.default}</code>{:else}<span class="muted">—</span>{/if}</td>
+						<td
+							>{#if row.default !== null}<code>{row.default}</code>{:else}<span class="muted">—</span>{/if}</td
+						>
 						<td>{@render details(row)}</td>
 					</tr>
 				{:else}

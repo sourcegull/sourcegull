@@ -1,12 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import {
-	formatMs,
-	isRunning,
-	prettyBody,
-	routineHealth,
-	statusClass,
-	type Routine
-} from './logs.ts';
+import { formatMs, isRunning, prettyBody, routineHealth, statusClass, type Routine } from './logs.ts';
 
 const routine = (over: Partial<Routine>): Routine => ({
 	name: 'r',

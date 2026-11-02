@@ -23,8 +23,7 @@
 		align-items: center;
 		padding: 12vh var(--space-4) var(--space-8);
 		background:
-			radial-gradient(60rem 30rem at 50% -10%, var(--color-primary-subtle), transparent 70%),
-			var(--color-bg-subtle);
+			radial-gradient(60rem 30rem at 50% -10%, var(--color-primary-subtle), transparent 70%), var(--color-bg-subtle);
 	}
 	.brand {
 		display: flex;

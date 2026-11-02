@@ -38,8 +38,7 @@ export function parseKind(value: string | null): ExternalServiceKind {
 	return KINDS.find((k) => k === upper) ?? 'GITLAB';
 }
 
-export type SyncJobState =
-	'QUEUED' | 'PROCESSING' | 'ERRORED' | 'FAILED' | 'COMPLETED' | 'CANCELING' | 'CANCELED';
+export type SyncJobState = 'QUEUED' | 'PROCESSING' | 'ERRORED' | 'FAILED' | 'COMPLETED' | 'CANCELING' | 'CANCELED';
 
 export interface PageInfo {
 	hasNextPage: boolean;

@@ -92,7 +92,11 @@ export interface UserNode {
 	roles: { nodes: RoleSummary[] };
 }
 
-export interface RoleSummary { id: string; name: string; system: boolean }
+export interface RoleSummary {
+	id: string;
+	name: string;
+	system: boolean;
+}
 
 export const RBAC = `query Rbac {
 	roles(first: 1000) { nodes { id name system createdAt managedBy permissions(first: 100) { nodes { id namespace action displayName } } } }
@@ -100,9 +104,18 @@ export const RBAC = `query Rbac {
 	${DECLARED_KINDS_FIELDS}
 }`;
 
-export interface PermissionNode { id: string; namespace: string; action: string; displayName: string }
+export interface PermissionNode {
+	id: string;
+	namespace: string;
+	action: string;
+	displayName: string;
+}
 /** A role with its permissions; `managedBy` names the resources file entry that owns a custom role. */
-export interface RoleNode extends RoleSummary { createdAt: string; managedBy: string | null; permissions: { nodes: PermissionNode[] } }
+export interface RoleNode extends RoleSummary {
+	createdAt: string;
+	managedBy: string | null;
+	permissions: { nodes: PermissionNode[] };
+}
 export type RbacResult = RbacQuery;
 
 export const CREATE_ROLE = `mutation CreateRole($name: String!, $permissions: [ID!]!) {
@@ -284,13 +297,7 @@ export const PERMISSIONS_SYNC_JOBS = `query PermissionsSyncJobs($first: Int, $af
 	}
 }`;
 
-export type PermissionsSyncJobState =
-	| 'QUEUED'
-	| 'PROCESSING'
-	| 'ERRORED'
-	| 'FAILED'
-	| 'COMPLETED'
-	| 'CANCELED';
+export type PermissionsSyncJobState = 'QUEUED' | 'PROCESSING' | 'ERRORED' | 'FAILED' | 'COMPLETED' | 'CANCELED';
 
 export interface PermissionsSyncJobNode {
 	id: string;
@@ -304,10 +311,7 @@ export interface PermissionsSyncJobNode {
 	permissionsRemoved: number;
 	permissionsFound: number;
 	codeHostStates: { providerID: string; providerType: string; status: string; message: string }[];
-	subject:
-		| { __typename: 'User'; username: string }
-		| { __typename: 'Repository'; name: string }
-		| null;
+	subject: { __typename: 'User'; username: string } | { __typename: 'Repository'; name: string } | null;
 }
 
 export type PermissionsSyncJobsResult = PermissionsSyncJobsQuery;

@@ -14,8 +14,8 @@
 	<section class="intro">
 		<h2>Track what matters in your code</h2>
 		<p>
-			Code trends turn searches into charts over time: count a pattern across repositories, follow a
-			migration, watch versions or licenses spread, and see which languages your code is written in.
+			Code trends turn searches into charts over time: count a pattern across repositories, follow a migration, watch
+			versions or licenses spread, and see which languages your code is written in.
 		</p>
 	</section>
 
@@ -41,9 +41,9 @@
 	<section class="next">
 		<h2>Dashboards</h2>
 		<p>
-			Dashboards group trends and share them: keep one private, share it with an organization, or make it
-			visible to everyone on this instance. A trend can be on several dashboards; each card has filters
-			to narrow it to some repositories or a search context, and to sort and limit its series.
+			Dashboards group trends and share them: keep one private, share it with an organization, or make it visible to
+			everyone on this instance. A trend can be on several dashboards; each card has filters to narrow it to some
+			repositories or a search context, and to sort and limit its series.
 		</p>
 		<div class="toolbar">
 			<a class="btn btn-primary" href={withDashboardParam('/trends/create', dashboardId)}>Create trend</a>

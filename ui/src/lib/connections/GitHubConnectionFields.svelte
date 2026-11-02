@@ -153,11 +153,21 @@
 		<fieldset class="modes" {disabled}>
 			<legend class="visually-hidden">How Sourcegull authenticates to GitHub</legend>
 			<label class="checkbox">
-				<input type="radio" name="gh-auth-method" checked={authMethod === 'token'} onchange={() => setAuthMethod('token')} />
+				<input
+					type="radio"
+					name="gh-auth-method"
+					checked={authMethod === 'token'}
+					onchange={() => setAuthMethod('token')}
+				/>
 				<span>Personal access token</span>
 			</label>
 			<label class="checkbox">
-				<input type="radio" name="gh-auth-method" checked={authMethod === 'app'} onchange={() => setAuthMethod('app')} />
+				<input
+					type="radio"
+					name="gh-auth-method"
+					checked={authMethod === 'app'}
+					onchange={() => setAuthMethod('app')}
+				/>
 				<span>GitHub App: installation tokens, higher rate limits, no user account</span>
 			</label>
 		</fieldset>
@@ -166,8 +176,8 @@
 				<summary>How to create the token</summary>
 				<ol class="steps">
 					<li>
-						Sign in to <code class="code-inline">{host}</code> as the user whose access Sourcegull should have. Every
-						repository the token can read can be mirrored, so a dedicated machine user is a good choice.
+						Sign in to <code class="code-inline">{host}</code> as the user whose access Sourcegull should have. Every repository
+						the token can read can be mirrored, so a dedicated machine user is a good choice.
 					</li>
 					<li>
 						Create a
@@ -180,12 +190,14 @@
 						Or, to limit access, create a
 						<a href={fineGrainedTokenURL(url)} target="_blank" rel="noopener noreferrer">fine-grained token</a>
 						with read-only <code class="code-inline">Contents</code> and <code class="code-inline">Metadata</code>
-						permissions. A fine-grained token reads the repositories of one resource owner only (your account
-						or one organization): to mirror several, add a connection per owner.
+						permissions. A fine-grained token reads the repositories of one resource owner only (your account or one organization):
+						to mirror several, add a connection per owner.
 					</li>
 					<li>Copy the token into the field below. GitHub shows it only once.</li>
 					<li>
-						When the token expires, syncing stops. Sourcegull emails the site admins 14, 7 and 1 days before (<code class="code-inline">codeHosts.tokenExpiryAlerts</code>).
+						When the token expires, syncing stops. Sourcegull emails the site admins 14, 7 and 1 days before (<code
+							class="code-inline">codeHosts.tokenExpiryAlerts</code
+						>).
 					</li>
 				</ol>
 			</details>
@@ -224,10 +236,12 @@
 							</li>
 						</ul>
 					</li>
-					<li>Note the App ID on the App's page, and generate a private key (a <code class="code-inline">.pem</code> file).</li>
 					<li>
-						Install the App on the organization or account, for all repositories or the ones to mirror. The
-						installation ID is the number at the end of the installation's settings URL.
+						Note the App ID on the App's page, and generate a private key (a <code class="code-inline">.pem</code> file).
+					</li>
+					<li>
+						Install the App on the organization or account, for all repositories or the ones to mirror. The installation
+						ID is the number at the end of the installation's settings URL.
 					</li>
 				</ol>
 			</details>
@@ -312,8 +326,8 @@
 				></textarea>
 				<span class="hint">
 					One per line: a GitHub repository search (at most 1,000 results each),
-					<code class="code-inline">affiliated</code>, or <code class="code-inline">public</code> (every public
-					repository; GitHub Enterprise Server only).
+					<code class="code-inline">affiliated</code>, or <code class="code-inline">public</code> (every public repository;
+					GitHub Enterprise Server only).
 				</span>
 			</div>
 		{/if}
@@ -375,7 +389,9 @@
 					{disabled}
 					onchange={writeExclusions}
 				></textarea>
-				<span class="hint">One regular expression per line, matched against <code class="code-inline">owner/name</code>.</span>
+				<span class="hint"
+					>One regular expression per line, matched against <code class="code-inline">owner/name</code>.</span
+				>
 			</div>
 			<label class="checkbox">
 				<input type="checkbox" bind:checked={excludeArchived} {disabled} onchange={writeExclusions} />
@@ -407,8 +423,8 @@
 					Needs a GitHub sign-in provider for {host} in the
 					<a href={configSectionURL('auth')}>site configuration</a>; sign-in then asks for the
 					<code class="code-inline">repo</code> scope. Users who never signed in with GitHub see only public
-					repositories. Per-repository syncs need a token with admin access to the repositories, or a GitHub App
-					with the <code class="code-inline">Members</code> read permission.
+					repositories. Per-repository syncs need a token with admin access to the repositories, or a GitHub App with
+					the <code class="code-inline">Members</code> read permission.
 				</span>
 				<label class="checkbox">
 					<input
@@ -416,17 +432,14 @@
 						checked={doc.markInternalReposAsPublic === true}
 						{disabled}
 						onchange={(e) =>
-							onedit([
-								[['markInternalReposAsPublic'], (e.currentTarget as HTMLInputElement).checked || undefined]
-							])}
+							onedit([[['markInternalReposAsPublic'], (e.currentTarget as HTMLInputElement).checked || undefined]])}
 					/>
 					Treat internal repositories (GitHub Enterprise) as public
 				</label>
 			{:else}
 				<div class="alert alert-warning perm-alert" role="status">
 					Every Sourcegull user can search every repository of this connection, including private ones. To apply GitHub
-					permissions, set up <a href={configSectionURL('auth')}>sign-in with GitHub</a> and choose the second
-					option.
+					permissions, set up <a href={configSectionURL('auth')}>sign-in with GitHub</a> and choose the second option.
 				</div>
 			{/if}
 		</div>
@@ -495,7 +508,8 @@
 					onedit([[['certificate'], v === '' ? undefined : v + '\n']]);
 				}}
 			></textarea>
-			<span class="hint">Only for a GitHub Enterprise Server with a self-signed or internal certificate authority.</span>
+			<span class="hint">Only for a GitHub Enterprise Server with a self-signed or internal certificate authority.</span
+			>
 		</div>
 	</details>
 

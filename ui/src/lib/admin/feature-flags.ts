@@ -50,9 +50,7 @@ export const NAMESPACE_IDS = `query FeatureFlagNamespace($name: String!) {
 export interface FlagOverride {
 	id: string;
 	value: boolean;
-	namespace:
-		| { __typename: 'User'; id: string; username: string }
-		| { __typename: 'Org'; id: string; name: string };
+	namespace: { __typename: 'User'; id: string; username: string } | { __typename: 'Org'; id: string; name: string };
 }
 
 interface FlagBase {

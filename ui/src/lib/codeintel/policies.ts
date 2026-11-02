@@ -18,7 +18,6 @@ export function policyType(type: GitObjectType): PolicyType {
 	return type === 'GIT_TAG' || type === 'GIT_COMMIT' ? type : 'GIT_TREE';
 }
 
-
 const POLICY_FIELDS = `id name type pattern protected repository { name url } repositoryPatterns
 	retentionEnabled retentionDurationHours retainIntermediateCommits
 	indexingEnabled indexCommitMaxAgeHours indexIntermediateCommits managedBy`;
@@ -168,7 +167,9 @@ export function describeScope(p: Pick<PolicyNode, 'repository' | 'repositoryPatt
 }
 
 /** The retention a policy gives, in words (empty when retention is off). */
-export function describeRetention(p: Pick<PolicyNode, 'type' | 'retentionEnabled' | 'retentionDurationHours' | 'retainIntermediateCommits'>): string {
+export function describeRetention(
+	p: Pick<PolicyNode, 'type' | 'retentionEnabled' | 'retentionDurationHours' | 'retainIntermediateCommits'>
+): string {
 	if (!p.retentionEnabled) return '';
 	const kept = `Kept ${formatHours(p.retentionDurationHours)}`;
 	return p.type === 'GIT_TREE' && p.retainIntermediateCommits ? `${kept}, every commit on the branch` : kept;

@@ -4,7 +4,15 @@
  * validation (messages and query checks), the GraphQL inputs they save as,
  * the form values of an existing view, and the live preview's chart models.
  */
-import { languagePie, repoFilter, seriesColor, type BarDatum, type LineSeries, type PieDatum, pointLink } from './charts.ts';
+import {
+	languagePie,
+	repoFilter,
+	seriesColor,
+	type BarDatum,
+	type LineSeries,
+	type PieDatum,
+	pointLink
+} from './charts.ts';
 import {
 	filtersOf,
 	insightType,
@@ -548,7 +556,10 @@ export function searchCreateInput(f: SearchInsightFields, dashboardId: string | 
 	};
 }
 
-export function searchUpdateInput(f: SearchInsightFields, controls: ViewControlsInput): UpdateLineChartSearchInsightInput {
+export function searchUpdateInput(
+	f: SearchInsightFields,
+	controls: ViewControlsInput
+): UpdateLineChartSearchInsightInput {
 	return {
 		dataSeries: searchSeries(f),
 		repositoryScope: repositoryScopeInput(f),
@@ -557,7 +568,10 @@ export function searchUpdateInput(f: SearchInsightFields, controls: ViewControls
 	};
 }
 
-export function captureGroupCreateInput(f: CaptureGroupFields, dashboardId: string | null): LineChartSearchInsightInput {
+export function captureGroupCreateInput(
+	f: CaptureGroupFields,
+	dashboardId: string | null
+): LineChartSearchInsightInput {
 	return {
 		dataSeries: captureGroupSeries(f, null),
 		repositoryScope: repositoryScopeInput(f),
@@ -623,7 +637,8 @@ function repoFieldsOf(def: RepositoryDefinition | undefined): RepoFields {
 	if (def.__typename === 'InsightRepositoryScope') {
 		return { repoMode: 'urls-list', repoQuery: '', repositories: [...def.repositories] };
 	}
-	if (def.allRepositories || def.search.trim() === '') return { repoMode: 'all-repos', repoQuery: '', repositories: [] };
+	if (def.allRepositories || def.search.trim() === '')
+		return { repoMode: 'all-repos', repoQuery: '', repositories: [] };
 	return { repoMode: 'search-query', repoQuery: def.search, repositories: [] };
 }
 
@@ -657,7 +672,8 @@ export function editFormOf(view: InsightViewNode): EditForm {
 	switch (type) {
 		case 'language-stats': {
 			const def = first?.repositoryDefinition;
-			const otherThreshold = presentation.__typename === 'PieChartInsightViewPresentation' ? presentation.otherThreshold : 0.03;
+			const otherThreshold =
+				presentation.__typename === 'PieChartInsightViewPresentation' ? presentation.otherThreshold : 0.03;
 			return {
 				type,
 				fields: {
@@ -683,7 +699,12 @@ export function editFormOf(view: InsightViewNode): EditForm {
 			return {
 				type,
 				seriesId: first?.seriesId ?? null,
-				fields: { title: presentation.title, ...repoFieldsOf(first?.repositoryDefinition), query: first?.query ?? '', ...step }
+				fields: {
+					title: presentation.title,
+					...repoFieldsOf(first?.repositoryDefinition),
+					query: first?.query ?? '',
+					...step
+				}
 			};
 		case 'search':
 			return {
@@ -697,9 +718,7 @@ export function editFormOf(view: InsightViewNode): EditForm {
 
 /** What a live preview draws. */
 export type PreviewModel =
-	| { kind: 'line'; series: LineSeries[] }
-	| { kind: 'bar'; data: BarDatum[] }
-	| { kind: 'pie'; data: PieDatum[] };
+	{ kind: 'line'; series: LineSeries[] } | { kind: 'bar'; data: BarDatum[] } | { kind: 'pie'; data: PieDatum[] };
 
 /** Whether a preview has nothing to draw ("No data to display"). */
 export function previewModelEmpty(m: PreviewModel): boolean {
@@ -737,9 +756,12 @@ export function computePreviewInput(f: ComputeFields): InsightPreviewInput {
 		repositoryScope: { repositories: f.repositories, repositoryCriteria: null },
 		// Grouped series are counted at the latest point only; the interval is required.
 		timeScope: { stepInterval: { unit: 'DAY', value: 1 } },
-		series: f.series
-			.filter(isSeriesValid)
-			.map((s) => ({ query: s.query.trim(), label: s.name.trim(), generatedFromCaptureGroups: true, groupBy: f.groupBy }))
+		series: f.series.filter(isSeriesValid).map((s) => ({
+			query: s.query.trim(),
+			label: s.name.trim(),
+			generatedFromCaptureGroups: true,
+			groupBy: f.groupBy
+		}))
 	};
 }
 

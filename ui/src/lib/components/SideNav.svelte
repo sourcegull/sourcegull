@@ -31,9 +31,7 @@
 			<ul>
 				{#each group.items as item (item.href)}
 					<li>
-						<a href={item.href} aria-current={item.href === current ? 'page' : undefined}
-							>{item.title}</a
-						>
+						<a href={item.href} aria-current={item.href === current ? 'page' : undefined}>{item.title}</a>
 					</li>
 				{/each}
 			</ul>

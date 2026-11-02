@@ -40,32 +40,15 @@
 	<form {onsubmit}>
 		<div class="field">
 			<label class="label" for="name">Name</label>
-			<input
-				class="input"
-				id="name"
-				bind:value={name}
-				required
-				maxlength="255"
-				autocomplete="name"
-			/>
+			<input class="input" id="name" bind:value={name} required maxlength="255" autocomplete="name" />
 		</div>
 		<div class="field">
 			<label class="label" for="email">Email</label>
-			<input
-				class="input"
-				id="email"
-				type="email"
-				bind:value={email}
-				required
-				autocomplete="email"
-			/>
+			<input class="input" id="email" type="email" bind:value={email} required autocomplete="email" />
 		</div>
 		<div class="field">
-			<label class="label" for="info"
-				>Why do you need access? <span class="muted">(optional)</span></label
-			>
-			<textarea class="input" id="info" rows="4" bind:value={additionalInfo} maxlength="4096"
-			></textarea>
+			<label class="label" for="info">Why do you need access? <span class="muted">(optional)</span></label>
+			<textarea class="input" id="info" rows="4" bind:value={additionalInfo} maxlength="4096"></textarea>
 		</div>
 		<button class="btn btn-primary" type="submit" disabled={submitting}>
 			{submitting ? 'Sending…' : 'Request access'}

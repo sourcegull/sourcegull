@@ -49,14 +49,7 @@
 	<form {onsubmit}>
 		<div class="field">
 			<label class="label" for="password">New password</label>
-			<input
-				class="input"
-				id="password"
-				type="password"
-				bind:value={password}
-				autocomplete="new-password"
-				required
-			/>
+			<input class="input" id="password" type="password" bind:value={password} autocomplete="new-password" required />
 		</div>
 		<div class="field">
 			<label class="label" for="confirm-password">Confirm new password</label>

@@ -197,7 +197,12 @@
 	{#if current}
 		{#if viewIds.length === 0}
 			<section class="empty-dashboard">
-				<button type="button" class="add-card card" data-testid="add-insights-button-card" onclick={() => (addOpen = true)}>
+				<button
+					type="button"
+					class="add-card card"
+					data-testid="add-insights-button-card"
+					onclick={() => (addOpen = true)}
+				>
 					<span class="plus" aria-hidden="true"><Icon name="plus" size={28} /></span>
 					<span>Add trends</span>
 				</button>
@@ -225,7 +230,9 @@
 			<span class="icon"><Icon name="insights" size={32} /></span>
 			<h2>Your dashboard will appear here</h2>
 			<p>Your instance does not have any dashboards or you may not have permissions to view them.</p>
-			<a class="btn btn-primary" href="/trends/add-dashboard"><Icon name="plus" size={16} />Create your first dashboard</a>
+			<a class="btn btn-primary" href="/trends/add-dashboard"
+				><Icon name="plus" size={16} />Create your first dashboard</a
+			>
 		</section>
 	{:else if notFound}
 		<section class="empty-state">

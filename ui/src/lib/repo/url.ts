@@ -17,16 +17,7 @@
  */
 
 export type RepoPageKind =
-	| 'root'
-	| 'tree'
-	| 'blob'
-	| 'commit'
-	| 'commits'
-	| 'compare'
-	| 'branches'
-	| 'tags'
-	| 'code-graph'
-	| 'settings';
+	'root' | 'tree' | 'blob' | 'commit' | 'commits' | 'compare' | 'branches' | 'tags' | 'code-graph' | 'settings';
 
 const PAGE_KINDS: ReadonlySet<string> = new Set([
 	'tree',
@@ -92,9 +83,7 @@ export function parseRepoRoute(pathname: string): RepoRoute | null {
 export function encodePath(s: string): string {
 	return s
 		.split('/')
-		.map((seg) =>
-			encodeURIComponent(seg).replace(/%40/g, '@').replace(/%2B/g, '+').replace(/%3A/g, ':')
-		)
+		.map((seg) => encodeURIComponent(seg).replace(/%40/g, '@').replace(/%2B/g, '+').replace(/%3A/g, ':'))
 		.join('/');
 }
 

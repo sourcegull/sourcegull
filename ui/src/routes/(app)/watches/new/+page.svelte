@@ -31,19 +31,16 @@
 		busy = true;
 		error = null;
 		try {
-			const r = await graphql<CreateCodeMonitorMutation, Record<string, unknown>>(
-				CREATE_MONITOR,
-				{
-					monitor: {
-						namespace: v.namespace,
-						description: v.description,
-						enabled: v.enabled,
-						unfilteredResults: v.unfiltered
-					},
-					trigger: { query: v.query },
-					actions: v.actions.map(actionInput)
-				}
-			);
+			const r = await graphql<CreateCodeMonitorMutation, Record<string, unknown>>(CREATE_MONITOR, {
+				monitor: {
+					namespace: v.namespace,
+					description: v.description,
+					enabled: v.enabled,
+					unfilteredResults: v.unfiltered
+				},
+				trigger: { query: v.query },
+				actions: v.actions.map(actionInput)
+			});
 			await goto(r.createCodeMonitor.url);
 		} catch (err) {
 			error = errorMessage(err);
@@ -60,7 +57,9 @@
 	<div class="page-header">
 		<div>
 			<h1>New watch</h1>
-			<p class="page-description">Pick a commit or diff search to watch and how you want to be told about new matches.</p>
+			<p class="page-description">
+				Pick a commit or diff search to watch and how you want to be told about new matches.
+			</p>
 		</div>
 	</div>
 	{#if !ready}
@@ -102,4 +101,3 @@
 		/>
 	{/if}
 </div>
-

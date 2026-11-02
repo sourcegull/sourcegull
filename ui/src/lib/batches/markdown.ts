@@ -150,7 +150,7 @@ export function parseInline(text: string, opts: InlineOptions = {}): Inline[] {
 				continue;
 			}
 		}
-		if ((ch === 'h') && (m = /^https?:\/\/[^\s<>()]+[^\s<>().,;:!?'"]/.exec(rest)) && !/[\w/]$/.test(buf)) {
+		if (ch === 'h' && (m = /^https?:\/\/[^\s<>()]+[^\s<>().,;:!?'"]/.exec(rest)) && !/[\w/]$/.test(buf)) {
 			flush();
 			out.push({ kind: 'link', href: m[0], children: [{ kind: 'text', text: m[0] }] });
 			i += m[0].length;

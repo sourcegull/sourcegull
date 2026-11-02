@@ -7,13 +7,7 @@
 	import { page } from '$app/state';
 	import { formatDate, relativeTime } from '#lib/batches/batch-change.ts';
 	import { errorMessage, graphql } from '#lib/graphql.ts';
-	import {
-		WEBHOOK_LOGS,
-		prettyBody,
-		statusClass,
-		type WebhookLog,
-		type WebhookLogsResult
-	} from '#lib/admin/logs.ts';
+	import { WEBHOOK_LOGS, prettyBody, statusClass, type WebhookLog, type WebhookLogsResult } from '#lib/admin/logs.ts';
 
 	const PAGE = 50;
 
@@ -70,8 +64,8 @@
 	<div>
 		<h1>Webhook logs</h1>
 		<p class="page-description">
-			Webhooks code hosts sent to Sourcegull{connection ? ' for this connection' : ''}, newest first, kept
-			for a week. Secrets are never logged.
+			Webhooks code hosts sent to Sourcegull{connection ? ' for this connection' : ''}, newest first, kept for a week.
+			Secrets are never logged.
 			{#if connection}<a href="/site-admin/webhook-logs">All connections</a>{/if}
 		</p>
 		<RelatedLinks />
@@ -116,7 +110,9 @@
 						<details>
 							<summary>{w.event ?? 'unknown event'}</summary>
 							<div class="muted small mono">{w.request.method} {w.request.url}</div>
-							{#each w.request.headers as h (h.name)}<div class="mono small">{h.name}: {h.values.join(', ')}</div>{/each}
+							{#each w.request.headers as h (h.name)}<div class="mono small">
+									{h.name}: {h.values.join(', ')}
+								</div>{/each}
 							<pre class="code">{prettyBody(w.request.body)}</pre>
 						</details>
 						{#if w.response.body}<pre class="code bad">{w.response.body}</pre>{/if}

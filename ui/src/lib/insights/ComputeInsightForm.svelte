@@ -102,7 +102,8 @@
 			{#if reposError}
 				<span class="error" id="insight-repositories-hint" role="alert">{reposError}</span>
 			{:else}
-				<span class="hint muted" id="insight-repositories-hint">Find and choose at least 1 repository to run trend</span>
+				<span class="hint muted" id="insight-repositories-hint">Find and choose at least 1 repository to run trend</span
+				>
 			{/if}
 		</section>
 		<SeriesEditor bind:series={f.series} {submitted} />

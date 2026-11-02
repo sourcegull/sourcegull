@@ -269,8 +269,7 @@ function parseBlocks(lines: string[], ctx: Ctx): DocBlock[] {
 			if (head.length === delims.length) {
 				flush();
 				const width = head.length;
-				const fit = (cells: string[]) =>
-					Array.from({ length: width }, (_, k) => inline(ctx, cells[k] ?? ''));
+				const fit = (cells: string[]) => Array.from({ length: width }, (_, k) => inline(ctx, cells[k] ?? ''));
 				const rows: Inline[][][] = [];
 				i += 2;
 				while (i < lines.length && !interrupts(lines[i] ?? '')) {
@@ -483,10 +482,7 @@ export function resolveLink(href: string, loc: DocLocation): string | null {
 /** Image types the raw file endpoint serves inline. */
 const INLINE_IMAGE = /\.(png|jpe?g|gif|webp|bmp|ico|avif)$/i;
 
-export type ResolvedImage =
-	| { kind: 'image'; src: string }
-	| { kind: 'link'; href: string }
-	| { kind: 'text' };
+export type ResolvedImage = { kind: 'image'; src: string } | { kind: 'link'; href: string } | { kind: 'text' };
 
 /**
  * How to show an image: relative images in formats the raw endpoint serves inline load from

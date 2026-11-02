@@ -5,4 +5,5 @@
 	let { text }: { text: string } = $props();
 </script>
 
-{#each codeSpans(text) as part, i (i)}{#if part.code}<code class="code-inline">{part.text}</code>{:else}{part.text}{/if}{/each}
+{#each codeSpans(text) as part, i (i)}{#if part.code}<code class="code-inline">{part.text}</code
+		>{:else}{part.text}{/if}{/each}

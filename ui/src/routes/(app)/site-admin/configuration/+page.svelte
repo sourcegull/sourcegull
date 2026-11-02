@@ -151,12 +151,9 @@
 		saveError = null;
 		notice = null;
 		try {
-			const data = await graphql<OrganizeSiteConfigurationResult, { input: string }>(
-				ORGANIZE_SITE_CONFIGURATION,
-				{
-					input: contents
-				}
-			);
+			const data = await graphql<OrganizeSiteConfigurationResult, { input: string }>(ORGANIZE_SITE_CONFIGURATION, {
+				input: contents
+			});
 			const next = data.site.organizeConfiguration;
 			notice =
 				next === contents
@@ -196,9 +193,7 @@
 				{ lastID: loaded.id, input: contents }
 			);
 			await load();
-			notice = result.updateSiteConfiguration
-				? 'Saved. Restart the server for some changes to take effect.'
-				: 'Saved.';
+			notice = result.updateSiteConfiguration ? 'Saved. Restart the server for some changes to take effect.' : 'Saved.';
 		} catch (err) {
 			if (isConflictError(err)) conflict = true;
 			else saveError = errorMessage(err);
@@ -237,8 +232,8 @@
 		<h1>Site configuration</h1>
 		<p class="page-description">
 			{#if view === 'settings'}
-				Instance-wide settings. Changes are written into the configuration document, keeping its comments; save to
-				apply them.
+				Instance-wide settings. Changes are written into the configuration document, keeping its comments; save to apply
+				them.
 			{:else}
 				JSON with comments. Press <kbd>Ctrl</kbd>/<kbd>⌘</kbd>+<kbd>S</kbd> to save. The JSON Schema is at
 				<a href="/.api/site-config-schema" target="_blank" rel="noopener">/.api/site-config-schema</a>.
@@ -303,9 +298,8 @@
 
 {#if conflict}
 	<div class="alert alert-warning" role="alert">
-		<strong>The configuration was changed since you loaded it.</strong> Someone else (or another tab)
-		saved a newer version. Reload to get the latest version; your edits will be lost, so copy them
-		first if you need them.
+		<strong>The configuration was changed since you loaded it.</strong> Someone else (or another tab) saved a newer
+		version. Reload to get the latest version; your edits will be lost, so copy them first if you need them.
 		<div class="toolbar actions">
 			<button class="btn btn-sm" type="button" onclick={reloadDiscardingEdits}>Reload latest version</button>
 			<button class="btn btn-sm" type="button" onclick={() => navigator.clipboard?.writeText(contents)}>
@@ -329,10 +323,12 @@
 
 {#if loaded && loaded.validationMessages.length > 0 && !saveError}
 	<div class="alert alert-warning" role="status">
-		<strong>The saved configuration has {loaded.validationMessages.length} validation problem{loaded
-				.validationMessages.length === 1
+		<strong
+			>The saved configuration has {loaded.validationMessages.length} validation problem{loaded.validationMessages
+				.length === 1
 				? ''
-				: 's'}:</strong>
+				: 's'}:</strong
+		>
 		<ul>
 			{#each loaded.validationMessages as message, i (i)}
 				<li>{message}</li>
@@ -377,7 +373,9 @@
 									<li>
 										<button type="button" class="section" onclick={() => revealKey(m.section, m.key)}>
 											<span class="section-title"><code>{m.key}</code></span>
-											<span class="section-description">{m.section.title}{m.description ? ` · ${m.description}` : ''}</span>
+											<span class="section-description"
+												>{m.section.title}{m.description ? ` · ${m.description}` : ''}</span
+											>
 										</button>
 									</li>
 								{/each}
@@ -418,14 +416,16 @@
 										<span class="section-title">
 											{section.title}
 											{#if count > 0}<span class="count" title="Keys set in the document">{count}</span>{/if}
-											{#if problems > 0}<span class="badge badge-danger" title="Validation problems">{problems}</span>{/if}
+											{#if problems > 0}<span class="badge badge-danger" title="Validation problems">{problems}</span
+												>{/if}
 										</span>
 										<span class="section-description">{section.description}</span>
 									</button>
 								</li>
 							{/each}
 						</ul>
-					</nav>				{/if}
+					</nav>
+				{/if}
 			</div>
 		{/if}
 		<div class="main">
@@ -519,7 +519,12 @@
 			</span>
 			<span class="save-actions">
 				<button class="btn" type="button" onclick={discard} disabled={!dirty || saving}>Discard</button>
-				<button class="btn btn-primary" type="button" onclick={save} disabled={!dirty || saving || conflict || readOnly}>
+				<button
+					class="btn btn-primary"
+					type="button"
+					onclick={save}
+					disabled={!dirty || saving || conflict || readOnly}
+				>
 					{saving ? 'Saving…' : 'Save'}
 				</button>
 			</span>

@@ -19,7 +19,8 @@
 
 <span class="copy-field">
 	<input class="input input-sm mono" readonly {value} aria-label={label} onfocus={(e) => e.currentTarget.select()} />
-	<button class="btn btn-sm" type="button" onclick={copy} aria-label="Copy {label}">{copied ? 'Copied' : 'Copy'}</button>
+	<button class="btn btn-sm" type="button" onclick={copy} aria-label="Copy {label}">{copied ? 'Copied' : 'Copy'}</button
+	>
 	<span class="visually-hidden" aria-live="polite">{copied ? `${label} copied` : ''}</span>
 </span>
 

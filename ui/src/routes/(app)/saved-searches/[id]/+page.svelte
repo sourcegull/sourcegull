@@ -120,7 +120,9 @@
 				<h1 class="title">
 					{search.description}
 					{#if search.draft}<span class="badge badge-warning">draft</span>{/if}
-					<span class="badge" class:badge-primary={search.visibility === 'PUBLIC'}>{search.visibility.toLowerCase()}</span>
+					<span class="badge" class:badge-primary={search.visibility === 'PUBLIC'}
+						>{search.visibility.toLowerCase()}</span
+					>
 				</h1>
 				<p class="page-description">
 					Owned by {namespaceLabel(search.owner)}

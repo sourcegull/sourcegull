@@ -34,10 +34,7 @@ export const DELETE_CREDENTIAL = `mutation DeleteBatchChangesCredential($id: ID!
 }`;
 
 /** How a code host's credential reads in the list. */
-export function credentialStatus(
-	host: BatchChangesCodeHost,
-	scope: 'site' | 'user'
-): 'none' | 'own' | 'site' {
+export function credentialStatus(host: BatchChangesCodeHost, scope: 'site' | 'user'): 'none' | 'own' | 'site' {
 	const c = host.credential;
 	if (!c) return 'none';
 	if (scope === 'user' && c.isSiteCredential) return 'site';

@@ -4,10 +4,7 @@
  * repositories cannot inject markup.
  */
 
-export type Block =
-	| { kind: 'code'; lang: string; text: string }
-	| { kind: 'rule' }
-	| { kind: 'para'; text: string };
+export type Block = { kind: 'code'; lang: string; text: string } | { kind: 'rule' } | { kind: 'para'; text: string };
 
 /** Splits Markdown into blocks. */
 export function parseBlocks(md: string): Block[] {

@@ -9,7 +9,7 @@
 		type InvitationByTokenResult,
 		type InvitationResponse,
 		type Vars
-} from '#lib/orgs/queries.ts';
+	} from '#lib/orgs/queries.ts';
 
 	const token = $derived(page.params.token ?? '');
 	let invitation = $state<InvitationByTokenResult['invitationByToken'] | null>(null);
@@ -68,8 +68,8 @@
 		</p>
 		{#if invitation.recipientEmail && invitation.isVerifiedEmail === false}
 			<div class="alert alert-warning" role="status">
-				This invitation was sent to {invitation.recipientEmail}. Add and verify that address in your
-				account to accept it.
+				This invitation was sent to {invitation.recipientEmail}. Add and verify that address in your account to accept
+				it.
 			</div>
 		{/if}
 		{#if declined}

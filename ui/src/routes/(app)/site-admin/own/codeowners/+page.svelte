@@ -110,10 +110,10 @@
 	<div>
 		<h1>CODEOWNERS files</h1>
 		<p class="page-description">
-			A CODEOWNERS file uploaded for a repository replaces the one in the repository (GitLab syntax:
-			sections, <span class="code-inline">@user</span>, <span class="code-inline">@group/subgroup</span>,
-			emails). Owners resolve to users through their GitLab accounts and verified emails, and groups to
-			teams of the same name.
+			A CODEOWNERS file uploaded for a repository replaces the one in the repository (GitLab syntax: sections, <span
+				class="code-inline">@user</span
+			>, <span class="code-inline">@group/subgroup</span>, emails). Owners resolve to users through their GitLab
+			accounts and verified emails, and groups to teams of the same name.
 		</p>
 	</div>
 	<div class="page-actions">
@@ -142,8 +142,14 @@
 	</label>
 	<label class="field">
 		<span class="label">Contents</span>
-		<textarea class="input mono" rows="12" bind:value={contents} disabled={saving} required
-			placeholder={'* @default-owner\n[Docs]\n/docs/ @docs-team'}></textarea>
+		<textarea
+			class="input mono"
+			rows="12"
+			bind:value={contents}
+			disabled={saving}
+			required
+			placeholder={'* @default-owner\n[Docs]\n/docs/ @docs-team'}
+		></textarea>
 	</label>
 	<div class="actions">
 		<button class="btn btn-primary" type="submit" disabled={saving || !repoName.trim()}>
@@ -167,7 +173,9 @@
 			{#each files as f (f.id)}
 				<tr>
 					<td class="mono">
-						{#if f.repository}<a href={f.repository.url}>{f.repository.name}</a>{:else}<span class="muted">(not visible)</span>{/if}
+						{#if f.repository}<a href={f.repository.url}>{f.repository.name}</a>{:else}<span class="muted"
+								>(not visible)</span
+							>{/if}
 					</td>
 					<td class="num">{f.contents.split('\n').filter((l) => l.trim()).length}</td>
 					<td>{formatDate(f.updatedAt)}</td>

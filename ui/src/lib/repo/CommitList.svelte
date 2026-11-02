@@ -67,11 +67,8 @@
 	<CommitTable {repo} {commits} emptyText={loading ? 'Loading…' : 'No commits.'} />
 	{#if hasMore}
 		<p>
-			<button
-				type="button"
-				class="btn"
-				disabled={loading}
-				onclick={() => load(repo, urlRev ?? 'HEAD', path, cursor)}>{loading ? 'Loading…' : 'Show more'}</button
+			<button type="button" class="btn" disabled={loading} onclick={() => load(repo, urlRev ?? 'HEAD', path, cursor)}
+				>{loading ? 'Loading…' : 'Show more'}</button
 			>
 		</p>
 	{/if}

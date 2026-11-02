@@ -101,11 +101,7 @@ export async function postAuth(
 }
 
 /** POSTs a JSON body to an auth endpoint, throwing [`AuthError`] with the server's message. */
-async function postJSON(
-	path: string,
-	body: Record<string, string>,
-	doFetch: typeof fetch
-): Promise<void> {
+async function postJSON(path: string, body: Record<string, string>, doFetch: typeof fetch): Promise<void> {
 	let res: Response;
 	try {
 		res = await doFetch(path, {
@@ -138,12 +134,8 @@ export const signUp = (username: string, email: string, password: string, f?: ty
 	postAuth('sign-up', { username, email, password }, f);
 export const signOut = (f?: typeof fetch) => postAuth('sign-out', {}, f);
 /** Submits an access request (`auth.accessRequest`). */
-export const requestAccess = (
-	name: string,
-	email: string,
-	additionalInfo: string,
-	f: typeof fetch = fetch
-) => postJSON('/.api/request-access', { name, email, additionalInfo }, f);
+export const requestAccess = (name: string, email: string, additionalInfo: string, f: typeof fetch = fetch) =>
+	postJSON('/.api/request-access', { name, email, additionalInfo }, f);
 /** Sets the first password with an approved access request's setup link. */
 export const setInvitePassword = (token: string, password: string, f: typeof fetch = fetch) =>
 	postJSON('/.api/set-invite-password', { token, password }, f);
@@ -152,12 +144,8 @@ export const setInvitePassword = (token: string, password: string, f: typeof fet
 export const requestPasswordReset = (email: string, f: typeof fetch = fetch) =>
 	postJSON('/-/reset-password-init', { email }, f);
 /** Sets a new password with a reset link's user ID and code. */
-export const resetPassword = (
-	userID: string,
-	code: string,
-	password: string,
-	f: typeof fetch = fetch
-) => postJSON('/-/reset-password-code', { userID, code, password }, f);
+export const resetPassword = (userID: string, code: string, password: string, f: typeof fetch = fetch) =>
+	postJSON('/-/reset-password-code', { userID, code, password }, f);
 
 /** Routes that anonymous visitors may open. */
 const PUBLIC_ROUTES = [

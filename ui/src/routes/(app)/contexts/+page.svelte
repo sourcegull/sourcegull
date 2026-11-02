@@ -102,8 +102,8 @@
 		<div>
 			<h1>Search contexts</h1>
 			<p class="page-description">
-				Limit a search to a set of repositories (with revisions) or to what a query selects. Pick one in the search box or
-				write <code class="code-inline">context:@user/name</code>.
+				Limit a search to a set of repositories (with revisions) or to what a query selects. Pick one in the search box
+				or write <code class="code-inline">context:@user/name</code>.
 			</p>
 		</div>
 		{#if user}

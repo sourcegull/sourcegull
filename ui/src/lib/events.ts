@@ -64,4 +64,3 @@ export function logEvent(event: string, argument: Record<string, unknown> = {}):
 export function viewBlobArgument(repoName: string, filePath: string): { repoName: string; filePath: string } {
 	return { repoName, filePath: filePath.replace(/^\/+|\/+$/g, '') };
 }
-

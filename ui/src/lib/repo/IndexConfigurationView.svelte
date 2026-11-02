@@ -71,10 +71,7 @@
 			const r = await graphql<
 				QueueAutoIndexJobsForRepoMutation,
 				{ repo: string; rev: string | null; configuration: string | null }
-			>(
-				QUEUE_AUTO_INDEX_JOBS,
-				{ repo: repoId, rev: null, configuration: null }
-			);
+			>(QUEUE_AUTO_INDEX_JOBS, { repo: repoId, rev: null, configuration: null });
 			const jobs = r.queueAutoIndexJobsForRepo;
 			notice =
 				jobs.length === 0
@@ -96,8 +93,8 @@
 		<h2>Index configuration</h2>
 	</div>
 	<p class="muted intro">
-		Auto-indexing runs the jobs of this configuration if one is saved, else those of <code>sourcegull.yaml</code> in the
-		repository, else the jobs inferred from the repository's files.
+		Auto-indexing runs the jobs of this configuration if one is saved, else those of <code>sourcegull.yaml</code> in the repository,
+		else the jobs inferred from the repository's files.
 	</p>
 	{#if error}
 		<div class="alert alert-danger" role="alert">{error}</div>

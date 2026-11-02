@@ -105,7 +105,13 @@
 	</div>
 	<form class="toolbar" onsubmit={submit}>
 		<label class="visually-hidden" for="compute-q">Compute query</label>
-		<input id="compute-q" class="input query" type="search" placeholder="content:output(pattern -> template)" bind:value={text} />
+		<input
+			id="compute-q"
+			class="input query"
+			type="search"
+			placeholder="content:output(pattern -> template)"
+			bind:value={text}
+		/>
 		<button type="submit" class="btn btn-primary">Run</button>
 		{#if running}<button type="button" class="btn" onclick={() => controller?.abort()}>Stop</button>{/if}
 	</form>
@@ -131,7 +137,8 @@
 	{#if progress || running}
 		<p class="muted status" aria-live="polite">
 			{running ? 'Computing…' : 'Done.'}
-			{#if progress}{progress.matchCount} search results{#if progress.repositoriesCount != null} in {progress.repositoriesCount} repositories{/if}, {results.length} computed results, {progress.durationMs} ms{/if}
+			{#if progress}{progress.matchCount} search results{#if progress.repositoriesCount != null}
+					in {progress.repositoriesCount} repositories{/if}, {results.length} computed results, {progress.durationMs} ms{/if}
 		</p>
 	{/if}
 
@@ -142,9 +149,7 @@
 			<button type="button" class="btn btn-sm btn-ghost" onclick={copy}>
 				{copied ? 'Copied' : 'Copy'}
 			</button>
-			<button type="button" class="btn btn-sm btn-ghost" onclick={download}>
-				Download
-			</button>
+			<button type="button" class="btn btn-sm btn-ghost" onclick={download}> Download </button>
 		</div>
 		{#if combined}<pre class="card output">{combined}</pre>{/if}
 	{/if}
@@ -158,7 +163,9 @@
 						<tbody>
 							{#each r.matches as m, j (j)}
 								<tr>
-									<td class="muted"><a href={`${resultFileURL(r)}#L${m.range.start.line + 1}`}>{m.range.start.line + 1}</a></td>
+									<td class="muted"
+										><a href={`${resultFileURL(r)}#L${m.range.start.line + 1}`}>{m.range.start.line + 1}</a></td
+									>
 									<td><code>{m.value}</code></td>
 									<td>
 										{#each Object.entries(m.environment) as [k, d] (k)}
@@ -176,7 +183,10 @@
 				</li>
 			{:else if r.kind !== 'output'}
 				<li class="card">
-					<div class="where muted">{r.kind}{#if r.repository} · <code>{r.repository}</code>{/if}</div>
+					<div class="where muted">
+						{r.kind}{#if r.repository}
+							· <code>{r.repository}</code>{/if}
+					</div>
 					<pre>{r.value}</pre>
 				</li>
 			{/if}

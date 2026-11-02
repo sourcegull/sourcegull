@@ -66,10 +66,9 @@
 
 	const inDocument = $derived(Array.isArray(doc[KEY]));
 	const defaultProviders = $derived(
-		(Array.isArray(schema.properties?.[KEY]?.default) ? schema.properties?.[KEY]?.default : [{ type: 'builtin' }]) as Record<
-			string,
-			unknown
-		>[]
+		(Array.isArray(schema.properties?.[KEY]?.default)
+			? schema.properties?.[KEY]?.default
+			: [{ type: 'builtin' }]) as Record<string, unknown>[]
 	);
 	const providers = $derived(
 		(inDocument ? (doc[KEY] as unknown[]) : defaultProviders).map((p) =>
@@ -78,7 +77,9 @@
 	);
 	const savedProviders = $derived(saved && Array.isArray(saved[KEY]) ? (saved[KEY] as unknown[]) : null);
 	const externalURL = $derived(doc.externalURL);
-	const externalURLField = $derived(buildField(schema, 'externalURL', schema.properties?.externalURL ?? {}, ['externalURL']));
+	const externalURLField = $derived(
+		buildField(schema, 'externalURL', schema.properties?.externalURL ?? {}, ['externalURL'])
+	);
 	const listIssues = $derived(issuesAt(issues, [KEY], false));
 
 	let open = $state<number | null>(null);
@@ -148,8 +149,8 @@
 	</div>
 	<p class="hint">
 		How users sign in. Several providers can be enabled at once; each gets a button on the sign-in page.
-		{#if !inDocument}<strong>Not set:</strong> the default applies (username and password only). Changing it writes the
-			list to the configuration.{/if}
+		{#if !inDocument}<strong>Not set:</strong> the default applies (username and password only). Changing it writes the list
+			to the configuration.{/if}
 	</p>
 	{#each listIssues as issue, i (i)}<p class="error-text">{issue.message}</p>{/each}
 
@@ -176,7 +177,9 @@
 						</span>
 						<span class="badge">{info.label}</span>
 						{#if missing.length > 0}<span class="badge badge-warning">Incomplete</span>{/if}
-						{#if providerIssues.length > 0}<span class="badge badge-danger">{providerIssues.length} problem{providerIssues.length === 1 ? '' : 's'}</span>{/if}
+						{#if providerIssues.length > 0}<span class="badge badge-danger"
+								>{providerIssues.length} problem{providerIssues.length === 1 ? '' : 's'}</span
+							>{/if}
 						{#if changed}<span class="badge badge-warning">Changed</span>{/if}
 						{#if !isSupportedProviderType(provider.type)}<span class="badge badge-danger">Not supported</span>{/if}
 					</div>
@@ -213,8 +216,7 @@
 								<ol class="steps">
 									<li>
 										<strong>Set the external URL of Sourcegull.</strong>
-										GitLab sends users back to it after they sign in, so it must be the URL people use to reach this
-										instance.
+										GitLab sends users back to it after they sign in, so it must be the URL people use to reach this instance.
 										{#if isHttpURL(externalURL)}
 											Currently <code class="code-inline">{externalURL}</code>.
 										{:else}
@@ -228,17 +230,18 @@
 										{/if}
 									</li>
 									<li>
-										<strong>Create an OAuth application in GitLab</strong> at <code class="code-inline">{gitlabBase(provider.url)}</code>
+										<strong>Create an OAuth application in GitLab</strong> at
+										<code class="code-inline">{gitlabBase(provider.url)}</code>
 										(change <em>GitLab URL</em> below for a self-managed instance). Any of these works:
 										<ul>
 											<li>
 												<a href={apps.admin} target="_blank" rel="noopener noreferrer">Admin area › Applications</a>: an
-												instance-wide application (self-managed GitLab, administrators only). Recommended: it doesn't depend
-												on one person's account.
+												instance-wide application (self-managed GitLab, administrators only). Recommended: it doesn't
+												depend on one person's account.
 											</li>
 											<li>
-												A group's <em>Settings › Applications</em> (<code class="code-inline">{apps.group}</code>): owned by
-												a group you maintain.
+												A group's <em>Settings › Applications</em> (<code class="code-inline">{apps.group}</code>):
+												owned by a group you maintain.
 											</li>
 											<li>
 												<a href={apps.user} target="_blank" rel="noopener noreferrer">User settings › Applications</a>:
@@ -251,7 +254,10 @@
 										{#if redirect}
 											<CopyField value={redirect} label="Redirect URI" />
 										{:else}
-											<p><code class="code-inline">&lt;externalURL&gt;/.auth/gitlab/callback</code> <span class="muted">(set the external URL first)</span></p>
+											<p>
+												<code class="code-inline">&lt;externalURL&gt;/.auth/gitlab/callback</code>
+												<span class="muted">(set the external URL first)</span>
+											</p>
 										{/if}
 									</li>
 									<li><strong>Confidential:</strong> keep it checked. Sourcegull keeps the secret on the server.</li>
@@ -262,7 +268,7 @@
 												<li><code class="code-inline">{s.scope}</code>: {s.purpose}</li>
 											{/each}
 										</ul>
-										Sourcegull never writes to GitLab through sign-in tokens, so no <code class="code-inline">api</code> or
+										Sourcegull never writes to GitLab through sign-in tokens, so no<code class="code-inline">api</code> or
 										write scope is needed.
 									</li>
 									<li>
@@ -273,14 +279,15 @@
 									<li>
 										<strong>Optional:</strong> <em>Display name</em> labels the sign-in button; <em>Allow signup</em>
 										creates a Sourcegull account on first sign-in (without it, GitLab users can only sign in to an existing
-										account with the same verified email); <em>Allow groups</em> limits sign-in to members of those groups
-										(full paths, e.g. <code class="code-inline">acme/platform</code>).
+										account with the same verified email); <em>Allow groups</em> limits sign-in to members of those
+										groups (full paths, e.g. <code class="code-inline">acme/platform</code>).
 									</li>
 									<li>
 										<strong>Apply GitLab repository permissions</strong> to users who sign in this way: on the GitLab
 										<a href="/site-admin/external-services">code host connection</a>, add
-										<code class="code-inline">"authorization": {'{'} "identityProvider": {'{'} "type": "oauth" {'}'} {'}'}</code>.
-										The connection's <code class="code-inline">url</code> must be the same GitLab instance.
+										<code class="code-inline"
+											>"authorization": {'{'} "identityProvider": {'{'} "type": "oauth" {'}'} {'}'}</code
+										>. The connection's <code class="code-inline">url</code> must be the same GitLab instance.
 									</li>
 									<li><strong>Save</strong> this page and sign in from a private window to try it.</li>
 								</ol>
@@ -300,7 +307,8 @@
 										{/if}
 									</li>
 									<li>
-										<strong>Register an OAuth app in GitHub</strong> at <code class="code-inline">{githubBase(provider.url)}</code>
+										<strong>Register an OAuth app in GitHub</strong> at
+										<code class="code-inline">{githubBase(provider.url)}</code>
 										(change <em>Url</em> below for GitHub Enterprise Server), either
 										<a href={apps.user} target="_blank" rel="noopener noreferrer">for your account</a> or for an
 										organization (<code class="code-inline">{apps.org}</code>), recommended so it doesn't depend on one
@@ -311,7 +319,10 @@
 										{#if redirect}
 											<CopyField value={redirect} label="Callback URL" />
 										{:else}
-											<p><code class="code-inline">&lt;externalURL&gt;/.auth/github/callback</code> <span class="muted">(set the external URL first)</span></p>
+											<p>
+												<code class="code-inline">&lt;externalURL&gt;/.auth/github/callback</code>
+												<span class="muted">(set the external URL first)</span>
+											</p>
 										{/if}
 									</li>
 									<li>
@@ -324,8 +335,9 @@
 										<code class="code-inline">read:org</code> only when <em>Allow orgs</em> is set.
 									</li>
 									<li>
-										<strong>Optional:</strong> <em>Allow signup</em> creates a Sourcegull account on first sign-in (without it,
-										GitHub users can only sign in to an existing account with the same verified email); <em>Allow orgs</em>
+										<strong>Optional:</strong> <em>Allow signup</em> creates a Sourcegull account on first sign-in
+										(without it, GitHub users can only sign in to an existing account with the same verified email);
+										<em>Allow orgs</em>
 										limits sign-in to members of those organizations. An organization that restricts OAuth app access must
 										approve the app for its memberships to be visible.
 									</li>
@@ -353,28 +365,35 @@
 									<li>
 										<strong>Create an OAuth2 application in Gitea</strong>:
 										{#if apps}
-											<a href={apps.admin} target="_blank" rel="noopener noreferrer">Site Administration › Applications</a>
+											<a href={apps.admin} target="_blank" rel="noopener noreferrer"
+												>Site Administration › Applications</a
+											>
 											(instance-wide, administrators only; recommended) or
 											<a href={apps.user} target="_blank" rel="noopener noreferrer">Settings › Applications</a> (your own
 											account).
 										{:else}
 											under Site Administration › Applications (instance-wide) or your Settings › Applications.
 										{/if}
-										Keep <strong>Confidential client</strong> checked, and set the <strong>Redirect URI</strong> to exactly:
+										Keep <strong>Confidential client</strong> checked, and set the <strong>Redirect URI</strong> to
+										exactly:
 										{#if redirect}
 											<CopyField value={redirect} label="Redirect URI" />
 										{:else}
-											<p><code class="code-inline">&lt;externalURL&gt;/.auth/gitea/callback</code> <span class="muted">(set the external URL first)</span></p>
+											<p>
+												<code class="code-inline">&lt;externalURL&gt;/.auth/gitea/callback</code>
+												<span class="muted">(set the external URL first)</span>
+											</p>
 										{/if}
 									</li>
 									<li>
-										Copy the <em>Client ID</em> and <em>Client Secret</em> below. Gitea shows the secret only once. Sourcegull
-										asks for the scopes <code class="code-inline">read:user</code> and
+										Copy the <em>Client ID</em> and <em>Client Secret</em> below. Gitea shows the secret only once.
+										Sourcegull asks for the scopes <code class="code-inline">read:user</code> and
 										<code class="code-inline">read:organization</code>.
 									</li>
 									<li>
-										<strong>Optional:</strong> <em>Allow signup</em> creates a Sourcegull account on first sign-in (without it,
-										Gitea users can only sign in to an existing account with the same verified email); <em>Allow orgs</em>
+										<strong>Optional:</strong> <em>Allow signup</em> creates a Sourcegull account on first sign-in
+										(without it, Gitea users can only sign in to an existing account with the same verified email);
+										<em>Allow orgs</em>
 										limits sign-in to members of those organizations.
 									</li>
 									<li><strong>Save</strong> this page and sign in from a private window to try it.</li>
@@ -404,9 +423,10 @@
 										Sourcegull requests the scopes <code class="code-inline">openid email profile</code>.
 									</li>
 									<li>
-										<strong>Issuer</strong> is the URL that serves <code class="code-inline">/.well-known/openid-configuration</code>
-										(e.g. <code class="code-inline">https://keycloak.example.com/realms/acme</code>). Paste the client ID and
-										secret below.
+										<strong>Issuer</strong> is the URL that serves
+										<code class="code-inline">/.well-known/openid-configuration</code>
+										(e.g. <code class="code-inline">https://keycloak.example.com/realms/acme</code>). Paste the client
+										ID and secret below.
 									</li>
 								</ol>
 							</details>

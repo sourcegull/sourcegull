@@ -34,17 +34,15 @@
 {#snippet inline(nodes: Inline[])}
 	{#each nodes as n, i (i)}
 		{#if n.kind === 'text'}{n.text}{:else if n.kind === 'code'}<code>{n.text}</code
-			>{:else if n.kind === 'strong'}<strong>{@render inline(n.children)}</strong
-			>{:else if n.kind === 'em'}<em>{@render inline(n.children)}</em
-			>{:else if n.kind === 'del'}<del>{@render inline(n.children)}</del
-			>{:else if n.kind === 'link'}{@const href = resolveLink(n.href, loc)}{#if href}<a
-					{href}
-					rel={external(href) ? 'noopener noreferrer' : undefined}>{@render inline(n.children)}</a
-				>{:else}{@render inline(n.children)}{/if}{:else if n.kind === 'image'}{@const img = resolveImage(n.src, loc)}{#if img.kind === 'image'}<img
-					src={img.src}
-					alt={n.alt}
-					loading="lazy"
-				/>{:else if img.kind === 'link'}<a
+			>{:else if n.kind === 'strong'}<strong>{@render inline(n.children)}</strong>{:else if n.kind === 'em'}<em
+				>{@render inline(n.children)}</em
+			>{:else if n.kind === 'del'}<del>{@render inline(n.children)}</del>{:else if n.kind === 'link'}{@const href =
+				resolveLink(n.href, loc)}{#if href}<a {href} rel={external(href) ? 'noopener noreferrer' : undefined}
+					>{@render inline(n.children)}</a
+				>{:else}{@render inline(n.children)}{/if}{:else if n.kind === 'image'}{@const img = resolveImage(
+				n.src,
+				loc
+			)}{#if img.kind === 'image'}<img src={img.src} alt={n.alt} loading="lazy" />{:else if img.kind === 'link'}<a
 					href={img.href}
 					title="Image: {img.href}"
 					rel={external(img.href) ? 'noopener noreferrer' : undefined}>{n.alt || 'image'}</a
@@ -83,17 +81,17 @@
 			</div>
 		{:else if b.ordered}
 			<ol start={b.start === 1 ? undefined : b.start}>
-				{#each b.items as item, j (j)}<li class:task={item.task !== null}
-						>{#if item.task !== null}<input type="checkbox" checked={item.task} disabled />
-						{/if}{@render list(item.children, b.tight)}</li
-					>{/each}
+				{#each b.items as item, j (j)}<li class:task={item.task !== null}>
+						{#if item.task !== null}<input type="checkbox" checked={item.task} disabled />
+						{/if}{@render list(item.children, b.tight)}
+					</li>{/each}
 			</ol>
 		{:else}
 			<ul>
-				{#each b.items as item, j (j)}<li class:task={item.task !== null}
-						>{#if item.task !== null}<input type="checkbox" checked={item.task} disabled />
-						{/if}{@render list(item.children, b.tight)}</li
-					>{/each}
+				{#each b.items as item, j (j)}<li class:task={item.task !== null}>
+						{#if item.task !== null}<input type="checkbox" checked={item.task} disabled />
+						{/if}{@render list(item.children, b.tight)}
+					</li>{/each}
 			</ul>
 		{/if}
 	{/each}

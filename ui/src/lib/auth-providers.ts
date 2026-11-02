@@ -17,8 +17,18 @@ export interface ProviderTypeInfo {
 }
 
 export const PROVIDER_TYPES: ProviderTypeInfo[] = [
-	{ type: 'gitlab', label: 'GitLab', blurb: 'Sign in with gitlab.com or a self-managed GitLab (OAuth).', addable: true },
-	{ type: 'github', label: 'GitHub', blurb: 'Sign in with github.com or GitHub Enterprise Server (OAuth app).', addable: true },
+	{
+		type: 'gitlab',
+		label: 'GitLab',
+		blurb: 'Sign in with gitlab.com or a self-managed GitLab (OAuth).',
+		addable: true
+	},
+	{
+		type: 'github',
+		label: 'GitHub',
+		blurb: 'Sign in with github.com or GitHub Enterprise Server (OAuth app).',
+		addable: true
+	},
 	{ type: 'gitea', label: 'Gitea', blurb: 'Sign in with a Gitea instance (OAuth2 application).', addable: true },
 	{
 		type: 'openidconnect',
@@ -26,7 +36,12 @@ export const PROVIDER_TYPES: ProviderTypeInfo[] = [
 		blurb: 'Okta, Keycloak, Microsoft Entra ID, Google and other OIDC identity providers.',
 		addable: true
 	},
-	{ type: 'builtin', label: 'Username and password', blurb: 'Accounts stored in Sourcegull (built-in).', addable: true },
+	{
+		type: 'builtin',
+		label: 'Username and password',
+		blurb: 'Accounts stored in Sourcegull (built-in).',
+		addable: true
+	},
 	{
 		type: 'http-header',
 		label: 'HTTP header',
@@ -125,7 +140,10 @@ export function giteaApplicationURLs(url: unknown): { user: string; admin: strin
 
 /** The scopes the GitLab OAuth application needs, and what each is for. */
 export const GITLAB_SCOPES: { scope: string; purpose: string }[] = [
-	{ scope: 'read_user', purpose: 'reads the signed-in user’s username, name and verified email to create or match the account.' },
+	{
+		scope: 'read_user',
+		purpose: 'reads the signed-in user’s username, name and verified email to create or match the account.'
+	},
 	{
 		scope: 'read_api',
 		purpose:
@@ -159,10 +177,12 @@ export function providerVariant(schema: JsonSchema, type: unknown): JsonSchema |
 
 /** Required fields of a provider that are missing or empty. */
 export function missingRequired(variant: JsonSchema | null, provider: Record<string, unknown>): string[] {
-	return (variant?.required ?? []).filter((k) => k !== 'type').filter((k) => {
-		const v = provider[k];
-		return v === undefined || v === null || (typeof v === 'string' && v.trim() === '');
-	});
+	return (variant?.required ?? [])
+		.filter((k) => k !== 'type')
+		.filter((k) => {
+			const v = provider[k];
+			return v === undefined || v === null || (typeof v === 'string' && v.trim() === '');
+		});
 }
 
 /** One line describing a provider in the list. */

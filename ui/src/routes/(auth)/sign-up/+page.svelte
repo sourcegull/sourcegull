@@ -38,9 +38,7 @@
 
 {#if siteInit}
 	<h1>Welcome!</h1>
-	<p class="muted">
-		Create the first account to finish setting up this instance. It will be the site admin.
-	</p>
+	<p class="muted">Create the first account to finish setting up this instance. It will be the site admin.</p>
 {:else}
 	<h1>Create an account</h1>
 {/if}
@@ -70,14 +68,7 @@
 	</div>
 	<div class="field">
 		<label for="password">Password</label>
-		<input
-			id="password"
-			class="input"
-			type="password"
-			bind:value={password}
-			autocomplete="new-password"
-			required
-		/>
+		<input id="password" class="input" type="password" bind:value={password} autocomplete="new-password" required />
 	</div>
 	<button class="btn btn-primary full" type="submit" disabled={submitting}>
 		{#if submitting}Creating account…{:else if siteInit}Create admin account{:else}Sign up{/if}

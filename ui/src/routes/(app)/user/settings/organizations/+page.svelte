@@ -46,7 +46,9 @@
 <div class="page-header">
 	<div>
 		<h1>Organizations</h1>
-		<p class="page-description">Organizations share settings, saved searches, notebooks and bulk changes among members.</p>
+		<p class="page-description">
+			Organizations share settings, saved searches, notebooks and bulk changes among members.
+		</p>
 	</div>
 	<div class="page-actions">
 		<a class="btn btn-primary" href="/organizations/new">New organization</a>
@@ -65,8 +67,11 @@
 						<span class="muted">from {inv.sender?.username ?? 'someone'}</span>
 					</span>
 					<span class="toolbar">
-						<button class="btn btn-sm btn-primary" type="button" disabled={busy !== null} onclick={() => respond(inv, 'ACCEPT')}
-							>Join</button
+						<button
+							class="btn btn-sm btn-primary"
+							type="button"
+							disabled={busy !== null}
+							onclick={() => respond(inv, 'ACCEPT')}>Join</button
 						>
 						<button class="btn btn-sm" type="button" disabled={busy !== null} onclick={() => respond(inv, 'REJECT')}
 							>Decline</button

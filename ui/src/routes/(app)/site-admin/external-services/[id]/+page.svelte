@@ -247,8 +247,8 @@
 		<div class="check" aria-live="polite" data-testid="connection-check">
 			{#if availability.__typename === 'ExternalServiceAvailable'}
 				<div class="alert alert-success">
-					<strong>Connection OK.</strong> {host} answered and accepted the token
-					({formatDate(availability.lastCheckedAt)}).
+					<strong>Connection OK.</strong>
+					{host} answered and accepted the token ({formatDate(availability.lastCheckedAt)}).
 				</div>
 			{:else if availability.__typename === 'ExternalServiceUnavailable'}
 				<div class="alert alert-danger">
@@ -331,18 +331,18 @@
 		<div class="card-header"><h2>Webhook</h2></div>
 		<p class="muted">
 			{#if service.kind === 'GITHUB'}
-				Add a webhook in GitHub (repository or organization settings → Webhooks) with this URL, content
-				type <code>application/json</code> and this secret, for the <em>Pushes</em> and
+				Add a webhook in GitHub (repository or organization settings → Webhooks) with this URL, content type <code
+					>application/json</code
+				>
+				and this secret, for the <em>Pushes</em> and
 				<em>Repositories</em> events, so changes are fetched right away instead of at the next poll.
 			{:else if service.kind === 'GITEA'}
 				Add a Gitea webhook (repository or organization settings → Webhooks) with this URL, content type
 				<code>application/json</code> and this secret, for the <em>Push</em>, <em>Create</em>,
-				<em>Delete</em> and <em>Repository</em> events, so changes are fetched right away instead of at the
-				next poll.
+				<em>Delete</em> and <em>Repository</em> events, so changes are fetched right away instead of at the next poll.
 			{:else}
-				Add a webhook in GitLab (project or group settings → Webhooks) with this URL and secret token,
-				with push and merge request events, so changes are fetched right away instead of at the next
-				poll.
+				Add a webhook in GitLab (project or group settings → Webhooks) with this URL and secret token, with push and
+				merge request events, so changes are fetched right away instead of at the next poll.
 			{/if}
 		</p>
 		<div class="field">
@@ -421,7 +421,8 @@
 							</td>
 							<td class="actions">
 								{#if isCancelable(job.state)}
-									<button class="btn btn-sm" type="button" onclick={() => cancelJob(job)} disabled={busy}>Cancel</button>
+									<button class="btn btn-sm" type="button" onclick={() => cancelJob(job)} disabled={busy}>Cancel</button
+									>
 								{/if}
 							</td>
 						</tr>
@@ -445,8 +446,8 @@
 			<div class="more"><button class="btn btn-sm" type="button" onclick={showOlder}>Show older syncs</button></div>
 		{/if}
 		<p class="muted small">
-			Repository counts: + added, ~ modified, = unmodified, − removed. Incremental syncs list only
-			projects active since the previous sync.
+			Repository counts: + added, ~ modified, = unmodified, − removed. Incremental syncs list only projects active since
+			the previous sync.
 		</p>
 	</section>
 {/if}
@@ -507,7 +508,7 @@
 		font-size: var(--text-sm);
 		color: var(--color-warning);
 	}
-		.error-text {
+	.error-text {
 		margin: var(--space-1) 0 0;
 		white-space: pre-wrap;
 		overflow-wrap: anywhere;

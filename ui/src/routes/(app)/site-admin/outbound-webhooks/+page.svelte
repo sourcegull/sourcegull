@@ -37,10 +37,10 @@
 	async function load(more = false): Promise<void> {
 		loading = true;
 		try {
-			const data = await graphql<OutboundWebhooksResult, { first: number; after: string | null }>(
-				OUTBOUND_WEBHOOKS,
-				{ first: PAGE, after: more ? cursor : null }
-			);
+			const data = await graphql<OutboundWebhooksResult, { first: number; after: string | null }>(OUTBOUND_WEBHOOKS, {
+				first: PAGE,
+				after: more ? cursor : null
+			});
 			const r = data.outboundWebhooks;
 			exclusive = isExclusive(data.site.declaredConfigFiles, 'outboundWebhooks');
 			hooks = more ? [...hooks, ...r.nodes] : r.nodes;
@@ -100,8 +100,8 @@
 	<div>
 		<h1>Outbound webhooks</h1>
 		<p class="page-description">
-			Sourcegull posts bulk change and changeset events to these URLs, signed with each webhook's
-			secret, and retries failed deliveries with backoff. Delivery logs are kept for
+			Sourcegull posts bulk change and changeset events to these URLs, signed with each webhook's secret, and retries
+			failed deliveries with backoff. Delivery logs are kept for
 			<code class="code-inline">webhooks.outbound.logRetention</code>.
 		</p>
 		<RelatedLinks />
@@ -159,8 +159,8 @@
 		<label class="checkbox"><input type="checkbox" bind:checked={onlyErrors} /> Only failed</label>
 	</div>
 	<p class="muted small">
-		Attempts of watch actions that post to a webhook, Slack, Mattermost or Telegram. Only the host of each
-		destination is shown.
+		Attempts of watch actions that post to a webhook, Slack, Mattermost or Telegram. Only the host of each destination
+		is shown.
 	</p>
 	{#if deliveryError}<div class="alert alert-danger" role="alert">{deliveryError}</div>{/if}
 	<div class="table-scroll">

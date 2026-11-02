@@ -74,7 +74,8 @@ describe('SSE parsing', () => {
 	});
 
 	it('streams a response and reports HTTP errors', async () => {
-		const body = 'event: progress\ndata: {"done":true,"matchCount":2,"durationMs":5,"skipped":[]}\n\nevent: done\ndata: {}\n\n';
+		const body =
+			'event: progress\ndata: {"done":true,"matchCount":2,"durationMs":5,"skipped":[]}\n\nevent: done\ndata: {}\n\n';
 		const seen: string[] = [];
 		const fakeFetch = (async (url: string) => {
 			expect(url).toBe(streamURL({ query: 'x', patternType: 'keyword', display: 10 }));
@@ -127,7 +128,12 @@ describe('match highlighting', () => {
 			{ text: 'b', match: false }
 		]);
 		expect(segments('abc', [])).toEqual([{ text: 'abc', match: false }]);
-		expect(segments('abcd', [[0, 2], [1, 3]])).toEqual([
+		expect(
+			segments('abcd', [
+				[0, 2],
+				[1, 3]
+			])
+		).toEqual([
 			{ text: 'ab', match: true },
 			{ text: 'c', match: true },
 			{ text: 'd', match: false }
@@ -151,7 +157,10 @@ describe('match highlighting', () => {
 	it('merges adjacent chunks', () => {
 		const c = (line: number, content: string) => ({ content, contentStart: loc(line, 0), ranges: [] });
 		const groups = mergeChunks([c(5, 'f\ng'), c(0, 'a\nb'), c(2, 'c')]);
-		expect(groups.map((g) => g.map((l) => l.number))).toEqual([[1, 2, 3], [6, 7]]);
+		expect(groups.map((g) => g.map((l) => l.number))).toEqual([
+			[1, 2, 3],
+			[6, 7]
+		]);
 	});
 
 	it('strips the code fence of commit matches', () => {

@@ -86,7 +86,14 @@
 	});
 	const executed = $derived(spec !== null && isSpecExecuted(spec));
 	const runnable = $derived(
-		editable && spec !== null && !dirty && !saving && issues.length === 0 && !executed && canRun(spec) && nameMismatch === null
+		editable &&
+			spec !== null &&
+			!dirty &&
+			!saving &&
+			issues.length === 0 &&
+			!executed &&
+			canRun(spec) &&
+			nameMismatch === null
 	);
 
 	let debounce: ReturnType<typeof setTimeout> | undefined;
@@ -98,10 +105,9 @@
 		try {
 			access = await loadBatchesAccess();
 			if (!access.available) return;
-			const ns = await graphql<NamespaceResult, { name: string }>(
-				kind === 'users' ? USER_NAMESPACE : ORG_NAMESPACE,
-				{ name: namespace }
-			);
+			const ns = await graphql<NamespaceResult, { name: string }>(kind === 'users' ? USER_NAMESPACE : ORG_NAMESPACE, {
+				name: namespace
+			});
 			namespaceId = (kind === 'users' ? ns.user?.id : ns.organization?.id) ?? null;
 			if (!namespaceId) {
 				notFound = true;
@@ -164,10 +170,13 @@
 				});
 				next = r.replaceBatchSpecInput;
 			} else {
-				const r = await graphql<CreateBatchSpecFromRawMutation, Record<string, unknown>>(
-					CREATE_BATCH_SPEC_FROM_RAW,
-					{ spec: text, namespace: namespaceId, batchChange: bc.id, allowIgnored, allowUnsupported }
-				);
+				const r = await graphql<CreateBatchSpecFromRawMutation, Record<string, unknown>>(CREATE_BATCH_SPEC_FROM_RAW, {
+					spec: text,
+					namespace: namespaceId,
+					batchChange: bc.id,
+					allowIgnored,
+					allowUnsupported
+				});
 				next = r.createBatchSpecFromRaw;
 			}
 			spec = next;
@@ -305,7 +314,11 @@
 						<button class="btn btn-sm" type="button" disabled={example === ''} onclick={insertExample}>Insert</button>
 					{/if}
 					<span class="spacer"></span>
-					<span class="validation small" role="status" data-state={saving || dirty ? 'pending' : issues.length > 0 ? 'invalid' : 'valid'}>
+					<span
+						class="validation small"
+						role="status"
+						data-state={saving || dirty ? 'pending' : issues.length > 0 ? 'invalid' : 'valid'}
+					>
 						{#if saving || dirty}
 							Validating…
 						{:else if issues.length > 0}
@@ -320,7 +333,9 @@
 					<ul class="issues" aria-label="Spec errors">
 						{#each issues as issue, i (i)}
 							<li>
-								<button class="btn-link issue" type="button" onclick={() => editor?.reveal(issue)}>{formatIssue(issue)}</button>
+								<button class="btn-link issue" type="button" onclick={() => editor?.reveal(issue)}
+									>{formatIssue(issue)}</button
+								>
 							</li>
 						{/each}
 					</ul>

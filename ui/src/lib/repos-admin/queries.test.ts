@@ -79,9 +79,7 @@ describe('repository admin helpers', () => {
 		expect(rebalanceSummary({ ...r, copying: 2, queued: 15, failed: 1 })).toBe(
 			'Moving repositories: 2 copying, 15 queued, 1 failed.'
 		);
-		expect(rebalanceSummary({ ...r, waitingFor: ['http://repo-3:3178'] })).toContain(
-			'Waiting for http://repo-3:3178'
-		);
+		expect(rebalanceSummary({ ...r, waitingFor: ['http://repo-3:3178'] })).toContain('Waiting for http://repo-3:3178');
 	});
 
 	it('reads the filter from the page URL', () => {
@@ -97,7 +95,9 @@ describe('remoteWebURL', () => {
 		expect(remoteWebURL('https://gitlab.example.com/bi/avail_uff.git')).toBe('https://gitlab.example.com/bi/avail_uff');
 		expect(remoteWebURL('https://oauth2:secret@gitlab.example.com/a/b.git')).toBe('https://gitlab.example.com/a/b');
 		expect(remoteWebURL('git@gitlab.example.com:group/sub/repo.git')).toBe('https://gitlab.example.com/group/sub/repo');
-		expect(remoteWebURL('ssh://git@gitlab.example.com:2222/group/repo.git')).toBe('https://gitlab.example.com/group/repo');
+		expect(remoteWebURL('ssh://git@gitlab.example.com:2222/group/repo.git')).toBe(
+			'https://gitlab.example.com/group/repo'
+		);
 		expect(remoteWebURL('/srv/repos/local.git')).toBeNull();
 		expect(remoteWebURL('')).toBeNull();
 	});

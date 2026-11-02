@@ -10,9 +10,9 @@
 	<div>
 		<h1>Code graph</h1>
 		<p class="page-description">
-			Which commits keep precise indexes and for how long, and the global ranking of files used to
-			order search results. <a href="/site-admin/code-graph/coverage">Index coverage</a> shows which
-			repositories have a current precise index.
+			Which commits keep precise indexes and for how long, and the global ranking of files used to order search results. <a
+				href="/site-admin/code-graph/coverage">Index coverage</a
+			> shows which repositories have a current precise index.
 		</p>
 		<RelatedLinks />
 	</div>

@@ -52,8 +52,13 @@
 
 	<fieldset class="kind">
 		<legend class="label">Defined by</legend>
-		<label class="checkbox"><input type="radio" value="query" bind:group={v.kind} /> A query (<code>repo:</code>, <code>file:</code>, <code>lang:</code> and similar filters)</label>
-		<label class="checkbox"><input type="radio" value="repositories" bind:group={v.kind} /> A list of repositories and revisions</label>
+		<label class="checkbox"
+			><input type="radio" value="query" bind:group={v.kind} /> A query (<code>repo:</code>, <code>file:</code>,
+			<code>lang:</code> and similar filters)</label
+		>
+		<label class="checkbox"
+			><input type="radio" value="repositories" bind:group={v.kind} /> A list of repositories and revisions</label
+		>
 	</fieldset>
 
 	{#if v.kind === 'query'}
@@ -65,7 +70,13 @@
 	{:else}
 		<div class="field">
 			<label for="ctx-repos">Repositories</label>
-			<textarea id="ctx-repos" class="input mono" rows="8" bind:value={v.repositories} placeholder="gitlab.com/acme/api&#10;gitlab.com/acme/web@main,release-2.0"></textarea>
+			<textarea
+				id="ctx-repos"
+				class="input mono"
+				rows="8"
+				bind:value={v.repositories}
+				placeholder="gitlab.com/acme/api&#10;gitlab.com/acme/web@main,release-2.0"
+			></textarea>
 			<span class="hint">One per line: <code>name</code> (default branch) or <code>name@rev1,rev2</code>.</span>
 		</div>
 	{/if}

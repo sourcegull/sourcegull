@@ -210,7 +210,9 @@
 		const nb = notebook;
 		if (!nb || !user) return;
 		try {
-			await graphql<unknown, { id: string }>(nb.viewerHasStarred ? DELETE_NOTEBOOK_STAR : CREATE_NOTEBOOK_STAR, { id: nb.id });
+			await graphql<unknown, { id: string }>(nb.viewerHasStarred ? DELETE_NOTEBOOK_STAR : CREATE_NOTEBOOK_STAR, {
+				id: nb.id
+			});
 			notebook = {
 				...nb,
 				viewerHasStarred: !nb.viewerHasStarred,
@@ -291,7 +293,8 @@
 				{/if}
 				<p class="page-description">
 					{#if notebook.creator}Created by {notebook.creator.username} ·{/if}
-					updated {formatDate(notebook.updatedAt)}{#if notebook.updater} by {notebook.updater.username}{/if}
+					updated {formatDate(notebook.updatedAt)}{#if notebook.updater}
+						by {notebook.updater.username}{/if}
 					{#if saving}· saving…{/if}
 				</p>
 			</div>

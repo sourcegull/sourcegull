@@ -7,7 +7,9 @@ describe('clientLabel', () => {
 		expect(clientLabel({ clientName: '', clientID: 'https://agent.example.com/client.json' })).toBe(
 			'agent.example.com'
 		);
-		expect(clientLabel({ clientName: '', clientID: 'sourcegull-x', redirectHost: '127.0.0.1' })).toBe('App on 127.0.0.1');
+		expect(clientLabel({ clientName: '', clientID: 'sourcegull-x', redirectHost: '127.0.0.1' })).toBe(
+			'App on 127.0.0.1'
+		);
 		expect(clientLabel({ clientName: '', clientID: 'sourcegull-x', redirectHosts: [] })).toBe('Unnamed app');
 	});
 });
@@ -26,7 +28,9 @@ describe('answerAuthorization', () => {
 
 	it('throws the server message', async () => {
 		const f = (async () =>
-			new Response(JSON.stringify({ error: 'expired', code: 'NOT_FOUND' }), { status: 404 })) as unknown as typeof fetch;
+			new Response(JSON.stringify({ error: 'expired', code: 'NOT_FOUND' }), {
+				status: 404
+			})) as unknown as typeof fetch;
 		await expect(answerAuthorization('r', false, f)).rejects.toEqual(new AuthorizationError('expired', 404));
 	});
 });

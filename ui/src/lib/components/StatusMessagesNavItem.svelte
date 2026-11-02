@@ -80,12 +80,7 @@
 			</svg>
 		{:else if status === 'progress'}
 			<svg class="spin" viewBox="0 0 16 16" width="16" height="16" aria-hidden="true">
-				<path
-					d="M14 8a6 6 0 1 1-1.76-4.24M14 2v3h-3"
-					fill="none"
-					stroke="currentColor"
-					stroke-width="1.5"
-				/>
+				<path d="M14 8a6 6 0 1 1-1.76-4.24M14 2v3h-3" fill="none" stroke="currentColor" stroke-width="1.5" />
 			</svg>
 		{:else}
 			<svg viewBox="0 0 16 16" width="16" height="16" aria-hidden="true">

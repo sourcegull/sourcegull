@@ -36,7 +36,11 @@ export function normalizeRepo(input: string, url?: unknown): string {
 
 /** An organization as typed or pasted (its name, or the URL of its page or settings) → the name. */
 export function normalizeOrg(input: string, url?: unknown): string {
-	return normalizeRepo(input, url).replace(/^org\//, '').split('/')[0] ?? '';
+	return (
+		normalizeRepo(input, url)
+			.replace(/^org\//, '')
+			.split('/')[0] ?? ''
+	);
 }
 
 /** The `exclude` entries the form shows, and the ones it keeps as they are. */

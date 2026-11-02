@@ -138,10 +138,22 @@
 				</div>
 			</div>
 			<dl class="counts">
-				<div><dt>Open</dt><dd>{s.open}</dd></div>
-				<div><dt>Merged</dt><dd>{s.merged}</dd></div>
-				<div><dt>Closed</dt><dd>{s.closed}</dd></div>
-				<div><dt>Total</dt><dd>{s.total}</dd></div>
+				<div>
+					<dt>Open</dt>
+					<dd>{s.open}</dd>
+				</div>
+				<div>
+					<dt>Merged</dt>
+					<dd>{s.merged}</dd>
+				</div>
+				<div>
+					<dt>Closed</dt>
+					<dd>{s.closed}</dd>
+				</div>
+				<div>
+					<dt>Total</dt>
+					<dd>{s.total}</dd>
+				</div>
 			</dl>
 		</li>
 	{:else}

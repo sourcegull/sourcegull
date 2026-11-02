@@ -3,7 +3,9 @@ import { csvURL, isActive, progressPercent } from './search-jobs.ts';
 
 describe('search jobs', () => {
 	it('derives the CSV download from the JSONL one', () => {
-		expect(csvURL('https://s.example.com/.api/search/export/7.jsonl')).toBe('https://s.example.com/.api/search/export/7.csv');
+		expect(csvURL('https://s.example.com/.api/search/export/7.jsonl')).toBe(
+			'https://s.example.com/.api/search/export/7.csv'
+		);
 	});
 	it('tells running jobs apart', () => {
 		expect(isActive('QUEUED')).toBe(true);

@@ -107,9 +107,7 @@ export function parseJsoncObject(text: string): Record<string, unknown> | null {
 	try {
 		const stripped = stripJsonc(text).trim();
 		const value: unknown = stripped === '' ? {} : JSON.parse(stripped);
-		return value && typeof value === 'object' && !Array.isArray(value)
-			? (value as Record<string, unknown>)
-			: null;
+		return value && typeof value === 'object' && !Array.isArray(value) ? (value as Record<string, unknown>) : null;
 	} catch {
 		return null;
 	}
@@ -129,9 +127,7 @@ export function sectionLine(text: string, section: ConfigSection): number | null
 	const h = lines.findIndex((l) => l.trim() === header);
 	if (h >= 0) return h + 1;
 	if (section.keys.length === 0) return null;
-	const keyRe = new RegExp(
-		`^\\s*(//\\s*)?"(${section.keys.map(escapeRegExp).join('|')})"\\s*:`
-	);
+	const keyRe = new RegExp(`^\\s*(//\\s*)?"(${section.keys.map(escapeRegExp).join('|')})"\\s*:`);
 	const k = lines.findIndex((l) => keyRe.test(l));
 	return k >= 0 ? k + 1 : null;
 }

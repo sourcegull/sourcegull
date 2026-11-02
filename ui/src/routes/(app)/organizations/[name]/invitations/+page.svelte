@@ -11,7 +11,7 @@
 		type OrganizationResult,
 		type PendingInvitationsResult,
 		type Vars
-} from '#lib/orgs/queries.ts';
+	} from '#lib/orgs/queries.ts';
 
 	const name = $derived(page.params.name ?? '');
 	let orgId = $state<string | null>(null);
@@ -102,8 +102,11 @@
 						<button class="btn btn-sm" type="button" disabled={busy !== null} onclick={() => act(inv, 'resend')}
 							>Resend</button
 						>
-						<button class="btn btn-sm btn-danger" type="button" disabled={busy !== null} onclick={() => act(inv, 'revoke')}
-							>Revoke</button
+						<button
+							class="btn btn-sm btn-danger"
+							type="button"
+							disabled={busy !== null}
+							onclick={() => act(inv, 'revoke')}>Revoke</button
 						>
 					</td>
 				</tr>

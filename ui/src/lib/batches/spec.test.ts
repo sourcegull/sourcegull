@@ -57,8 +57,12 @@ function spec(overrides: Partial<EditorSpec> = {}): EditorSpec {
 describe('access', () => {
 	it('needs BATCH_CHANGES#WRITE to write', () => {
 		expect(canWriteBatchChanges(null)).toBe(false);
-		expect(canWriteBatchChanges({ permissions: { nodes: [{ namespace: 'BATCH_CHANGES', action: 'READ' }] } })).toBe(false);
-		expect(canWriteBatchChanges({ permissions: { nodes: [{ namespace: 'BATCH_CHANGES', action: 'WRITE' }] } })).toBe(true);
+		expect(canWriteBatchChanges({ permissions: { nodes: [{ namespace: 'BATCH_CHANGES', action: 'READ' }] } })).toBe(
+			false
+		);
+		expect(canWriteBatchChanges({ permissions: { nodes: [{ namespace: 'BATCH_CHANGES', action: 'WRITE' }] } })).toBe(
+			true
+		);
 	});
 
 	it('explains why bulk changes are unavailable', () => {
@@ -156,7 +160,9 @@ describe('validation issues', () => {
 	});
 
 	it('is null for other errors', () => {
-		expect(specIssues(new GraphQLRequestError('x', 200, [{ message: 'no', extensions: { code: 'FORBIDDEN' } }]))).toBeNull();
+		expect(
+			specIssues(new GraphQLRequestError('x', 200, [{ message: 'no', extensions: { code: 'FORBIDDEN' } }]))
+		).toBeNull();
 		expect(specIssues(new Error('x'))).toBeNull();
 	});
 
@@ -208,8 +214,13 @@ describe('spec text', () => {
 describe('workspace preview', () => {
 	it('gives skip reasons, honouring the flags', () => {
 		const ws = { ignored: true, unsupported: true, state: 'SKIPPED' };
-		expect(skipReasons(ws)).toEqual(['The repository has a .batchignore file.', "The repository's code host is not supported."]);
-		expect(skipReasons(ws, { allowIgnored: true, allowUnsupported: true })).toEqual(['No step runs in this workspace.']);
+		expect(skipReasons(ws)).toEqual([
+			'The repository has a .batchignore file.',
+			"The repository's code host is not supported."
+		]);
+		expect(skipReasons(ws, { allowIgnored: true, allowUnsupported: true })).toEqual([
+			'No step runs in this workspace.'
+		]);
 		expect(skipReasons({ ignored: false, unsupported: false, state: 'PENDING' })).toEqual([]);
 	});
 
