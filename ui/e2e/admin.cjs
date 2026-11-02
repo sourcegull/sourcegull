@@ -1,5 +1,6 @@
 // Browser check of the identity and permissions admin pages: access
-// requests (request, approve, set the password, sign in), users and their roles, custom roles,
+// requests (request, approve, set the password, sign in), creating a user (setup link, sign in),
+// users and their roles, custom roles,
 // related links between admin pages and their settings, the settings search, the overview's
 // setup checklist, the sign-in choice of "Connect an agent", "why can X see Y", sync now and the
 // job history, access tokens, and the phone layout of each page. Fails on any page or console
@@ -74,6 +75,27 @@ function step(name) {
 	await admin.waitForFunction(() => document.querySelectorAll('tbody tr').length === 1 && !document.querySelector('[aria-busy=true]'));
 	const bob = (await admin.textContent('tbody tr strong')).trim();
 	await signIn(guest, bob, 'bob builds things');
+
+	step('create a user as the site admin, set the password from the link and sign in');
+	await admin.goto(`${BASE}/site-admin/users`);
+	await admin.fill('#new-username', 'carol');
+	await admin.fill('#new-email', 'carol@example.com');
+	await admin.click('button:has-text("Create user")');
+	const created = '[role=status]:has-text("Created carol") .reset-link';
+	const carolLink = (await admin.textContent(created, { timeout: 10000 })).trim();
+	if (!carolLink.includes('/set-password?token=')) fail(`unexpected setup link: ${carolLink}`);
+	await admin.waitForSelector('tbody strong:text-is("carol")');
+	await admin.screenshot({ path: `${OUT}/a03b-create-user.png` });
+	await admin.fill('#new-username', 'carol');
+	await admin.click('button:has-text("Create user")');
+	await admin.waitForSelector('[role=alert]:has-text("username is already taken")');
+	const carolPage = await newPage();
+	await carolPage.goto(carolLink);
+	await carolPage.fill('#password', 'carol creates things');
+	await carolPage.click('button[type=submit]');
+	await carolPage.waitForSelector('[role=status]:has-text("Your password is set")');
+	await signIn(carolPage, 'carol', 'carol creates things');
+	await carolPage.context().close();
 
 	step('create a custom role with a permission');
 	await admin.goto(`${BASE}/site-admin/roles`);
