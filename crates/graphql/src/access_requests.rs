@@ -12,7 +12,9 @@ use serde_json::json;
 use sourcegull_crypto::session::{generate_session_id, hash_session_id};
 use sourcegull_db::{AccessRequest, AccessRequestStatus as Status};
 use sourcegull_services::relay::{marshal_id, unmarshal_int_id};
+use sourcegull_types::UserId;
 
+use crate::Services;
 use crate::audit::{self, events};
 use crate::context::{
     auth_error, codes, db_error, error, page_size, require_site_admin, services, to_int,
@@ -214,31 +216,15 @@ impl AccessRequestsMutation {
                     return Err(auth_error(e));
                 }
             };
-            let token = generate_session_id();
-            store
-                .create_invite(user.id, &hash_session_id(&token))
-                .await
-                .map_err(db_error)?;
-            let origin = svc
-                .config
-                .load()
-                .value
-                .external_url
-                .clone()
-                .unwrap_or_default();
-            reset_url = Some(format!(
-                "{}/set-password?token={token}",
-                origin.trim_end_matches('/')
-            ));
-            if let (Some(app), Some(url)) = (&svc.app, &reset_url) {
-                app.send_email(sourcegull_services::email::link_message(
-                    &request.email,
-                    "Set up your account",
+            reset_url = Some(
+                account_setup_link(
+                    svc,
+                    user.id,
+                    Some(&request.email),
                     "Your access request was approved. Set your password with this link:",
-                    url,
-                ))
-                .await;
-            }
+                )
+                .await?,
+            );
         }
         audit::record(
             svc,
@@ -252,6 +238,43 @@ impl AccessRequestsMutation {
             reset_url,
         })
     }
+}
+
+/// Creates a one-time account setup link for `user` (`/set-password?token=…`) and emails it to
+/// `email`, introduced by `intro`, when email is set up.
+pub(crate) async fn account_setup_link(
+    svc: &Services,
+    user: UserId,
+    email: Option<&str>,
+    intro: &str,
+) -> Result<String> {
+    let token = generate_session_id();
+    svc.db
+        .access_requests()
+        .create_invite(user, &hash_session_id(&token))
+        .await
+        .map_err(db_error)?;
+    let origin = svc
+        .config
+        .load()
+        .value
+        .external_url
+        .clone()
+        .unwrap_or_default();
+    let url = format!(
+        "{}/set-password?token={token}",
+        origin.trim_end_matches('/')
+    );
+    if let (Some(app), Some(email)) = (&svc.app, email) {
+        app.send_email(sourcegull_services::email::link_message(
+            email,
+            "Set up your account",
+            intro,
+            &url,
+        ))
+        .await;
+    }
+    Ok(url)
 }
 
 /// A valid username from the email's local part (`user` when nothing is left).

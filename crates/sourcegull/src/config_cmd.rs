@@ -38,6 +38,7 @@ pub fn check(
     }
     // The resources file's webhook URLs are checked against the site config's allowed hosts.
     let mut site = SiteConfig::default();
+    let mut site_checked = false;
     if let Some(path) = site_config {
         match std::fs::read_to_string(path)
             .map_err(|e| anyhow::anyhow!("reading the file: {e}"))
@@ -50,6 +51,7 @@ pub fn check(
                     let _ = writeln!(out, "  warning: {w}");
                 }
                 site = validated.config;
+                site_checked = true;
             }
             Err(e) => {
                 success = false;
@@ -71,6 +73,15 @@ pub fn check(
                     &site,
                 )
                 .map_err(|issues| sourcegull_declarative::describe_issues(&issues))
+                .and_then(|c| {
+                    // Sign-in settings are known only with a valid site config.
+                    match sourcegull_declarative::check_site_admin_sign_in(&c.resources, &site) {
+                        Some(issue) if site_checked => {
+                            Err(sourcegull_declarative::describe_issues(&[issue]))
+                        }
+                        _ => Ok(c),
+                    }
+                })
             });
         match checked {
             Ok(c) => {
@@ -152,7 +163,9 @@ mod tests {
         let site = write(
             &dir,
             "site.json",
-            r#"{"externalURL": "https://sourcegull.example.com"}"#,
+            r#"{"externalURL": "https://sourcegull.example.com", "auth.providers": [
+                {"type": "builtin"},
+                {"type": "gitlab", "clientID": "id", "clientSecret": "secret"}]}"#,
         );
         let resources = write(
             &dir,
@@ -179,6 +192,20 @@ mod tests {
             ok.output
         );
         assert!(!ok.output.contains("glpat-secret-value"));
+
+        // Password sign-in alone cannot verify a declared admin's email.
+        let builtin_only = write(
+            &dir,
+            "builtin.json",
+            r#"{"externalURL": "https://sourcegull.example.com"}"#,
+        );
+        let refused = check(Some(&builtin_only), Some(&resources), None);
+        assert!(!refused.success, "{}", refused.output);
+        assert!(
+            refused.output.contains("siteAdmins: no sign-in method"),
+            "{}",
+            refused.output
+        );
 
         std::fs::remove_file(&secret).unwrap();
         let bad_settings = write(&dir, "bad.json", "[]");

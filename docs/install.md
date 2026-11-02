@@ -198,11 +198,16 @@ when the `SOURCEGULL_S3_*` ones are not set. Credentials are never taken from th
 
 Open the external URL (`http://localhost:7080` by default). The first account to sign up
 becomes the site admin; after that, sign-up follows the site configuration
-(`"allowSignup": false` on the built-in provider by default, so the admin creates accounts or
-users [request access](permissions.md#access-requests)). With `siteAdmins` in the
-[resources file](configuration.md#resources-file), the users with those verified emails are site
-admins instead, and no other first user is: the first page is then the sign-in page, and a
-declared admin signs in through a provider that verifies their email (such as GitLab).
+(`"allowSignup": false` on the built-in provider by default, so the admin
+[creates accounts](permissions.md#creating-users) or users
+[request access](permissions.md#access-requests)).
+
+With `siteAdmins` in the [resources file](configuration.md#resources-file), the users with those
+verified emails are site admins instead, and no other first user is. The first page is then the
+sign-in page, and a declared admin signs in through a provider that verifies their email (such
+as GitLab); a password sign-up cannot, because its email starts unverified. The resources file
+is refused when no sign-in method could verify a declared admin's email (see
+[site admins](configuration.md#resources-file)).
 
 Set `externalURL` in **Site admin → Site configuration** (or `SOURCEGULL_EXTERNAL_URL`) before you
 configure OAuth sign-in or webhooks: callback and webhook URLs are built from it.

@@ -32,7 +32,10 @@ use sourcegull_types::metric_names;
 use tokio_util::sync::CancellationToken;
 
 pub use apply::{Applier, ApplyError, ApplyReport};
-pub use check::{CheckedResources, check_global_settings, check_resources, describe_issues};
+pub use check::{
+    CheckedResources, check_global_settings, check_resources, check_site_admin_sign_in,
+    describe_issues,
+};
 
 /// Lease name of the reconciler.
 pub const RECONCILER: &str = "declared-config";
@@ -220,8 +223,16 @@ impl Reconciler {
                 .as_ref()
                 .map(|c| c.load().value.clone())
                 .unwrap_or_default();
-            check_resources(&text, self.refs.as_ref(), &self.applier.registry, &config)
-                .map_err(|issues| describe_issues(&issues))
+            let checked =
+                check_resources(&text, self.refs.as_ref(), &self.applier.registry, &config)
+                    .map_err(|issues| describe_issues(&issues))?;
+            // Without the live site configuration (tests) the sign-in settings are unknown.
+            if self.config.is_some()
+                && let Some(issue) = check_site_admin_sign_in(&checked.resources, &config)
+            {
+                return Err(describe_issues(&[issue]));
+            }
+            Ok(checked)
         }) {
             Ok(c) => c,
             Err(e) => {

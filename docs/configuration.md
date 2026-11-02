@@ -431,14 +431,20 @@ does not list: they become read-only and nothing of that kind can be created in 
 **Site admins and role members** are matched against verified email addresses. Every source
 that marks an address verified counts: an identity provider that vouches for it at sign-in,
 SCIM provisioning, the email header of `http-header` sign-in, and a user confirming it by email.
-Only declare addresses whose verification you trust there; with password sign-in alone, admins
-need working email to verify their address.
+Only declare addresses whose verification you trust there.
+
+A declared admin needs a way to get a verified email without an existing admin: a GitLab,
+GitHub, Gitea or OpenID Connect provider, `http-header` with `emailHeader`, SCIM
+(`scim.authToken`), or open password sign-up (`allowSignup` on the built-in provider) with
+`email.smtp`, so the admin signs up and confirms the address by email. With none of these, no
+admin could ever sign in, so the file is refused with an error on `siteAdmins`; `sourcegull
+config check` reports it when given the site config too.
 
 A listed user becomes site admin, or gets the role, at sign-in or within 30 s, and gets it back
 if it is taken away in the UI; removing the address takes back only what the file granted.
 While `siteAdmins` is set, the first user to sign up is not made site admin, and a declared
-admin can create their account even when sign-up is closed, so a fresh SSO-only instance needs
-no manual step. Declared admins cannot be demoted in the UI, and site admins cannot verify or
+admin's first sign-in with a provider that verifies their email creates their account even when
+that provider's sign-up is closed, so a fresh SSO-only instance needs no manual step. Declared admins cannot be demoted in the UI, and site admins cannot verify or
 unverify a declared address for its user; with `exclusive`, no one can be promoted or demoted
 there, and admins the file does not list are demoted once one declared admin is site admin.
 

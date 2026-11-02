@@ -4,7 +4,13 @@
 
 Sign-in methods are listed in `auth.providers` in the site configuration (Site admin → Site
 configuration). Several can be active at once; the sign-in page shows one button per external
-provider. The first account created on a new instance becomes the site admin.
+provider. The first account created on a new instance becomes the site admin, unless the
+[resources file](configuration.md#resources-file) declares `siteAdmins`; then only users with those
+verified emails are site admins.
+
+Each provider has its own `allowSignup`: it decides whether a first sign-in with that provider
+creates an account. Password sign-up can stay closed while GitLab sign-in creates accounts, or
+the other way round.
 
 ### Built-in accounts
 
@@ -12,8 +18,10 @@ provider. The first account created on a new instance becomes the site admin.
 { "type": "builtin", "allowSignup": false }
 ```
 
-Usernames and passwords stored in Sourcegull. With `allowSignup: false` (the default) only site
-admins create accounts, or visitors [request access](#access-requests). Related settings:
+Usernames and passwords stored in Sourcegull. With `allowSignup: true` the sign-in page links to
+a sign-up form. With `allowSignup: false` (the default) visitors cannot create accounts
+themselves: site admins [create them](#creating-users), or visitors
+[request access](#access-requests). Related settings:
 
 - `auth.passwordPolicy`: minimum length (default 12), and optionally digits, mixed case and
   special characters.
@@ -343,6 +351,16 @@ curl -H "Authorization: token <access token>" https://sourcegull.example.com/.ap
 MCP clients can also sign in through the browser instead of using a pasted token; the tokens
 they get work only at the MCP endpoint and are listed under **User settings → Connected apps**
 ([OAuth sign-in](mcp.md#oauth-sign-in)).
+
+## Creating users
+
+Site admins create users under **Site admin → Users → New user**, whatever the sign-up settings:
+a username and, optionally, an email. With password sign-in on, the result is a one-time link,
+valid for 24 hours, for the user to set their password; it is also emailed to the address when
+`email.smtp` is configured. **The email is verified** marks the address verified, so a code host
+or OpenID Connect sign-in with that email [links](#linking-by-email) to the new account; mark it
+only for an address you know is theirs. An address declared in `siteAdmins` cannot be marked
+verified here. The GraphQL mutation is `createUser`.
 
 ## Access requests
 

@@ -326,6 +326,45 @@ impl Authenticator {
         Ok(user)
     }
 
+    /// Creates an account named exactly `username`, without a password and with `email` if
+    /// given (verified when `email_verified`), for a site admin: the sign-up settings do not
+    /// apply.
+    pub async fn create_user(
+        &self,
+        username: &str,
+        email: Option<&str>,
+        email_verified: bool,
+    ) -> Result<User, AuthError> {
+        let username = username.trim();
+        validate_username(username)?;
+        let email = email.map(str::trim).filter(|e| !e.is_empty());
+        if let Some(e) = email {
+            validate_email(e)?;
+        }
+        let created = self
+            .inner
+            .db
+            .accounts()
+            .create(&NewAccount {
+                user: NewUser {
+                    username: username.to_owned(),
+                    ..Default::default()
+                },
+                email: email.map(str::to_owned),
+                email_verified: email_verified && email.is_some(),
+                only_if_first: false,
+            })
+            .await
+            .map_err(|e| match e {
+                DbError::AlreadyExists { constraint } if constraint.contains("email") => {
+                    AuthError::EmailTaken
+                }
+                DbError::AlreadyExists { .. } => AuthError::UsernameTaken,
+                other => other.into(),
+            })?;
+        Ok(created.user)
+    }
+
     /// Signs in with a username (or verified email) and password, returning
     /// the user and a new session. Applies `auth.lockout` per account and client address, so
     /// failures from one address do not lock the account for others. Unknown users, wrong

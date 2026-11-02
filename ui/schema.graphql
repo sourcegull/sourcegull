@@ -2271,6 +2271,21 @@ input CreateSymbolBlockInput {
 }
 
 """
+The result of `createUser`.
+"""
+type CreateUserResult {
+	"""
+	The new user.
+	"""
+	user: User!
+	"""
+	A one-time link for the user to set their password, also emailed to their address when
+	email is set up. Null when password sign-in (the built-in provider) is off.
+	"""
+	resetPasswordURL: String
+}
+
+"""
 A precise result linked across package versions: no upload holds the symbol at the
 version it was looked up at (`requested`), one holds it at `found`.
 """
@@ -5225,6 +5240,12 @@ input MonitorWebhookInput {
 The root mutation type.
 """
 type MutationRoot {
+	"""
+	Creates a user (site admins only), whatever the sign-up settings. With password
+	sign-in on, the result has a one-time link for the user to set their password.
+	`verifiedEmail` marks `email` verified, which links it to external sign-ins by email.
+	"""
+	createUser(username: String!, email: String, verifiedEmail: Boolean): CreateUserResult!
 	"""
 	Creates a single-use reset link for a user (site admins only).
 	"""

@@ -1654,3 +1654,65 @@ async fn admins_can_issue_reset_links_and_manage_email_verification() {
         json!({"u": user})).await;
     assert!(!env.db.user_emails().list(env.alice).await.unwrap()[0].is_verified());
 }
+
+#[tokio::test]
+async fn admins_create_users_with_a_setup_link() {
+    let Some(env) = setup().await else { return };
+    const CREATE: &str = "mutation($n: String!, $e: String, $v: Boolean) {
+        createUser(username: $n, email: $e, verifiedEmail: $v) {
+            user { username siteAdmin } resetPasswordURL } }";
+    env.err(
+        Some(env.alice),
+        CREATE,
+        json!({"n": "carol", "e": "carol@example.com"}),
+        "FORBIDDEN",
+    )
+    .await;
+    // Sign-up is closed in this setup; an admin creates the account anyway.
+    let data = env
+        .ok(
+            Some(env.admin),
+            CREATE,
+            json!({"n": "carol", "e": "carol@example.com"}),
+        )
+        .await;
+    assert_eq!(data["createUser"]["user"]["username"], "carol");
+    assert_eq!(data["createUser"]["user"]["siteAdmin"], false);
+    let link = data["createUser"]["resetPasswordURL"].as_str().unwrap();
+    let token = link.split("/set-password?token=").nth(1).unwrap();
+    let carol = env
+        .db
+        .access_requests()
+        .redeem_invite(&sourcegull_crypto::session::hash_session_id(token))
+        .await
+        .unwrap()
+        .expect("a working setup link");
+    let emails = env.db.user_emails().list(carol).await.unwrap();
+    assert_eq!(emails[0].email, "carol@example.com");
+    assert!(!emails[0].is_verified());
+
+    // The exact username is kept: a taken one is an error, not a suffixed variant.
+    env.err(
+        Some(env.admin),
+        CREATE,
+        json!({"n": "carol"}),
+        "USERNAME_TAKEN",
+    )
+    .await;
+    let data = env
+        .ok(
+            Some(env.admin),
+            CREATE,
+            json!({"n": "dave", "e": "dave@example.com", "v": true}),
+        )
+        .await;
+    let dave = env
+        .db
+        .users()
+        .get_by_username("dave")
+        .await
+        .unwrap()
+        .unwrap();
+    assert!(data["createUser"]["resetPasswordURL"].is_string());
+    assert!(env.db.user_emails().list(dave.id).await.unwrap()[0].is_verified());
+}
