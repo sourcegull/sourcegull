@@ -47,6 +47,15 @@ pub enum DbError {
     /// Applying or reverting migrations failed.
     #[error(transparent)]
     Migrate(#[from] sqlx::migrate::MigrateError),
+    /// The server is older than [`crate::MIN_SERVER_VERSION`].
+    #[error(
+        "PostgreSQL {version} is not supported: Sourcegull needs PostgreSQL {min} or newer",
+        min = crate::MIN_SERVER_VERSION / 10000
+    )]
+    UnsupportedServer {
+        /// The server's `server_version`.
+        version: String,
+    },
     /// Any other database error.
     #[error(transparent)]
     Sqlx(sqlx::Error),
@@ -69,6 +78,11 @@ impl DbError {
     /// Whether this is [`DbError::NotFound`].
     pub fn is_not_found(&self) -> bool {
         matches!(self, DbError::NotFound(_))
+    }
+
+    /// Whether this is [`DbError::UnsupportedServer`].
+    pub fn is_unsupported_server(&self) -> bool {
+        matches!(self, DbError::UnsupportedServer { .. })
     }
 
     /// Whether this is [`DbError::Fenced`].

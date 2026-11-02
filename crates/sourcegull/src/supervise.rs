@@ -43,7 +43,7 @@ fn database_url(url: Option<&str>) -> anyhow::Result<&str> {
         Some(url) if !url.trim().is_empty() => Ok(url),
         _ => anyhow::bail!(
             "no database configured: set SOURCEGULL_DATABASE_URL or pass --database-url \
-             (a PostgreSQL 18 URL, e.g. postgres://sourcegull:password@postgres:5432/sourcegull)"
+             (a PostgreSQL 16+ URL, e.g. postgres://sourcegull:password@postgres:5432/sourcegull)"
         ),
     }
 }

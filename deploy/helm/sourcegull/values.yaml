@@ -779,7 +779,7 @@ postgresql:
   #             installs; no HA, no automated backups).
   #   cnpg      a CloudNativePG `Cluster` (HA, backups) managed by the CloudNativePG operator,
   #             which must be installed; see `cnpg` below.
-  #   external  an external PostgreSQL 18 (recommended for production); see externalDatabase.
+  #   external  an external PostgreSQL 16 or newer (recommended for production); see externalDatabase.
   mode: bundled
   # The settings below apply to the bundled database; auth (names only), persistence, config,
   # resources, nodeSelector and tolerations also apply to cnpg.

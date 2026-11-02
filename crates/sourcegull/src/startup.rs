@@ -35,6 +35,8 @@ pub async fn connect_with_retry(
     loop {
         match Db::connect(url, opts).await {
             Ok(db) => return Ok(db),
+            // An unsupported server stays unsupported: fail at once.
+            Err(e) if e.is_unsupported_server() => return Err(e.into()),
             Err(e) if start.elapsed() + delay < deadline => {
                 tracing::warn!(attempt, error = %e, "database not available yet; retrying in {delay:?}");
             }

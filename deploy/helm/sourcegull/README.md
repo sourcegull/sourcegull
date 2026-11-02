@@ -29,14 +29,14 @@ generated encryption keys (back up the Secret, see the install notes) and the bu
 |---|---|---|
 | `bundled` (default) | one PostgreSQL StatefulSet (no HA, no backups) | built from the generated password Secret (or `postgresql.auth.existingSecret`) |
 | `cnpg` | a CloudNativePG `Cluster` (needs the CloudNativePG operator) | the `uri` key of the operator's `<fullname>-pg-app` Secret |
-| `external` | nothing; bring PostgreSQL 18 | `database-url` in `existingSecret`, or `externalDatabase.existingSecret` / `existingSecretUrlKey` |
+| `external` | nothing; bring PostgreSQL 16 or newer | `database-url` in `existingSecret`, or `externalDatabase.existingSecret` / `existingSecretUrlKey` |
 
 With `external`, migrations run in a pre-install/pre-upgrade hook Job; with `bundled` and `cnpg`
 they run in the init containers of the Sourcegull pods, which first wait for the database.
 
 The bundled database runs PostgreSQL 18, its data directory `pgdata` on the `data` volume. With
 `cnpg`, the chart leaves the image to `postgresql.cnpg.imageName` (empty: the operator's
-default). With `external`, Sourcegull is tested on PostgreSQL 18.
+default). With `external`, Sourcegull needs PostgreSQL 16 or newer and is tested on 16 and 18.
 
 ## Encryption keys (`encryptionKeys.source`)
 

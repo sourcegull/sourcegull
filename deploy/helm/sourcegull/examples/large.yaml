@@ -4,7 +4,7 @@
 # Every number is an estimate from the sizing rules in SIZING.md, not a measurement.
 #
 # Needs: Secret sourcegull-secrets (database-url, encryption-keys), Secret sourcegull-s3 (S3 keys), KEDA,
-# and a PostgreSQL 18 server with ~16 vCPU / 64 GiB and fast disks.
+# and a PostgreSQL 16+ server with ~16 vCPU / 64 GiB and fast disks.
 #   helm install sourcegull deploy/helm/sourcegull -f deploy/helm/sourcegull/examples/large.yaml \
 #     --set externalURL=https://sourcegull.example.com
 existingSecret: sourcegull-secrets
