@@ -50,6 +50,7 @@ pub const SITE_CONFIG_SECTIONS: &[ConfigSection] = &[
             "auth.accessTokens",
             "mcp.oauth.enabled",
             "mcp.oauth.dynamicClientRegistration",
+            "mcp.oauth.clientIdMetadataDocuments",
             "mcp.oauth.accessTokenTTL",
             "mcp.oauth.refreshTokenTTL",
             "mcp.oauth.allowedRedirectHosts",
