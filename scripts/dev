@@ -269,7 +269,7 @@ EOF
   check)
     in_dev sh -c 'scripts/check-repo-sql.py && scripts/check-test-modules.sh && cargo fmt --all --check &&
       cargo clippy --workspace --all-targets --locked -- -D warnings &&
-      deploy/docker/dev/ui-deps.sh && cd ui && npm run check && npm test'
+      deploy/docker/dev/ui-deps.sh && cd ui && npm run check && npm run format:check && npm test'
     ;;
   fmt) in_dev cargo fmt --all ;;
   prune)

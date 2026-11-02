@@ -35,7 +35,7 @@ from the binary the `sourcegull` service builds, with jobs as containers on the 
 | `scripts/dev up` / `down` / `restart` / `logs [service]` / `ps` | manage the development services |
 | `scripts/dev shell` | bash in the toolbox container (cargo, npm, psql, git); `scripts/dev <cmd>` runs one command there, e.g. `scripts/dev cargo build -p sourcegull` |
 | `scripts/dev test [args]` | `cargo test --workspace` against the dev Postgres |
-| `scripts/dev check` | the raw `repo` SQL check ([below](#tests)), rustfmt, clippy `-D warnings`, the UI type check (`svelte-check`) and the UI unit tests |
+| `scripts/dev check` | the raw `repo` SQL check ([below](#tests)), rustfmt, clippy `-D warnings`, the UI type check (`svelte-check`), the UI formatting (Prettier) and the UI unit tests |
 | `scripts/dev fmt` | `cargo fmt --all` |
 | `scripts/dev psql [db]` | psql on the dev database (also on `localhost:55432`, user and password `sourcegull`) |
 | `scripts/dev test-executor` | the executor tests against the host's Docker daemon (runs `alpine` containers) |
@@ -150,8 +150,9 @@ cargo run -p sourcegull -- run --roles=all    # UI and API on :7080, metrics on 
   test ran; an unreachable database always fails them.
 - Tests that need outside services (Docker, MinIO, k3s, a real GitLab) have their own
   `scripts/dev test-*` command and are skipped otherwise.
-- UI: `npm test` (Vitest) and `npm run check` (`svelte-check`) in `ui/`, both part of
-  `scripts/dev check`. `ui/src/lib/graphql-types.ts` holds the result and variable types of
+- UI: `npm test` (Vitest), `npm run check` (`svelte-check`) and `npm run format:check`
+  (Prettier, `ui/.prettierrc`) in `ui/`, all part of `scripts/dev check`; `npm run format`
+  formats `ui/src`. `ui/src/lib/graphql-types.ts` holds the result and variable types of
   every GraphQL operation the UI exports (`<Name>Query`, `<Name>Mutation`, `…Variables`),
   generated from `ui/schema.graphql`; `npm test` fails when it is stale, and
   `npm run graphql-types` rewrites it. Operation names must be unique. Operations are exported
@@ -317,7 +318,7 @@ run on it; the other workflows also run by hand, from `main`.
 
 - Run `scripts/dev check` before committing: `scripts/check-repo-sql.py`, `cargo fmt --all
   --check`, `scripts/check-test-modules.sh`, `cargo clippy --workspace --all-targets -- -D
-  warnings`, `svelte-check` and the UI tests must pass.
+  warnings`, `svelte-check`, `npm run format:check` and the UI tests must pass.
 - A crate with several integration test files builds them as one binary, `integration`
   (`tests/main.rs` declares each file as a module; the crate sets `autotests = false`). Declare
   a new file there, and run one file's tests with `cargo test -p <crate> --test integration

@@ -10,6 +10,8 @@
     "preview": "vite preview",
     "prepare": "svelte-kit sync || echo ''",
     "check": "svelte-kit sync && svelte-check --tsconfig ./tsconfig.json",
+    "format": "prettier --write src",
+    "format:check": "prettier --check src",
     "test": "vitest run",
     "graphql-types": "svelte-kit sync && GRAPHQL_TYPES_WRITE=1 vitest run src/lib/graphql-types.test.ts"
   },
@@ -21,6 +23,8 @@
     "@sveltejs/vite-plugin-svelte": "^7.3.1",
     "@types/node": "^22.20.5",
     "graphql": "^16.14.2",
+    "prettier": "^3.9.10",
+    "prettier-plugin-svelte": "^3.5.2",
     "svelte": "^5.57.2",
     "svelte-check": "^4.7.7",
     "typescript": "^6.0.3",
