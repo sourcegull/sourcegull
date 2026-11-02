@@ -242,6 +242,12 @@ pub struct SiteConfig {
     )]
     pub repo_nodes_pinned_repos: BTreeMap<String, String>,
 
+    /// Emails about code host connection tokens that are about to expire. A worker reads each
+    /// connection's token expiry from the code host daily (GitLab and GitHub access tokens)
+    /// and emails before it expires and on the day it expires. Needs `email.smtp`.
+    #[serde(rename = "codeHosts.tokenExpiryAlerts")]
+    pub code_hosts_token_expiry_alerts: TokenExpiryAlerts,
+
     /// The shared secret executors authenticate with, at least 20 characters. Without
     /// it the executor queue API is disabled.
     #[serde(
@@ -531,6 +537,7 @@ impl Default for SiteConfig {
             git_update_interval: Vec::new(),
             git_max_concurrent_clones: 5,
             repo_nodes_pinned_repos: BTreeMap::new(),
+            code_hosts_token_expiry_alerts: TokenExpiryAlerts::default(),
             executors_access_token: None,
             scim_auth_token: None,
             code_intel_gitlab_job_token_uploads: false,
@@ -561,6 +568,29 @@ impl Default for SiteConfig {
             insights_maximum_sample_size: 30,
             own_sync_teams_from_gitlab_groups: false,
             legacy_experimental_features: None,
+        }
+    }
+}
+
+/// `codeHosts.tokenExpiryAlerts`.
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, JsonSchema)]
+#[serde(default, rename_all = "camelCase")]
+pub struct TokenExpiryAlerts {
+    /// Send the alerts. Off: no emails; connection pages still show when tokens expire.
+    pub enabled: bool,
+    /// Days before a token expires to send an alert, e.g. `[14, 7, 1]`. One more is sent on the
+    /// day it expires. A token checked for the first time inside a window gets one alert.
+    pub days_before: Vec<u32>,
+    /// Addresses to send the alerts to. Empty: every site admin with a verified email.
+    pub recipients: Vec<String>,
+}
+
+impl Default for TokenExpiryAlerts {
+    fn default() -> Self {
+        Self {
+            enabled: true,
+            days_before: vec![14, 7, 1],
+            recipients: Vec::new(),
         }
     }
 }

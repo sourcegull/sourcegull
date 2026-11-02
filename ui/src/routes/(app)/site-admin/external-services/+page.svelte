@@ -7,6 +7,7 @@
 	import RelatedLinks from '#lib/components/RelatedLinks.svelte';
 	import { onMount } from 'svelte';
 	import { formatDate, relativeTime } from '#lib/batches/batch-change.ts';
+	import { daysLeft, expiryLevel, expiryText } from '#lib/connections/token-expiry.ts';
 	import ManagedBadge from '#lib/components/ManagedBadge.svelte';
 	import ManagedNotice from '#lib/components/ManagedNotice.svelte';
 	import {
@@ -115,6 +116,15 @@
 						{/if}
 						{#if s.lastSyncError}
 							<div><span class="badge badge-danger" title={s.lastSyncError}>failed</span></div>
+						{/if}
+						{#if s.tokenExpiry && expiryLevel(s.tokenExpiry) === 'expired'}
+							<div><span class="badge badge-danger">token expired</span></div>
+						{:else if s.tokenExpiry && expiryLevel(s.tokenExpiry) === 'soon' && s.tokenExpiry.expiresAt}
+							<div>
+								<span class="badge badge-warning" title={expiryText(s.tokenExpiry)}
+									>token expires in {daysLeft(s.tokenExpiry.expiresAt)}d</span
+								>
+							</div>
 						{/if}
 					</td>
 					<td>

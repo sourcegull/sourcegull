@@ -59,6 +59,8 @@ export interface ExternalServiceSummary {
 	updatedAt: string;
 	/** The resources file entry that owns the connection; such connections are read-only. */
 	managedBy: string | null;
+	/** When the token expires, as last checked; null until checked or when the host does not say. */
+	tokenExpiry: { checkedAt: string; expiresAt: string | null; neverExpires: boolean; error: string | null } | null;
 }
 
 /** A connection with its (redacted) configuration and webhook settings. */
@@ -117,7 +119,8 @@ export type Availability =
 			implementationNote: string;
 	  };
 
-const SUMMARY_FIELDS = `id kind displayName url repoCount lastSyncAt nextSyncAt lastSyncError updatedAt managedBy`;
+const SUMMARY_FIELDS = `id kind displayName url repoCount lastSyncAt nextSyncAt lastSyncError updatedAt managedBy
+	tokenExpiry { checkedAt expiresAt neverExpires error }`;
 const DETAIL_FIELDS = `${SUMMARY_FIELDS} config createdAt webhookURL webhookSecret unrestricted hasConnectionCheck warning
 	rateLimiterState { burst currentCapacity infinite interval lastReplenishment limit pausedUntil }`;
 const SYNC_JOB_FIELDS = `id state reason queuedAt startedAt finishedAt failureMessage warnings fullSync
@@ -169,13 +172,17 @@ export const VALIDATE_CONFIG = `query ValidateExternalServiceConfig($kind: Exter
 export type ValidateConfigResult = ValidateExternalServiceConfigQuery;
 
 export const CHECK_CONFIG = `query CheckExternalServiceConfig($kind: ExternalServiceKind!, $config: String!, $id: ID) {
-	checkExternalServiceConfig(kind: $kind, config: $config, id: $id) { ok problem account scopes warnings }
+	checkExternalServiceConfig(kind: $kind, config: $config, id: $id) {
+		ok problem account scopes tokenExpiresAt tokenNeverExpires warnings
+	}
 }`;
 export interface ConfigCheck {
 	ok: boolean;
 	problem: string | null;
 	account: string | null;
 	scopes: string[] | null;
+	tokenExpiresAt: string | null;
+	tokenNeverExpires: boolean;
 	warnings: string[];
 }
 export type CheckConfigResult = CheckExternalServiceConfigQuery;

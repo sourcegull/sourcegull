@@ -122,6 +122,7 @@ Frequently used keys:
 | `scim.authToken` | Enables SCIM provisioning. |
 | `repoListUpdateInterval`, `gitUpdateInterval`, `disableAutoGitUpdates`, `gitMaxConcurrentClones` | Discovery and fetching. |
 | `repoNodes.pinnedRepos` | Pin repositories to repo nodes (repository name → repo node address). Replaces `experimentalFeatures.gitServerPinnedRepos`, which is still read, with a deprecation warning, when `repoNodes.pinnedRepos` is not set. |
+| `codeHosts.tokenExpiryAlerts` | Emails before code host connection tokens expire: `enabled` (default `true`), `daysBefore` (default `[14, 7, 1]`), `recipients` (default: every site admin) ([token expiry alerts](install.md#token-expiry-alerts)). |
 | `search.limits` | Search limits, read at each search: `defaultTimeoutSeconds` (20), `maxTimeoutSeconds` (60; `timeout:` is clamped to it), `streamingMaxResults` (500, the result count without `count:`), `maxRepos` (unset: no limit; repositories beyond it are skipped with a warning), `commitDiffMaxRepos` (50) and `commitDiffWithTimeFilterMaxRepos` (10000) for `type:commit`/`type:diff` without and with `before:`/`after:`, and for search jobs `exhaustiveMaxResults` (1000000) and `exhaustiveTimeoutSeconds` (3600, per repository revision). |
 | `search.index.branches` | Branches to index besides the default branch, per repository (up to 63). |
 | `search.index.alwaysIndex` | Path patterns whose files are searched by content above 1 MiB (up to 16 MiB), per repository; `"*"` applies to all ([search](search.md)). |

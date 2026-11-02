@@ -51,6 +51,8 @@ pub struct MockState {
     pub token: String,
     /// `GET /personal_access_tokens/self` scopes; `None` answers 404.
     pub scopes: Option<Vec<String>>,
+    /// `GET /personal_access_tokens/self` `expires_at` (`YYYY-MM-DD`); `None` is no expiry.
+    pub token_expires_at: Option<String>,
     /// Maximum page size served.
     pub page_size: usize,
     /// The next this-many API requests get `429 Retry-After: <rate_limit_retry_after>`.
@@ -193,6 +195,7 @@ impl MockGitLab {
             version: Some("16.5.1-ee".into()),
             token: token.to_owned(),
             scopes: Some(vec!["read_api".into()]),
+            token_expires_at: None,
             page_size: 2,
             rate_limited: 0,
             rate_limit_retry_after: 0,
@@ -425,13 +428,15 @@ async fn token_self(State(state): Shared, headers: HeaderMap, uri: Uri) -> Respo
     if let Err(r) = admit(&state, &headers, &uri) {
         return r;
     }
-    let scopes = state
-        .lock()
-        .unwrap_or_else(PoisonError::into_inner)
-        .scopes
-        .clone();
+    let (scopes, expires_at) = {
+        let s = state.lock().unwrap_or_else(PoisonError::into_inner);
+        (s.scopes.clone(), s.token_expires_at.clone())
+    };
     match scopes {
-        Some(scopes) => axum::Json(json!({ "scopes": scopes, "active": true })).into_response(),
+        Some(scopes) => {
+            axum::Json(json!({ "scopes": scopes, "active": true, "expires_at": expires_at }))
+                .into_response()
+        }
         None => StatusCode::NOT_FOUND.into_response(),
     }
 }

@@ -419,6 +419,158 @@ async fn check_unsaved_config() {
     assert_eq!(c["ok"], false, "{c}");
 }
 
+const TOKEN_EXPIRY: &str = "query T($id: ID!) { node(id: $id) { ... on ExternalService {
+    tokenExpiry { expiresAt neverExpires error } } } }";
+
+#[tokio::test(flavor = "multi_thread", worker_threads = 2)]
+async fn token_expiry_checks_and_alerts() {
+    use sourcegull_services::email::MemoryEmailSender;
+    use sourcegull_services::token_expiry::TokenExpiryChecker;
+    let Some(env) = setup().await else { return };
+    env.db
+        .user_emails()
+        .verify(env.admin, "admin@example.com")
+        .await
+        .unwrap();
+    let now = Utc::now();
+    let day = |d: i64| (now + chrono::Duration::days(d)).date_naive();
+    env.gitlab
+        .with(|s| s.token_expires_at = Some(day(10).to_string()));
+    let (gid, id) = env.add().await;
+
+    // The connection check reports the expiry.
+    let checked = env
+        .ok(
+            Some(env.admin),
+            "query K($config: String!) { checkExternalServiceConfig(kind: GITLAB, config: $config) {
+                ok tokenExpiresAt tokenNeverExpires } }",
+            json!({ "config": env.config_text("") }),
+        )
+        .await;
+    let expires = format!("{}T00:00:00+00:00", day(10));
+    assert_eq!(
+        checked["checkExternalServiceConfig"],
+        json!({ "ok": true, "tokenExpiresAt": expires, "tokenNeverExpires": false })
+    );
+
+    let mut site = site_config(false);
+    site.email_smtp = Some(sourcegull_config::SmtpConfig {
+        host: "smtp.example.com".into(),
+        port: 25,
+        username: None,
+        password: None,
+        authentication: sourcegull_config::SmtpAuthentication::None,
+        no_verify_tls: false,
+        encryption: sourcegull_config::SmtpEncryption::None,
+    });
+    env.config.store(2, site.clone());
+    let email = MemoryEmailSender::default();
+    let checker = TokenExpiryChecker {
+        db: env.db.clone(),
+        config: env.config.clone(),
+        keyring: Some(env.keyring.clone()),
+        registry: Registry::default(),
+        email: Arc::new(email.clone()),
+    };
+    let expiry = |v: Value| v["node"]["tokenExpiry"].clone();
+    assert_eq!(
+        expiry(
+            env.ok(Some(env.admin), TOKEN_EXPIRY, json!({ "id": gid }))
+                .await
+        ),
+        Value::Null
+    );
+    checker.check_due(now).await.unwrap();
+    assert_eq!(
+        expiry(
+            env.ok(Some(env.admin), TOKEN_EXPIRY, json!({ "id": gid }))
+                .await
+        ),
+        json!({ "expiresAt": expires, "neverExpires": false, "error": null })
+    );
+    // Checked once a day, not on every pass.
+    let token_requests = || {
+        env.gitlab
+            .requests()
+            .iter()
+            .filter(|r| r.contains("personal_access_tokens"))
+            .count()
+    };
+    let before = token_requests();
+    checker.check_due(now).await.unwrap();
+    assert_eq!(token_requests(), before);
+
+    // Ten days left: the 14-day alert, once.
+    checker.send_alerts(now).await.unwrap();
+    checker.send_alerts(now).await.unwrap();
+    let mails = email.messages();
+    assert_eq!(mails.len(), 1, "{mails:?}");
+    assert_eq!(mails[0].to, "admin@example.com");
+    assert_eq!(
+        mails[0].subject,
+        "The GitLab token of GitLab expires in 10 days"
+    );
+    // Four days later: the 7-day alert; then the day it expires.
+    checker
+        .send_alerts(now + chrono::Duration::days(4))
+        .await
+        .unwrap();
+    checker
+        .send_alerts(now + chrono::Duration::days(11))
+        .await
+        .unwrap();
+    let subjects: Vec<String> = email.messages().into_iter().map(|m| m.subject).collect();
+    assert_eq!(subjects.len(), 3, "{subjects:?}");
+    assert_eq!(subjects[1], "The GitLab token of GitLab expires in 6 days");
+    assert_eq!(subjects[2], "The GitLab token of GitLab has expired");
+
+    // A new token (configuration change) is checked at once and gets its own alerts.
+    env.gitlab
+        .with(|s| s.token_expires_at = Some(day(5).to_string()));
+    env.ok(
+        Some(env.admin),
+        UPDATE,
+        json!({ "input": { "id": gid,
+            "config": env.config_text(r#", "repositoryPathPattern": "x/{pathWithNamespace}""#) } }),
+    )
+    .await;
+    checker.check_due(now).await.unwrap();
+    // Disabled: no email.
+    let mut off = site.clone();
+    off.code_hosts_token_expiry_alerts.enabled = false;
+    env.config.store(3, off);
+    checker.send_alerts(now).await.unwrap();
+    assert_eq!(email.messages().len(), 3);
+    // Enabled again, with a recipient list.
+    let mut list = site;
+    list.code_hosts_token_expiry_alerts.recipients = vec!["ops@example.com".into()];
+    env.config.store(4, list);
+    checker.send_alerts(now).await.unwrap();
+    let mails = email.messages();
+    assert_eq!(mails.len(), 4);
+    assert_eq!(mails[3].to, "ops@example.com");
+    assert_eq!(
+        mails[3].subject,
+        "The GitLab token of GitLab expires in 5 days"
+    );
+
+    // No expiry date.
+    env.gitlab.with(|s| s.token_expires_at = None);
+    env.db
+        .token_checks()
+        .record_error(id, chrono::DateTime::UNIX_EPOCH, "stale")
+        .await
+        .unwrap();
+    checker.check_due(now).await.unwrap();
+    assert_eq!(
+        expiry(
+            env.ok(Some(env.admin), TOKEN_EXPIRY, json!({ "id": gid }))
+                .await
+        ),
+        json!({ "expiresAt": null, "neverExpires": true, "error": null })
+    );
+}
+
 #[tokio::test(flavor = "multi_thread", worker_threads = 2)]
 async fn regenerate_webhook_secret() {
     let Some(env) = setup().await else { return };

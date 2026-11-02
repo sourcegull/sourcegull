@@ -88,8 +88,23 @@ pub struct CheckReport {
     pub account: Option<String>,
     /// The token's scopes, when the host reports them.
     pub scopes: Option<Vec<String>>,
+    /// When the token expires.
+    pub token_expiry: TokenExpiry,
     /// Problems that do not prevent syncing.
     pub warnings: Vec<String>,
+}
+
+/// When a connection's token expires, as the code host reports it.
+#[derive(Debug, Clone, Copy, Default, PartialEq, Eq)]
+pub enum TokenExpiry {
+    /// The host does not say, or the credential renews itself (OAuth tokens, GitHub App
+    /// installation tokens).
+    #[default]
+    Unknown,
+    /// The token has no expiry date.
+    Never,
+    /// The token stops working at this time.
+    At(DateTime<Utc>),
 }
 
 /// Lists the repositories a code host connection covers.
@@ -137,5 +152,11 @@ pub trait RepoSource: Send + Sync {
     /// act as, and warnings for problems that do not prevent syncing.
     async fn check(&self) -> Result<CheckReport> {
         Ok(CheckReport::default())
+    }
+
+    /// When the connection's token expires. Asks the code host with one cheap request (or
+    /// none, when it cannot tell).
+    async fn token_expiry(&self) -> Result<TokenExpiry> {
+        Ok(TokenExpiry::Unknown)
     }
 }

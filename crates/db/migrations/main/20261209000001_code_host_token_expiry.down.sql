@@ -1,0 +1,1 @@
+DROP TABLE external_service_token_checks;

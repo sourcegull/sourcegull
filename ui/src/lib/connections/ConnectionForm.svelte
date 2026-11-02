@@ -8,6 +8,7 @@
 	configuration read `REDACTED`; leaving them so keeps the stored ones.
 -->
 <script lang="ts">
+	import { expiryText } from './token-expiry.ts';
 	import JsoncEditor from '#lib/components/JsoncEditor.svelte';
 	import { errorMessage, graphql } from '#lib/graphql.ts';
 	import { parseJsonc, setAt } from '#lib/jsonc-edit.ts';
@@ -266,6 +267,8 @@
 				<span class="check-ok">
 					Connected{checkResult.account ? ` as ${checkResult.account}` : ''}{checkResult.scopes
 						? ` · token scopes: ${checkResult.scopes.join(', ') || 'none'}`
+						: ''}{checkResult.tokenExpiresAt || checkResult.tokenNeverExpires
+						? ` · token ${expiryText({ expiresAt: checkResult.tokenExpiresAt, neverExpires: checkResult.tokenNeverExpires })}`
 						: ''}.
 				</span>
 			{:else if checkResult}

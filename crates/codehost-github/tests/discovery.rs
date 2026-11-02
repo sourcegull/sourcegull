@@ -5,7 +5,7 @@ use std::time::Duration;
 
 use futures::TryStreamExt;
 use sourcegull_codehost::{
-    ClientOptions, CodeHostError, Credential, ListOptions, RepoMeta, RepoSource,
+    ClientOptions, CodeHostError, Credential, ListOptions, RepoMeta, RepoSource, TokenExpiry,
 };
 use sourcegull_codehost_github::testing::{MockGitHub, repo};
 use sourcegull_codehost_github::{
@@ -210,6 +210,19 @@ async fn check_reports_account_scopes_and_warnings() {
         .unwrap()
     };
     assert_eq!(bad.check().await.unwrap_err(), CodeHostError::Unauthorized);
+}
+
+#[tokio::test]
+async fn token_expiry_from_the_expiration_header() {
+    let m = mock().await;
+    let s = source(&m, "");
+    assert_eq!(s.token_expiry().await.unwrap(), TokenExpiry::Never);
+    m.with(|s| s.token_expiration = Some("2026-11-22 14:35:38 UTC".into()));
+    let at = chrono::DateTime::parse_from_rfc3339("2026-11-22T14:35:38Z")
+        .unwrap()
+        .to_utc();
+    assert_eq!(s.token_expiry().await.unwrap(), TokenExpiry::At(at));
+    assert_eq!(s.check().await.unwrap().token_expiry, TokenExpiry::At(at));
 }
 
 #[tokio::test]

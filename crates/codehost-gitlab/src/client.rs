@@ -360,6 +360,13 @@ impl GitLabClient {
     /// /personal_access_tokens/self`). `None` for OAuth tokens and instances older than 15.5,
     /// which cannot tell.
     pub async fn token_scopes(&self) -> Result<Option<Vec<String>>> {
+        Ok(self.token_info().await?.map(|info| info.scopes))
+    }
+
+    /// The connection's access token as GitLab describes it (`GET
+    /// /personal_access_tokens/self`): scopes and expiry date. `None` for OAuth tokens and
+    /// instances older than 15.5, which cannot tell.
+    pub async fn token_info(&self) -> Result<Option<TokenInfo>> {
         if !matches!(self.auth, Auth::PrivateToken(_)) {
             return Ok(None);
         }
@@ -371,7 +378,7 @@ impl GitLabClient {
             return Ok(None);
         }
         match self.get::<TokenInfo>("personal_access_tokens/self").await {
-            Ok(info) => Ok(Some(info.scopes)),
+            Ok(info) => Ok(Some(info)),
             // Group/project tokens and old instances answer 404.
             Err(CodeHostError::NotFound(_)) => Ok(None),
             Err(e) => Err(e),

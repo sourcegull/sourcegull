@@ -92,6 +92,24 @@ pub async fn run(
         ));
     }
     {
+        let checker = sourcegull_services::token_expiry::TokenExpiryChecker {
+            db: db.clone(),
+            config: config.clone(),
+            keyring: keyring.clone(),
+            registry: sourcegull_repos::Registry::default(),
+            email: Arc::new(sourcegull_services::email::SmtpEmailSender),
+        };
+        let name = sourcegull_services::token_expiry::TOKEN_EXPIRY_CHECKER;
+        tasks.spawn(run_singleton(
+            name,
+            leases.lease(name),
+            Some(db.pool().clone()),
+            DEFAULT_RENEW_INTERVAL,
+            move |token, _fence| checker.clone().run(token),
+            cancel.clone(),
+        ));
+    }
+    {
         let db = db.clone();
         let lease = leases.lease(SESSION_JANITOR);
         tasks.spawn(run_singleton(

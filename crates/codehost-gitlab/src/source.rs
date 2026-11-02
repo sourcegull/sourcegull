@@ -19,6 +19,7 @@ use futures::stream::{self, StreamExt};
 use regex::Regex;
 use sourcegull_codehost::{
     CheckReport, CodeHostError, Credential, ListOptions, RepoMeta, RepoSource, RepoStream, Result,
+    TokenExpiry,
 };
 use sourcegull_types::{ExternalRepoSpec, Visibility};
 use url::Url;
@@ -358,7 +359,8 @@ impl RepoSource for GitLabSource {
 
     async fn check(&self) -> Result<CheckReport> {
         let mut report = CheckReport::default();
-        if let Some(scopes) = self.client.token_scopes().await? {
+        if let Some(info) = self.client.token_info().await? {
+            let scopes = info.scopes;
             if !scopes.iter().any(|s| s == "api" || s == "read_api") {
                 report.warnings.push(format!(
                     "the token lacks the api or read_api scope (it has: {}); discovery will fail",
@@ -366,6 +368,7 @@ impl RepoSource for GitLabSource {
                 ));
             }
             report.scopes = Some(scopes);
+            report.token_expiry = expiry(info.expires_at);
         }
         // Who the token acts as; this also surfaces a bad token or URL as an error. Tokens
         // without a user-reading scope answer 403: probe a cheap endpoint instead.
@@ -378,5 +381,20 @@ impl RepoSource for GitLabSource {
             Err(e) => return Err(e),
         }
         Ok(report)
+    }
+
+    async fn token_expiry(&self) -> Result<TokenExpiry> {
+        Ok(match self.client.token_info().await? {
+            Some(info) => expiry(info.expires_at),
+            None => TokenExpiry::Unknown,
+        })
+    }
+}
+
+/// A personal access token's `expires_at` day: GitLab rejects the token from the start of it.
+fn expiry(day: Option<chrono::NaiveDate>) -> TokenExpiry {
+    match day {
+        Some(day) => TokenExpiry::At(day.and_time(chrono::NaiveTime::MIN).and_utc()),
+        None => TokenExpiry::Never,
     }
 }

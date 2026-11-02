@@ -166,7 +166,7 @@
 				</li>
 				<li>Copy the token into the field below. GitLab shows it only once.</li>
 				<li>
-					Note the expiry date: when the token expires, syncing stops and the connection's page shows the error.
+					When the token expires, syncing stops. Sourcegull emails the site admins 14, 7 and 1 days before (<code class="code-inline">codeHosts.tokenExpiryAlerts</code>).
 				</li>
 			</ol>
 		</details>

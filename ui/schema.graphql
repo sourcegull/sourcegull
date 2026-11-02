@@ -2828,6 +2828,12 @@ type ExternalService implements Node {
 	"""
 	updatedAt: DateTime!
 	"""
+	When the connection's token expires, as the worker last read it from the code host
+	(daily, and after each configuration change). Null until the first check, and when
+	the code host does not say (OAuth tokens, GitHub Apps, Gitea).
+	"""
+	tokenExpiry: TokenExpiryCheck
+	"""
 	The number of repositories the connection mirrors.
 	"""
 	repoCount: Int!
@@ -2937,6 +2943,14 @@ type ExternalServiceConfigCheck {
 	The token's scopes, when the code host reports them.
 	"""
 	scopes: [String!]
+	"""
+	When the token stops working, when the code host says.
+	"""
+	tokenExpiresAt: DateTime
+	"""
+	Whether the code host says the token has no expiry date.
+	"""
+	tokenNeverExpires: Boolean!
 	"""
 	Problems that do not prevent syncing (e.g. a missing scope).
 	"""
@@ -9851,6 +9865,28 @@ input TimeScopeInput {
 type TimeoutDatapointAlert implements IncompleteDatapointAlert {
 	time: DateTime!
 	repositories: [Repository!]
+}
+
+"""
+When a connection's token expires, as last checked.
+"""
+type TokenExpiryCheck {
+	"""
+	When the token was last checked.
+	"""
+	checkedAt: DateTime!
+	"""
+	When the token stops working; null when it has no expiry date or is not known.
+	"""
+	expiresAt: DateTime
+	"""
+	Whether the token has no expiry date.
+	"""
+	neverExpires: Boolean!
+	"""
+	Why the last check failed; `expiresAt` is then that of the last successful check.
+	"""
+	error: String
 }
 
 """

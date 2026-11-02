@@ -110,6 +110,10 @@ pub struct TokenInfo {
     pub scopes: Vec<String>,
     #[serde(default)]
     pub active: Option<bool>,
+    /// The last day the token works; it stops working at the start of this day (UTC). `None`:
+    /// no expiry date.
+    #[serde(default)]
+    pub expires_at: Option<chrono::NaiveDate>,
 }
 
 /// A parsed GitLab version, e.g. `16.5.1-ee`.

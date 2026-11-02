@@ -5313,6 +5313,69 @@
         }
       }
     },
+    "external_service_token_checks": {
+      "columns": [
+        {
+          "name": "external_service_id",
+          "type": "bigint",
+          "nullable": false
+        },
+        {
+          "name": "checked_at",
+          "type": "timestamp with time zone",
+          "nullable": false
+        },
+        {
+          "name": "config_updated_at",
+          "type": "timestamp with time zone",
+          "nullable": false
+        },
+        {
+          "name": "expiry",
+          "type": "text",
+          "nullable": false
+        },
+        {
+          "name": "expires_at",
+          "type": "timestamp with time zone",
+          "nullable": true
+        },
+        {
+          "name": "error",
+          "type": "text",
+          "nullable": true
+        },
+        {
+          "name": "alerted_days",
+          "type": "integer",
+          "nullable": true
+        }
+      ],
+      "constraints": {
+        "external_service_token_checks_check": {
+          "kind": "check",
+          "definition": "CHECK (((expiry = 'at'::text) = (expires_at IS NOT NULL)))"
+        },
+        "external_service_token_checks_expiry_check": {
+          "kind": "check",
+          "definition": "CHECK ((expiry = ANY (ARRAY['unknown'::text, 'never'::text, 'at'::text])))"
+        },
+        "external_service_token_checks_external_service_id_fkey": {
+          "kind": "foreign key",
+          "definition": "FOREIGN KEY (external_service_id) REFERENCES external_services(id) ON DELETE CASCADE"
+        },
+        "external_service_token_checks_pkey": {
+          "kind": "primary key",
+          "definition": "PRIMARY KEY (external_service_id)"
+        }
+      },
+      "indexes": {
+        "external_service_token_checks_pkey": {
+          "definition": "CREATE UNIQUE INDEX external_service_token_checks_pkey ON public.external_service_token_checks USING btree (external_service_id)",
+          "constraint": true
+        }
+      }
+    },
     "external_services": {
       "columns": [
         {

@@ -246,6 +246,11 @@ impl Db {
         crate::ExternalAccountStore::new(self.pool.clone(), keyring)
     }
 
+    /// Store for `external_service_token_checks`.
+    pub fn token_checks(&self) -> crate::TokenCheckStore {
+        crate::TokenCheckStore::new(self.pool.clone())
+    }
+
     /// Store for `external_service_sync_jobs`.
     pub fn sync_jobs(&self) -> crate::SyncJobStore {
         crate::SyncJobStore::new(self.pool.clone())
