@@ -13,7 +13,7 @@ const config = `{
 
 describe('setup checklist', () => {
 	it('ticks the steps the configuration and counts complete', () => {
-		const steps = setupSteps({ siteConfig: config, connections: 1, users: 1, emailEnabled: false });
+		const steps = setupSteps({ siteConfig: config, externalURL: null, connections: 1, users: 1, emailEnabled: false });
 		expect(Object.fromEntries(steps.map((s) => [s.id, s.done]))).toEqual({
 			'external-url': true,
 			connection: true,
@@ -25,17 +25,32 @@ describe('setup checklist', () => {
 	it('treats built-in passwords alone as no sign-in provider', () => {
 		const steps = setupSteps({
 			siteConfig: '{"auth.providers": [{"type": "builtin"}]}',
+			externalURL: null,
 			connections: 0,
 			users: 3,
 			emailEnabled: true
 		});
 		expect(steps.filter((s) => !s.done).map((s) => s.id)).toEqual(['external-url', 'connection', 'sign-in']);
 	});
+	it('counts an external URL the deployment sets outside the document', () => {
+		const steps = setupSteps({
+			siteConfig: '{}',
+			externalURL: 'https://sourcegull.example.com',
+			connections: 0,
+			users: 1,
+			emailEnabled: false
+		});
+		expect(steps[0]?.done).toBe(true);
+	});
 	it('survives a missing or broken document', () => {
-		expect(setupSteps({ siteConfig: null, connections: 0, users: 1, emailEnabled: false }).every((s) => !s.done)).toBe(
-			true
-		);
-		expect(setupSteps({ siteConfig: '{', connections: 0, users: 1, emailEnabled: false })[0]?.done).toBe(false);
+		expect(
+			setupSteps({ siteConfig: null, externalURL: null, connections: 0, users: 1, emailEnabled: false }).every(
+				(s) => !s.done
+			)
+		).toBe(true);
+		expect(
+			setupSteps({ siteConfig: '{', externalURL: null, connections: 0, users: 1, emailEnabled: false })[0]?.done
+		).toBe(false);
 	});
 });
 

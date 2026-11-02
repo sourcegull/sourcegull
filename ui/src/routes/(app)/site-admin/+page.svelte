@@ -28,6 +28,8 @@
 	let loading = $state(true);
 	/** The site configuration document, for the setup checklist; null until loaded or when unreadable. */
 	let siteConfig = $state<string | null>(null);
+	/** The external URL the server uses, which the deployment may set outside the document. */
+	let externalURL = $state<string | null>(null);
 
 	async function load(): Promise<void> {
 		loading = true;
@@ -36,7 +38,10 @@
 			graphql<SiteAdminCountsResult>(SITE_ADMIN_COUNTS),
 			graphql<SiteConfigurationResult>(SITE_CONFIGURATION)
 		]);
-		if (cfg.status === 'fulfilled') siteConfig = cfg.value.site.configuration.effectiveContents;
+		if (cfg.status === 'fulfilled') {
+			siteConfig = cfg.value.site.configuration.effectiveContents;
+			externalURL = cfg.value.site.configuration.externalURL;
+		}
 		if (h.status === 'fulfilled') {
 			health = h.value;
 			healthError = null;
@@ -85,6 +90,7 @@
 		counts && siteConfig !== null
 			? setupSteps({
 					siteConfig,
+					externalURL,
 					connections: counts.externalServices.totalCount,
 					users: counts.users.totalCount,
 					emailEnabled: data.auth.emailEnabled ?? false

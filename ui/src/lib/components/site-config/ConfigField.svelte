@@ -24,9 +24,11 @@
 		onchange: (path: ConfigPath, value: unknown) => void;
 		/** The default inherited from an enclosing object's default, if any. */
 		inheritedDefault?: unknown;
+		/** Where the default comes from, shown while the document does not set the key. */
+		defaultNote?: string;
 	}
 
-	let { field, doc, saved, issues, disabled = false, onchange, inheritedDefault }: Props = $props();
+	let { field, doc, saved, issues, disabled = false, onchange, inheritedDefault, defaultNote }: Props = $props();
 
 	const id = $derived('cfg-' + field.path.map((p) => String(p).replace(/[^\w-]/g, '_')).join('--'));
 	const value = $derived(getAt(doc, field.path));
@@ -374,6 +376,7 @@
 			<p class="hint small">Edit this value as JSON; it is applied when you leave the field.</p>
 			{#if jsonError}<p class="error-text small" role="alert">{jsonError}</p>{/if}
 		{/if}
+		{#if !isSet && defaultNote}<p class="subtle small">{defaultNote}</p>{/if}
 		{@render errors()}
 	</div>
 {/if}

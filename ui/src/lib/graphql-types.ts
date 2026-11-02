@@ -3357,7 +3357,7 @@ export type SetUserIsSiteAdminMutation = { setUserIsSiteAdmin: { alwaysNil: stri
 export type SiteConfigurationQueryVariables = Exact<{ [key: string]: never; }>;
 
 
-export type SiteConfigurationQuery = { site: { id: string, configuration: { id: number, effectiveContents: string, validationMessages: Array<string>, readOnly: boolean }, declaredConfigFiles: Array<{ source: string, path: string, kinds: Array<string>, exclusive: boolean, appliedAt: string | null, error: string | null, errorAt: string | null, checkedAt: string }> } };
+export type SiteConfigurationQuery = { site: { id: string, configuration: { id: number, effectiveContents: string, externalURL: string | null, validationMessages: Array<string>, readOnly: boolean }, declaredConfigFiles: Array<{ source: string, path: string, kinds: Array<string>, exclusive: boolean, appliedAt: string | null, error: string | null, errorAt: string | null, checkedAt: string }> } };
 
 export type UpdateExecutorSecretMutationVariables = Exact<{
   scope: ExecutorSecretScope;

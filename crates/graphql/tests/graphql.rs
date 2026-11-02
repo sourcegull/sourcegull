@@ -312,6 +312,20 @@ async fn site_configuration_update_conflict_and_validation() {
     assert_eq!(cfg["validationMessages"], json!([]));
     assert!(d["site"]["id"].is_string());
 
+    // `externalURL` is the value the server runs with, which may come from its environment
+    // rather than the document.
+    let q = "{ site { configuration { externalURL } } }";
+    let d = env.ok(Some(env.admin), q, json!({})).await;
+    assert!(d["site"]["configuration"]["externalURL"].is_null());
+    let mut config = env.config.load().value.clone();
+    config.external_url = Some("https://sourcegull.example".into());
+    env.config.store(2, config);
+    let d = env.ok(Some(env.admin), q, json!({})).await;
+    assert_eq!(
+        d["site"]["configuration"]["externalURL"],
+        "https://sourcegull.example"
+    );
+
     // Unknown keys are accepted and reported as validation messages.
     let input = "{\n  // comment kept\n  \"auth.providers\": [{\"type\": \"builtin\", \"allowSignup\": true}],\n  \"bogus\": 1,\n}";
     let r = env
