@@ -5,6 +5,7 @@
 	write it when they lose focus, so typing a new line isn't undone by the round trip.
 -->
 <script lang="ts">
+	import { configSectionURL } from '#lib/admin/related.ts';
 	import { untrack } from 'svelte';
 	import CodeSnippet from '#lib/components/CodeSnippet.svelte';
 	import {
@@ -174,7 +175,7 @@
 					OAuth token
 					<span class="hint block">
 						For a GitLab that doesn't allow access tokens. Issued through the OAuth application of
-						<a href="/site-admin/configuration">sign-in with GitLab</a>; it lasts two hours and Sourcegull renews it
+						<a href={configSectionURL('auth')}>sign-in with GitLab</a>; it lasts two hours and Sourcegull renews it
 						with its refresh token.
 					</span>
 				</span>
@@ -219,7 +220,7 @@
 					</li>
 				{:else}
 					<li>
-						Set up <a href="/site-admin/configuration">sign-in with GitLab</a> for
+						Set up <a href={configSectionURL('auth')}>sign-in with GitLab</a> for
 						<code class="code-inline">{host}</code> (an <code class="code-inline">auth.providers</code> entry with the
 						same URL). Sourcegull renews the token with that entry's OAuth application.
 					</li>
@@ -408,12 +409,12 @@
 			{#if authType === 'none'}
 				<div class="alert alert-warning perm-alert" role="status">
 					Every Sourcegull user can search every repository of this connection, including private ones. To apply GitLab
-					permissions, set up <a href="/site-admin/configuration">sign-in with GitLab</a> and choose the second option.
+					permissions, set up <a href={configSectionURL('auth')}>sign-in with GitLab</a> and choose the second option.
 				</div>
 			{:else if authType === 'oauth'}
 				<span class="hint">
 					Needs a GitLab sign-in provider for {host} in the
-					<a href="/site-admin/configuration">site configuration</a>. Users who never signed in with GitLab see only
+					<a href={configSectionURL('auth')}>site configuration</a>. Users who never signed in with GitLab see only
 					public repositories.
 				</span>
 			{:else}

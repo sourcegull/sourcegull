@@ -5,6 +5,7 @@
 	when they lose focus, so typing a new line isn't undone by the round trip.
 -->
 <script lang="ts">
+	import { configSectionURL } from '#lib/admin/related.ts';
 	import { untrack } from 'svelte';
 	import {
 		AFFILIATED,
@@ -294,13 +295,13 @@
 			{#if authType === 'none'}
 				<div class="alert alert-warning perm-alert" role="status">
 					Every Sourcegull user can search every repository of this connection, including private ones. To apply Gitea
-					permissions, set up <a href="/site-admin/configuration">sign-in with Gitea</a> and choose the second option,
+					permissions, set up <a href={configSectionURL('auth')}>sign-in with Gitea</a> and choose the second option,
 					or use a site administrator's token and choose the third.
 				</div>
 			{:else if authType === 'oauth'}
 				<span class="hint">
 					Needs a Gitea sign-in provider for {host} in the
-					<a href="/site-admin/configuration">site configuration</a>; sign-in then asks for the
+					<a href={configSectionURL('auth')}>site configuration</a>; sign-in then asks for the
 					<code class="code-inline">read:repository</code> scope. Users who never signed in with Gitea see only public
 					repositories.
 				</span>
