@@ -35,6 +35,7 @@ pub mod search_contexts;
 pub mod settings;
 pub mod slow_log;
 mod state;
+pub mod token_expiry;
 
 pub use search::search_backend;
 pub use state::{AppState, Readiness, SiteConfigSource};

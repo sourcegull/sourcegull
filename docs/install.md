@@ -482,3 +482,26 @@ repositories are readable only by the users who can read them on Gitea; see
 [repository permissions](permissions.md#repository-permissions). Pull requests for bulk changes,
 SCIP uploads from CI and team sync are GitLab-only for now; for sign-in with Gitea accounts,
 see [permissions](permissions.md#gitea-oauth).
+
+## Token expiry alerts
+
+A worker reads when each connection's token expires: daily, and right after its configuration
+changes, with one request (GitLab `GET /personal_access_tokens/self`; GitHub's
+`GitHub-Authentication-Token-Expiration` response header). The connection page shows the date,
+the connection list marks tokens that expire within 14 days or have expired, and **Test
+connection** shows it too. GitLab personal, group and project access tokens and GitHub classic
+and fine-grained tokens report it; OAuth tokens and GitHub Apps renew themselves, and Gitea
+does not say.
+
+Before a token expires, Sourcegull emails every site admin with a verified email (14, 7 and 1
+days before, and on the day it expires). Each alert is sent once per expiry date; a new token
+starts over. The emails need [outbound email](configuration.md) (`email.smtp`). Change or turn
+them off in the site configuration:
+
+```jsonc
+"codeHosts.tokenExpiryAlerts": {
+  "enabled": true,              // false: no emails; the pages still show the expiry
+  "daysBefore": [14, 7, 1],
+  "recipients": ["ops@example.com"]  // empty (default): every site admin
+}
+```

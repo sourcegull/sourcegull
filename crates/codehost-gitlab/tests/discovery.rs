@@ -6,7 +6,7 @@ use std::time::Duration;
 use chrono::{TimeZone, Utc};
 use futures::{StreamExt, TryStreamExt};
 use sourcegull_codehost::{
-    CodeHostError, Credential, ListOptions, RepoMeta, RepoSource, TokenBucket,
+    CodeHostError, Credential, ListOptions, RepoMeta, RepoSource, TokenBucket, TokenExpiry,
 };
 use sourcegull_codehost_gitlab::testing::{MockGitLab, project};
 use sourcegull_codehost_gitlab::{
@@ -265,6 +265,11 @@ async fn version_is_cached_and_token_scopes_checked() {
     let report = s.check().await.unwrap();
     assert!(report.warnings.is_empty());
     assert_eq!(report.account.as_deref(), Some("root"));
+    assert_eq!(report.token_expiry, TokenExpiry::Never);
+    m.with(|s| s.token_expires_at = Some("2026-11-22".into()));
+    let at = Utc.with_ymd_and_hms(2026, 11, 22, 0, 0, 0).unwrap();
+    assert_eq!(s.check().await.unwrap().token_expiry, TokenExpiry::At(at));
+    assert_eq!(s.token_expiry().await.unwrap(), TokenExpiry::At(at));
     m.with(|s| s.scopes = Some(vec!["read_user".into()]));
     let report = s.check().await.unwrap();
     assert_eq!(report.scopes, Some(vec!["read_user".to_owned()]));

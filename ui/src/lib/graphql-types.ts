@@ -2194,7 +2194,7 @@ export type CheckExternalServiceConfigQueryVariables = Exact<{
 }>;
 
 
-export type CheckExternalServiceConfigQuery = { checkExternalServiceConfig: { ok: boolean, problem: string | null, account: string | null, scopes: Array<string> | null, warnings: Array<string> } };
+export type CheckExternalServiceConfigQuery = { checkExternalServiceConfig: { ok: boolean, problem: string | null, account: string | null, scopes: Array<string> | null, tokenExpiresAt: string | null, tokenNeverExpires: boolean, warnings: Array<string> } };
 
 export type CheckExternalServiceConnectionQueryVariables = Exact<{
   id: string | number;
@@ -2269,7 +2269,7 @@ export type ExternalServiceQuery = { node:
     | { __typename: 'ExecutorSecret' }
     | { __typename: 'ExecutorSecretAccessLog' }
     | { __typename: 'ExternalChangeset' }
-    | { __typename: 'ExternalService', id: string, kind: ExternalServiceKind, displayName: string, url: string, repoCount: number, lastSyncAt: string | null, nextSyncAt: string | null, lastSyncError: string | null, updatedAt: string, managedBy: string | null, config: string, createdAt: string, webhookURL: string, webhookSecret: string | null, unrestricted: boolean, hasConnectionCheck: boolean, warning: string | null, rateLimiterState: { burst: number, currentCapacity: number, infinite: boolean, interval: number, lastReplenishment: string, limit: number, pausedUntil: string | null } | null, syncJobs: { totalCount: number, pageInfo: { hasNextPage: boolean, endCursor: string | null }, nodes: Array<{ id: string, state: ExternalServiceSyncJobState, reason: string, queuedAt: string, startedAt: string | null, finishedAt: string | null, failureMessage: string | null, warnings: Array<string>, fullSync: boolean | null, reposSynced: number, reposAdded: number, reposModified: number, reposUnmodified: number, reposDeleted: number, repoSyncErrors: number }> } }
+    | { __typename: 'ExternalService', id: string, kind: ExternalServiceKind, displayName: string, url: string, repoCount: number, lastSyncAt: string | null, nextSyncAt: string | null, lastSyncError: string | null, updatedAt: string, managedBy: string | null, config: string, createdAt: string, webhookURL: string, webhookSecret: string | null, unrestricted: boolean, hasConnectionCheck: boolean, warning: string | null, tokenExpiry: { checkedAt: string, expiresAt: string | null, neverExpires: boolean, error: string | null } | null, rateLimiterState: { burst: number, currentCapacity: number, infinite: boolean, interval: number, lastReplenishment: string, limit: number, pausedUntil: string | null } | null, syncJobs: { totalCount: number, pageInfo: { hasNextPage: boolean, endCursor: string | null }, nodes: Array<{ id: string, state: ExternalServiceSyncJobState, reason: string, queuedAt: string, startedAt: string | null, finishedAt: string | null, failureMessage: string | null, warnings: Array<string>, fullSync: boolean | null, reposSynced: number, reposAdded: number, reposModified: number, reposUnmodified: number, reposDeleted: number, repoSyncErrors: number }> } }
     | { __typename: 'HiddenBatchSpecWorkspace' }
     | { __typename: 'HiddenChangesetSpec' }
     | { __typename: 'HiddenExternalChangeset' }
@@ -2301,7 +2301,7 @@ export type ExternalServicesQueryVariables = Exact<{
 }>;
 
 
-export type ExternalServicesQuery = { externalServices: { totalCount: number, pageInfo: { hasNextPage: boolean, endCursor: string | null }, nodes: Array<{ id: string, kind: ExternalServiceKind, displayName: string, url: string, repoCount: number, lastSyncAt: string | null, nextSyncAt: string | null, lastSyncError: string | null, updatedAt: string, managedBy: string | null }> }, site: { declaredConfigFiles: Array<{ source: string, kinds: Array<string>, exclusive: boolean }> } };
+export type ExternalServicesQuery = { externalServices: { totalCount: number, pageInfo: { hasNextPage: boolean, endCursor: string | null }, nodes: Array<{ id: string, kind: ExternalServiceKind, displayName: string, url: string, repoCount: number, lastSyncAt: string | null, nextSyncAt: string | null, lastSyncError: string | null, updatedAt: string, managedBy: string | null, tokenExpiry: { checkedAt: string, expiresAt: string | null, neverExpires: boolean, error: string | null } | null }> }, site: { declaredConfigFiles: Array<{ source: string, kinds: Array<string>, exclusive: boolean }> } };
 
 export type RegenerateExternalServiceWebhookSecretMutationVariables = Exact<{
   id: string | number;

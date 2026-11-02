@@ -45,7 +45,9 @@ pub use oauth::{OAuthLoginProvider, OAuthToken, OAuthUser, parse_token_response}
 pub use ratelimit::{
     InProcessLimiters, RateLimiter, RateLimiterState, RateLimiters, TokenBucket, connection_key,
 };
-pub use source::{CheckReport, Credential, ListOptions, RepoMeta, RepoSource, RepoStream};
+pub use source::{
+    CheckReport, Credential, ListOptions, RepoMeta, RepoSource, RepoStream, TokenExpiry,
+};
 pub use webhook::{
     ChangesetHook, ChecksHook, DomainEvent, HOOK_EVENT_PREFIX, HookChange, HookTarget, RefChange,
     RepoChange, WebhookError, WebhookHandler, WebhookRegistrar,

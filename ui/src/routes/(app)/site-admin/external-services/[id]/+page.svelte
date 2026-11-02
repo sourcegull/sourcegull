@@ -10,6 +10,7 @@
 	import { page } from '$app/state';
 	import { onDestroy, onMount } from 'svelte';
 	import { formatDate, relativeTime } from '#lib/batches/batch-change.ts';
+	import { expiryLevel, expiryText } from '#lib/connections/token-expiry.ts';
 	import ManagedNotice from '#lib/components/ManagedNotice.svelte';
 	import {
 		CANCEL_EXTERNAL_SERVICE_SYNC,
@@ -279,6 +280,18 @@
 					<span title={formatDate(service.nextSyncAt)}>{relativeTime(service.nextSyncAt)}</span>
 				{:else}—{/if}
 			</dd>
+			{#if service.tokenExpiry}
+				{@const te = service.tokenExpiry}
+				{@const level = expiryLevel(te)}
+				<dt>Token</dt>
+				<dd data-testid="token-expiry">
+					<span class:bad={level === 'expired'} class:warn={level === 'soon'}>{expiryText(te)}</span>
+					<span class="muted small">· checked {relativeTime(te.checkedAt)}</span>
+					{#if te.error}
+						<div class="bad small">The last check failed: {te.error}</div>
+					{/if}
+				</dd>
+			{/if}
 			<dt>Permissions</dt>
 			<dd>
 				{service.unrestricted
@@ -502,6 +515,10 @@
 	}
 	.bad {
 		color: var(--color-danger);
+		font-weight: var(--weight-medium);
+	}
+	.warn {
+		color: var(--color-warning);
 		font-weight: var(--weight-medium);
 	}
 	.failure td {

@@ -76,13 +76,14 @@ pub const SITE_CONFIG_SECTIONS: &[ConfigSection] = &[
     ConfigSection {
         id: "repositories",
         title: "Repositories & git",
-        description: "Code host discovery syncs, repository fetches, clones and pinning on the repo nodes.",
+        description: "Code host discovery syncs, repository fetches, clones, pinning on the repo nodes and token expiry alerts.",
         keys: &[
             "repoListUpdateInterval",
             "disableAutoGitUpdates",
             "gitUpdateInterval",
             "gitMaxConcurrentClones",
             "repoNodes.pinnedRepos",
+            "codeHosts.tokenExpiryAlerts",
         ],
     },
     ConfigSection {

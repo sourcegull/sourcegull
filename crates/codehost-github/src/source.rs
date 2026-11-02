@@ -19,6 +19,7 @@ use futures::stream::{self, StreamExt};
 use regex::Regex;
 use sourcegull_codehost::{
     CheckReport, CodeHostError, Credential, ListOptions, RepoMeta, RepoSource, RepoStream, Result,
+    TokenExpiry,
 };
 use sourcegull_types::{ExternalRepoSpec, Visibility};
 use url::Url;
@@ -527,13 +528,22 @@ impl RepoSource for GitHubSource {
         Ok(self.credential())
     }
 
+    async fn token_expiry(&self) -> Result<TokenExpiry> {
+        if self.client.is_app() {
+            return Ok(TokenExpiry::Unknown);
+        }
+        Ok(expiry(self.client.token_user().await?.expires_at))
+    }
+
     async fn check(&self) -> Result<CheckReport> {
         if self.client.is_app() {
             return self.check_app().await;
         }
-        let (user, scopes) = self.client.current_user().await?;
+        let me = self.client.token_user().await?;
+        let scopes = me.scopes;
         let mut report = CheckReport {
-            account: Some(user.login),
+            account: Some(me.user.login),
+            token_expiry: expiry(me.expires_at),
             ..CheckReport::default()
         };
         let private_access = match &scopes {
@@ -574,4 +584,9 @@ impl RepoSource for GitHubSource {
         self.check_selection(&mut report).await?;
         Ok(report)
     }
+}
+
+/// A token's expiry from the expiration header: without one, the token has no expiry date.
+fn expiry(at: Option<chrono::DateTime<chrono::Utc>>) -> TokenExpiry {
+    at.map_or(TokenExpiry::Never, TokenExpiry::At)
 }

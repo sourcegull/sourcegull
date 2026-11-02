@@ -180,6 +180,20 @@ impl UserEmailStore {
         .await?)
     }
 
+    /// One verified address per live site admin (the primary one when verified), by user id.
+    pub async fn site_admin_addresses(&self) -> Result<Vec<String>> {
+        Ok(sqlx::query_scalar(
+            "SELECT email FROM (
+                 SELECT DISTINCT ON (u.id) u.id, e.email FROM users u
+                 JOIN user_emails e ON e.user_id = u.id
+                 WHERE u.site_admin AND u.deleted_at IS NULL AND e.verified_at IS NOT NULL
+                 ORDER BY u.id, e.is_primary DESC, e.created_at
+             ) a ORDER BY id",
+        )
+        .fetch_all(&self.pool)
+        .await?)
+    }
+
     /// The live user who has verified `email` (case-insensitive), if any.
     pub async fn user_by_verified_email(&self, email: &str) -> Result<Option<UserId>> {
         Ok(sqlx::query_scalar(

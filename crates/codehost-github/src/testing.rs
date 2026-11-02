@@ -102,6 +102,9 @@ pub struct MockState {
     pub codes: HashMap<String, String>,
     /// `X-OAuth-Scopes` of `GET /user`; `None` leaves the header out (fine-grained tokens).
     pub scopes: Option<Vec<String>>,
+    /// `GitHub-Authentication-Token-Expiration` of `GET /user` for the connection token, e.g.
+    /// `2026-11-22 14:35:38 UTC`; `None` leaves the header out (no expiry date).
+    pub token_expiration: Option<String>,
     /// Maximum page size served.
     pub page_size: usize,
     /// The next this-many API requests get `403` with `X-RateLimit-Remaining: 0` and a reset
@@ -201,6 +204,7 @@ impl MockGitHub {
             authorize: true,
             codes: HashMap::new(),
             scopes: Some(vec!["repo".into()]),
+            token_expiration: None,
             page_size: 2,
             rate_limited: 0,
             rate_limit_reset_secs: 0,
@@ -418,6 +422,14 @@ async fn current_user(State(state): Shared, headers: HeaderMap, uri: Uri) -> Res
         resp.headers_mut().insert(
             "x-oauth-scopes",
             HeaderValue::from_str(&scopes.join(", ")).expect("header"),
+        );
+    }
+    if let Some(at) = &s.token_expiration
+        && caller(&s, &headers).is_none()
+    {
+        resp.headers_mut().insert(
+            "github-authentication-token-expiration",
+            HeaderValue::from_str(at).expect("header"),
         );
     }
     resp

@@ -34,6 +34,7 @@ mod settings;
 mod site_config;
 mod sync_jobs;
 mod temporary_settings;
+mod token_checks;
 mod user_emails;
 mod users;
 
@@ -123,6 +124,7 @@ pub use settings::{Settings, SettingsStore};
 pub use site_config::{SiteConfig, SiteConfigStore};
 pub use sync_jobs::{SYNC_JOBS_TABLE, SyncJob, SyncJobRecord, SyncJobStore, SyncReason, SyncStats};
 pub use temporary_settings::TemporarySettingsStore;
+pub use token_checks::{StoredExpiry, TokenCheck, TokenCheckStore};
 pub use user_emails::UserEmailStore;
 pub use users::{ListUsersOptions, LockoutPolicy, LoginFailure, NewUser, ProfileUpdate, UserStore};
 

@@ -287,6 +287,12 @@ impl GitHubClient {
     /// The token's user and the scopes of a classic token (`X-OAuth-Scopes`; `None` for
     /// fine-grained tokens, which do not report scopes).
     pub async fn current_user(&self) -> Result<(User, Option<Vec<String>>)> {
+        let me = self.token_user().await?;
+        Ok((me.user, me.scopes))
+    }
+
+    /// The token's user with what the response headers say about the token.
+    pub async fn token_user(&self) -> Result<TokenUser> {
         let (user, headers): (User, _) = self.get_with_headers("user").await?;
         let scopes = header_str(&headers, "x-oauth-scopes").map(|s| {
             s.split(',')
@@ -295,8 +301,39 @@ impl GitHubClient {
                 .map(str::to_owned)
                 .collect()
         });
-        Ok((user, scopes))
+        let expires_at = header_str(&headers, TOKEN_EXPIRATION_HEADER).and_then(parse_expiration);
+        Ok(TokenUser {
+            user,
+            scopes,
+            expires_at,
+        })
     }
+}
+
+/// `GET /user` with what its response headers say about the token.
+#[derive(Debug, Clone)]
+pub struct TokenUser {
+    pub user: User,
+    /// The scopes of a classic token; `None` for fine-grained tokens.
+    pub scopes: Option<Vec<String>>,
+    /// When the token expires; `None` when GitHub sends no expiration (no expiry date).
+    pub expires_at: Option<chrono::DateTime<chrono::Utc>>,
+}
+
+/// The response header GitHub sends with requests made with a token that has an expiry date.
+const TOKEN_EXPIRATION_HEADER: &str = "github-authentication-token-expiration";
+
+/// Parses the token expiration header, e.g. `2026-11-22 14:35:38 UTC` or
+/// `2026-11-22 14:35:38 -0800`.
+fn parse_expiration(value: &str) -> Option<chrono::DateTime<chrono::Utc>> {
+    if let Some(utc) = value.strip_suffix(" UTC") {
+        return chrono::NaiveDateTime::parse_from_str(utc, "%Y-%m-%d %H:%M:%S")
+            .ok()
+            .map(|t| t.and_utc());
+    }
+    chrono::DateTime::parse_from_str(value, "%Y-%m-%d %H:%M:%S %z")
+        .ok()
+        .map(|t| t.with_timezone(&chrono::Utc))
 }
 
 /// How long to wait before retrying a rate-limited response, or `None` when `status` is not a
@@ -324,6 +361,20 @@ fn until_reset(headers: &HeaderMap) -> Option<Duration> {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn token_expiration_header() {
+        let at = |s: &str| chrono::DateTime::parse_from_rfc3339(s).unwrap().to_utc();
+        assert_eq!(
+            parse_expiration("2026-11-22 14:35:38 UTC"),
+            Some(at("2026-11-22T14:35:38Z"))
+        );
+        assert_eq!(
+            parse_expiration("2026-11-22 14:35:38 -0800"),
+            Some(at("2026-11-22T22:35:38Z"))
+        );
+        assert_eq!(parse_expiration("soon"), None);
+    }
     use reqwest::header::HeaderValue;
 
     #[test]

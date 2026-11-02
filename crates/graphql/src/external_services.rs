@@ -16,9 +16,11 @@ use std::time::Duration;
 use async_graphql::{Context, Enum, ID, InputObject, Object, Result, SimpleObject, Union};
 use chrono::{DateTime, Utc};
 use serde_json::json;
-use sourcegull_codehost::{CheckReport, CodeHostError};
+use sourcegull_codehost::{CheckReport, CodeHostError, TokenExpiry};
 use sourcegull_config::ConfigError;
-use sourcegull_db::{ExternalServiceUpdate, NewExternalService, SyncJobRecord, SyncReason};
+use sourcegull_db::{
+    ExternalServiceUpdate, NewExternalService, StoredExpiry, SyncJobRecord, SyncReason,
+};
 use sourcegull_services::relay::{EXTERNAL_SERVICE_KIND, marshal_id, unmarshal_int_id};
 use sourcegull_types::{
     ExternalService, ExternalServiceId, ExternalServiceKind, ExternalServiceSyncJobId,
@@ -122,6 +124,19 @@ impl From<sourcegull_codehost::RateLimiterState> for RateLimiterState {
     }
 }
 
+/// When a connection's token expires, as last checked.
+#[derive(SimpleObject)]
+pub struct TokenExpiryCheck {
+    /// When the token was last checked.
+    pub checked_at: DateTime<Utc>,
+    /// When the token stops working; null when it has no expiry date or is not known.
+    pub expires_at: Option<DateTime<Utc>>,
+    /// Whether the token has no expiry date.
+    pub never_expires: bool,
+    /// Why the last check failed; `expiresAt` is then that of the last successful check.
+    pub error: Option<String>,
+}
+
 /// The outcome of `checkConnection`.
 #[derive(Union)]
 pub enum ExternalServiceAvailability {
@@ -210,6 +225,32 @@ impl ExternalServiceNode {
     /// When the connection was last changed.
     async fn updated_at(&self) -> DateTime<Utc> {
         self.service.updated_at
+    }
+
+    /// When the connection's token expires, as the worker last read it from the code host
+    /// (daily, and after each configuration change). Null until the first check, and when
+    /// the code host does not say (OAuth tokens, GitHub Apps, Gitea).
+    async fn token_expiry(&self, ctx: &Context<'_>) -> Result<Option<TokenExpiryCheck>> {
+        let check = services(ctx)?
+            .db
+            .token_checks()
+            .get(self.service.id)
+            .await
+            .map_err(db_error)?;
+        Ok(check.and_then(|c| {
+            let (expires_at, never_expires) = match c.expiry {
+                StoredExpiry::At(at) => (Some(at), false),
+                StoredExpiry::Never => (None, true),
+                StoredExpiry::Unknown if c.error.is_none() => return None,
+                StoredExpiry::Unknown => (None, false),
+            };
+            Some(TokenExpiryCheck {
+                checked_at: c.checked_at,
+                expires_at,
+                never_expires,
+                error: c.error,
+            })
+        }))
     }
 
     /// The number of repositories the connection mirrors.
@@ -513,6 +554,10 @@ pub struct ExternalServiceConfigCheck {
     pub account: Option<String>,
     /// The token's scopes, when the code host reports them.
     pub scopes: Option<Vec<String>>,
+    /// When the token stops working, when the code host says.
+    pub token_expires_at: Option<DateTime<Utc>>,
+    /// Whether the code host says the token has no expiry date.
+    pub token_never_expires: bool,
     /// Problems that do not prevent syncing (e.g. a missing scope).
     pub warnings: Vec<String>,
 }
@@ -524,6 +569,8 @@ impl ExternalServiceConfigCheck {
             problem: Some(problem),
             account: None,
             scopes: None,
+            token_expires_at: None,
+            token_never_expires: false,
             warnings: Vec::new(),
         }
     }
@@ -636,6 +683,11 @@ impl ExternalServicesQuery {
                 problem: None,
                 account: report.account,
                 scopes: report.scopes,
+                token_expires_at: match report.token_expiry {
+                    TokenExpiry::At(at) => Some(at),
+                    _ => None,
+                },
+                token_never_expires: report.token_expiry == TokenExpiry::Never,
                 warnings: report.warnings,
             },
             Err(problem) => ExternalServiceConfigCheck::failed(problem),
