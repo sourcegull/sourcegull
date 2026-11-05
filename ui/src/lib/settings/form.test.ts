@@ -35,6 +35,35 @@ describe('settingsForm', () => {
 		expect(keys(settingsForm(withNotices, {}, 'organization'))).toEqual(['notices']);
 	});
 
+	it('writes the notice form in plain words, message first', () => {
+		const withNotices: SettingsSchema = {
+			properties: {
+				notices: {
+					type: 'array',
+					items: {
+						type: 'object',
+						required: ['location', 'message'],
+						properties: {
+							dismissible: { type: 'boolean' },
+							location: {
+								oneOf: [
+									{ enum: ['top'], type: 'string' },
+									{ enum: ['home'], type: 'string' }
+								]
+							},
+							message: { type: 'string' }
+						}
+					}
+				}
+			},
+			'x-sections': [{ id: 'home', title: 'Home', description: '', keys: ['notices'] }]
+		};
+		const items = settingsForm(withNotices, {}, 'global')[0]?.fields[0]?.itemFields ?? [];
+		expect(items.map((f) => f.key)).toEqual(['message', 'location', 'dismissible']);
+		expect(items[0]?.markdown).toBe(true);
+		expect(items[1]?.options?.[0]).toMatchObject({ value: 'top', label: 'At the top of every page' });
+	});
+
 	it('shows a setting without effect only while the document sets it', () => {
 		expect(keys(settingsForm(schema, {}, 'global'))).not.toContain('search.includeForks');
 		expect(keys(settingsForm(schema, { 'search.includeForks': true }, 'global'))).toContain('search.includeForks');

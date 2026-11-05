@@ -1,5 +1,6 @@
 <script lang="ts">
 	import type { QueueAutoIndexJobsForRepoMutation } from '#lib/graphql-types.ts';
+	import SaveBar from '#lib/components/SaveBar.svelte';
 	import ConfigField from '#lib/components/site-config/ConfigField.svelte';
 	import { errorMessage, graphql } from '#lib/graphql.ts';
 	import { parseJsonc, setAt } from '#lib/jsonc-edit.ts';
@@ -43,6 +44,16 @@
 	/** Whether a save was refused for empty required values; they are marked from then on. */
 	let showRequired = $state(false);
 
+	const dirty = $derived(text !== (saved ?? ''));
+	let saving = $state(false);
+	let savedAt = $state<number | null>(null);
+
+	function discard(): void {
+		text = saved ?? '';
+		error = null;
+		showRequired = false;
+	}
+
 	function setValue(path: ConfigPath, value: unknown): void {
 		text = setAt(text, path, value);
 		notice = null;
@@ -73,20 +84,24 @@
 		if (missing.length > 0) {
 			view = 'jobs';
 			notice = null;
-			error = 'Fill in the required values marked below.';
+			error = null;
 			return;
 		}
 		busy = true;
+		saving = true;
 		error = null;
 		notice = null;
 		try {
 			await graphql(UPDATE_INDEX_CONFIGURATION, { repo: repoId, configuration: text });
 			saved = text.trim() ? text : null;
-			notice = saved ? 'Saved. It takes precedence over sourcegull.yaml and inference.' : 'Removed the configuration.';
+			text = saved ?? '';
+			savedAt = Date.now();
+			if (!saved) notice = 'Removed the configuration.';
 		} catch (err) {
 			error = errorMessage(err);
 		} finally {
 			busy = false;
+			saving = false;
 		}
 	}
 
@@ -129,7 +144,7 @@
 		Auto-indexing runs the jobs of this configuration if one is saved, else those of <code>sourcegull.yaml</code> in the repository,
 		else the jobs inferred from the repository's files.
 	</p>
-	{#if error}
+	{#if error && !dirty}
 		<div class="alert alert-danger" role="alert">{error}</div>
 	{/if}
 	{#if notice}
@@ -198,7 +213,6 @@
 		</div>
 		{#if siteAdmin}
 			<div class="actions">
-				<button class="btn btn-primary" disabled={busy || text === (saved ?? '')} onclick={save}>Save</button>
 				<button
 					class="btn"
 					disabled={busy || !inferred}
@@ -215,6 +229,25 @@
 					>
 				{/if}
 			</div>
+		{/if}
+
+		{#if siteAdmin}
+			<SaveBar
+				{dirty}
+				{saving}
+				note="A saved configuration takes precedence over sourcegull.yaml and inference."
+				{savedAt}
+				ondiscard={discard}
+				onsave={save}
+			>
+				{#if showRequired && missing.length > 0}
+					<div class="alert alert-danger" role="alert">
+						<strong>Not saved.</strong> Fill in the required values marked in the form.
+					</div>
+				{:else if error}
+					<div class="alert alert-danger" role="alert"><strong>Not saved.</strong> {error}</div>
+				{/if}
+			</SaveBar>
 		{/if}
 
 		<h3>Inferred configuration</h3>

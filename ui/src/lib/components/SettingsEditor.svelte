@@ -7,6 +7,7 @@
 	import { beforeNavigate } from '$app/navigation';
 	import { onMount } from 'svelte';
 	import JsoncEditor from '#lib/components/JsoncEditor.svelte';
+	import SaveBar from '#lib/components/SaveBar.svelte';
 	import ConfigField from '#lib/components/site-config/ConfigField.svelte';
 	import { errorMessage, graphql } from '#lib/graphql.ts';
 	import {
@@ -47,7 +48,6 @@
 	let saving = $state(false);
 	let error = $state<string | null>(null);
 	let conflict = $state(false);
-	let notice = $state<string | null>(null);
 
 	/** The commented template of every setting, for subjects without settings. */
 	let template: string | null = null;
@@ -85,6 +85,19 @@
 	});
 
 	const dirty = $derived(contents !== baseline);
+	let savedAt = $state<number | null>(null);
+	const SAVE_NOTES: Record<SettingsScope, string> = {
+		global: 'Saved settings apply to every user.',
+		organization: 'Saved settings apply to every member of this organization.',
+		user: 'Saved settings apply only to you.'
+	};
+
+	function discard(): void {
+		contents = baseline;
+		error = null;
+		conflict = false;
+		showRequired = false;
+	}
 
 	let schema = $state.raw<SettingsSchema | null>(null);
 	let view = $state<'settings' | 'json'>('settings');
@@ -108,7 +121,6 @@
 
 	function setValue(path: ConfigPath, value: unknown): void {
 		contents = setAt(contents, path, value);
-		notice = null;
 	}
 
 	onMount(async () => {
@@ -134,19 +146,17 @@
 		showRequired = true;
 		if (missing.length > 0) {
 			view = 'settings';
-			notice = null;
-			error = 'Fill in the required values marked below.';
+			error = null;
 			return;
 		}
 		saving = true;
 		error = null;
-		notice = null;
 		conflict = false;
 		try {
 			await graphql(OVERWRITE_SETTINGS, { subject, lastID: latest?.id ?? null, contents });
 			await onsaved();
 			void refreshViewerSettings();
-			notice = 'Saved.';
+			savedAt = Date.now();
 		} catch (err) {
 			if (isConflictError(err)) conflict = true;
 			else error = errorMessage(err);
@@ -166,38 +176,7 @@
 		<span class="muted">No settings saved yet.</span>
 	{/if}
 	<a href={SETTINGS_REFERENCE_PATH} target="_blank" rel="noopener">Settings reference</a>
-	<span class="spacer"></span>
-	{#if dirty}<span class="badge" aria-live="polite">Unsaved changes</span>{/if}
-	{#if !readOnly}
-		<button class="btn" type="button" onclick={() => (contents = baseline)} disabled={!dirty || saving}>Discard</button>
-		<button class="btn btn-primary" type="button" onclick={save} disabled={!dirty || saving || conflict}
-			>{saving ? 'Saving…' : 'Save'}</button
-		>
-	{/if}
 </div>
-
-{#if conflict}
-	<div class="alert alert-warning" role="alert">
-		<strong>The settings were changed since you loaded them.</strong> Copy your edits, then reload.
-		<div class="toolbar">
-			<button
-				class="btn btn-sm"
-				type="button"
-				onclick={async () => {
-					conflict = false;
-					await onsaved();
-				}}>Reload latest version</button
-			>
-			<button class="btn btn-sm" type="button" onclick={() => navigator.clipboard?.writeText(contents)}
-				>Copy my edits</button
-			>
-		</div>
-	</div>
-{/if}
-{#if error}
-	<div class="alert alert-danger" role="alert"><strong>Save failed.</strong> {error}</div>
-{/if}
-{#if notice}<div class="alert alert-success" role="status">{notice}</div>{/if}
 
 <div class="tabs view-tabs" role="tablist" aria-label="Editor">
 	<button
@@ -263,12 +242,47 @@
 	{/if}
 </div>
 
+{#if !readOnly}
+	<SaveBar
+		{dirty}
+		{saving}
+		saveDisabled={conflict}
+		note={SAVE_NOTES[scope]}
+		{savedAt}
+		ondiscard={discard}
+		onsave={save}
+	>
+		{#if conflict}
+			<div class="alert alert-warning" role="alert">
+				<strong>The settings were changed since you loaded them.</strong> Copy your edits, then reload.
+				<div class="toolbar">
+					<button
+						class="btn btn-sm"
+						type="button"
+						onclick={async () => {
+							conflict = false;
+							await onsaved();
+						}}>Reload latest version</button
+					>
+					<button class="btn btn-sm" type="button" onclick={() => navigator.clipboard?.writeText(contents)}
+						>Copy my edits</button
+					>
+				</div>
+			</div>
+		{/if}
+		{#if issues.length > 0}
+			<div class="alert alert-danger" role="alert">
+				<strong>Not saved.</strong> Fill in the required values marked in the form.
+			</div>
+		{:else if error}
+			<div class="alert alert-danger" role="alert"><strong>Not saved.</strong> {error}</div>
+		{/if}
+	</SaveBar>
+{/if}
+
 <style>
 	.settings-toolbar {
 		margin-bottom: var(--space-2);
-	}
-	.spacer {
-		flex: 1;
 	}
 	.view-tabs {
 		margin-bottom: var(--space-3);

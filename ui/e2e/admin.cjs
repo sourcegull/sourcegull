@@ -137,10 +137,14 @@ function step(name) {
 	await admin.click('button[role=tab]:has-text("Settings")');
 	await admin.selectOption('#cfg-search_defaultPatternType', 'regexp');
 	await admin.click('button:has-text("Add notice")');
-	await admin.click('.settings-toolbar button:text-is("Save")');
+	await admin.click('.save-bar button:text-is("Save")');
 	await admin.waitForSelector('#cfg-notices--0--message-error:has-text("Required.")');
-	await admin.fill('#cfg-notices--0--message', 'First');
-	await admin.click('button:has-text("Add notice")');
+	await admin.fill('#cfg-notices--0--message', 'First **bold**');
+	await admin.waitForSelector('.preview strong:has-text("bold")');
+	if (await admin.locator('.save-bar .alert-danger').count()) fail('the save bar still reports a value that was filled in');
+	await admin.locator('.add-item:has-text("Add another notice")').scrollIntoViewIfNeeded();
+	await admin.screenshot({ path: `${OUT}/a05a-notice-form.png` });
+	await admin.click('button:has-text("Add another notice")');
 	await admin.fill('#cfg-notices--1--message', 'Second');
 	await admin.selectOption('#cfg-notices--1--location', 'home');
 	await admin.click('button[aria-label="Move Notice 2 up"]');
@@ -149,8 +153,14 @@ function step(name) {
 	await admin.click('button:has-text("Add quicklink")');
 	await admin.fill('#cfg-quicklinks--0--name', 'Docs');
 	await admin.fill('#cfg-quicklinks--0--url', '/help');
-	await admin.click('.settings-toolbar button:text-is("Save")');
-	await admin.waitForSelector('.alert-success:text-is("Saved.")');
+	await admin.locator('#cfg-search_defaultPatternType').scrollIntoViewIfNeeded();
+	const barInView = await admin.evaluate(() => {
+		const r = document.querySelector('.save-bar').getBoundingClientRect();
+		return r.top >= 0 && r.bottom <= window.innerHeight;
+	});
+	if (!barInView) fail('the save bar is not in view at the top of a long form');
+	await admin.click('.save-bar button:text-is("Save")');
+	await admin.waitForSelector('[data-testid="save-bar-saved"]');
 	if (await admin.getAttribute('#cfg-quicklinks--0--name', 'aria-invalid')) fail('a filled-in value is still marked invalid');
 	await admin.waitForTimeout(400);
 	await admin.screenshot({ path: `${OUT}/a05-global-settings.png`, fullPage: true });
@@ -158,6 +168,7 @@ function step(name) {
 	await admin.waitForSelector('#cfg-notices--0--message');
 	if ((await admin.inputValue('#cfg-notices--0--message')) !== 'Second') fail('the notice was not saved');
 	if ((await admin.inputValue('#cfg-notices--0--location')) !== 'home') fail('the notice location was not saved');
+	if (await admin.locator('.save-bar').count()) fail('the save bar shows with nothing to save');
 	if (!(await admin.textContent('.settings-section:last-of-type, #settings-panel')).includes('my.custom')) fail('an unknown key is not listed');
 	await admin.click('button[role=tab]:has-text("Edit as JSON")');
 	const globalJson = await admin.textContent('.cm-content');
@@ -190,8 +201,8 @@ function step(name) {
 			notices: [{ message: '**Maintenance** [link](javascript:alert(1))', location: 'top', dismissible: true }]
 		})
 	);
-	await admin.click('.settings-toolbar button:text-is("Save")');
-	await admin.waitForSelector('.alert-success:text-is("Saved.")');
+	await admin.click('.save-bar button:text-is("Save")');
+	await admin.waitForSelector('[data-testid="save-bar-saved"]');
 	await admin.waitForSelector('[data-testid="notice-top"] strong:has-text("Maintenance")');
 	if (await admin.locator('[data-testid="notice-top"] a[href*="script"]').count()) fail('a notice rendered a script link');
 	await admin.screenshot({ path: `${OUT}/a05c-top-notice.png` });
@@ -210,16 +221,16 @@ function step(name) {
 	if (!(await admin.textContent('#cfg-search_defaultPatternType option:first-child')).includes('regexp')) fail('the inherited value is not shown');
 	if (await admin.locator('#cfg-orgs_allMembersBatchChangesAdmin, button:has-text("Add notice")').count()) fail('the user form shows settings for others');
 	await admin.selectOption('#cfg-search_defaultPatternType', 'literal');
-	await admin.click('.settings-toolbar button:text-is("Save")');
-	await admin.waitForSelector('.alert-success:text-is("Saved.")');
+	await admin.click('.save-bar button:text-is("Save")');
+	await admin.waitForSelector('[data-testid="save-bar-saved"]');
 	await admin.screenshot({ path: `${OUT}/a05d-preferences.png`, fullPage: true });
 	await admin.goto(`${BASE}/search`);
 	await admin.waitForFunction(() => document.querySelector('#pattern-type')?.value === 'literal');
 	await admin.goto(`${BASE}/user/settings/preferences`);
 	await admin.waitForSelector('#cfg-search_defaultPatternType');
 	await admin.selectOption('#cfg-search_defaultPatternType', '');
-	await admin.click('.settings-toolbar button:text-is("Save")');
-	await admin.waitForSelector('.alert-success:text-is("Saved.")');
+	await admin.click('.save-bar button:text-is("Save")');
+	await admin.waitForSelector('[data-testid="save-bar-saved"]');
 
 	step('organization settings: inherited values, and the organization-only setting');
 	await admin.goto(`${BASE}/organizations/new`);
@@ -235,8 +246,8 @@ function step(name) {
 	await admin.click('form.profile button:has-text("Save")');
 	await admin.waitForSelector('.alert-success:has-text("Reload to see the new name")');
 	if (!(await admin.isChecked('#cfg-orgs_allMembersBatchChangesAdmin'))) fail('saving the profile dropped unsaved settings');
-	await admin.click('.settings-toolbar button:text-is("Save")');
-	await admin.waitForSelector('.alert-success:text-is("Saved.")');
+	await admin.click('.save-bar button:text-is("Save")');
+	await admin.waitForSelector('[data-testid="save-bar-saved"]');
 	await admin.screenshot({ path: `${OUT}/a06-organization-settings.png`, fullPage: true });
 	await admin.reload();
 	await admin.waitForSelector('#cfg-orgs_allMembersBatchChangesAdmin:checked');
@@ -248,8 +259,8 @@ function step(name) {
 	await admin.click('.cm-content');
 	await admin.keyboard.press('Control+A');
 	await admin.keyboard.insertText('{}');
-	await admin.click('.settings-toolbar button:text-is("Save")');
-	await admin.waitForSelector('.alert-success:text-is("Saved.")');
+	await admin.click('.save-bar button:text-is("Save")');
+	await admin.waitForSelector('[data-testid="save-bar-saved"]');
 
 	step('site configuration: lists of objects are forms too');
 	await admin.goto(`${BASE}/site-admin/configuration?section=repositories`);

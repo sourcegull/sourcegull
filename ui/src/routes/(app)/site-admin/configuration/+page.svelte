@@ -8,6 +8,7 @@
 	import AuthProvidersEditor from '#lib/components/site-config/AuthProvidersEditor.svelte';
 	import ConfigField from '#lib/components/site-config/ConfigField.svelte';
 	import RelatedLinks from '#lib/components/RelatedLinks.svelte';
+	import SaveBar from '#lib/components/SaveBar.svelte';
 	import { relatedForSection } from '#lib/admin/related.ts';
 	import type { DeclaredConfigFile } from '#lib/declared-config.ts';
 	import { errorMessage, graphql } from '#lib/graphql.ts';
@@ -534,25 +535,14 @@
 		</div>
 	</div>
 
-	{#if dirty || saving}
-		<div class="save-bar" role="region" aria-label="Unsaved changes">
-			<span class="save-status" aria-live="polite">
-				<span class="badge badge-warning">Unsaved changes</span>
-				<span class="muted small">Saved settings apply to the whole instance.</span>
-			</span>
-			<span class="save-actions">
-				<button class="btn" type="button" onclick={discard} disabled={!dirty || saving}>Discard</button>
-				<button
-					class="btn btn-primary"
-					type="button"
-					onclick={save}
-					disabled={!dirty || saving || conflict || readOnly}
-				>
-					{saving ? 'Saving…' : 'Save'}
-				</button>
-			</span>
-		</div>
-	{/if}
+	<SaveBar
+		{dirty}
+		{saving}
+		saveDisabled={conflict || readOnly}
+		note="Saved settings apply to the whole instance."
+		ondiscard={discard}
+		onsave={save}
+	/>
 {:else if !loadError}
 	<p class="loading" aria-live="polite"><span class="spinner"></span> Loading…</p>
 {/if}
@@ -683,28 +673,5 @@
 		margin: var(--space-1) 0 0;
 		white-space: pre-wrap;
 		font-size: var(--text-sm);
-	}
-	.save-bar {
-		position: sticky;
-		bottom: 0;
-		z-index: 5;
-		display: flex;
-		flex-wrap: wrap;
-		align-items: center;
-		justify-content: space-between;
-		gap: var(--space-2) var(--space-4);
-		margin-top: var(--space-4);
-		padding: var(--space-3) var(--space-4);
-		background: var(--color-surface-raised);
-		border: 1px solid var(--color-border-strong);
-		border-radius: var(--radius-lg);
-		box-shadow: var(--shadow-lg);
-	}
-	.save-status,
-	.save-actions {
-		display: inline-flex;
-		flex-wrap: wrap;
-		align-items: center;
-		gap: var(--space-2);
 	}
 </style>

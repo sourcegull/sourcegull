@@ -42,6 +42,8 @@ export type FieldKind =
 export interface EnumOption {
 	value: string;
 	description: string;
+	/** Shown instead of the value when the value alone would not say what it means. */
+	label?: string;
 }
 
 /** One form control (or fieldset, for `object`). */
@@ -66,6 +68,8 @@ export interface FormField {
 	children?: FormField[];
 	/** The fields of each item of an `objectList`; use `itemFieldsAt` for their paths. */
 	itemFields?: FormField[];
+	/** On a `string`: Markdown, edited in a larger box with a preview. */
+	markdown?: boolean;
 	/** On a `stringList`: an entered line is one value, not split on spaces and commas. */
 	wholeItems?: boolean;
 }
