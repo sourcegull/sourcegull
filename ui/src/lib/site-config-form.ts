@@ -28,13 +28,16 @@ export interface JsonSchema {
 	definitions?: Record<string, JsonSchema>;
 	'x-secret'?: boolean;
 	'x-section'?: string;
+	/** On an array of strings: each entry is one value, which may contain spaces and commas. */
+	'x-whole-items'?: boolean;
 	writeOnly?: boolean;
 }
 
 /** A path into the configuration document: object keys and array indexes. */
 export type ConfigPath = (string | number)[];
 
-export type FieldKind = 'boolean' | 'string' | 'integer' | 'number' | 'enum' | 'stringList' | 'object' | 'json';
+export type FieldKind =
+	'boolean' | 'string' | 'integer' | 'number' | 'enum' | 'stringList' | 'object' | 'objectList' | 'json';
 
 export interface EnumOption {
 	value: string;
@@ -61,6 +64,10 @@ export interface FormField {
 	options?: EnumOption[];
 	/** The fields of an `object`. */
 	children?: FormField[];
+	/** The fields of each item of an `objectList`; use `itemFieldsAt` for their paths. */
+	itemFields?: FormField[];
+	/** On a `stringList`: an entered line is one value, not split on spaces and commas. */
+	wholeItems?: boolean;
 }
 
 const DEFINITIONS = '#/definitions/';
@@ -192,7 +199,23 @@ export function buildField(
 		field.max = s.maximum;
 	} else if (s.type === 'array' && s.items) {
 		const item = resolveSchema(root, s.items);
-		if (item.type === 'string' && !enumOptions(item)) field.kind = 'stringList';
+		const itemProps = item.properties;
+		if (item.type === 'string' && !enumOptions(item)) {
+			field.kind = 'stringList';
+			field.wholeItems = !!s['x-whole-items'];
+		} else if (item.type === 'object' && itemProps && (options.depth ?? 0) < 3) {
+			const required = new Set(item.required ?? []);
+			field.kind = 'objectList';
+			// Required fields first, the order the rest of the schema has after that.
+			field.itemFields = Object.keys(itemProps)
+				.sort((a, b) => Number(required.has(b)) - Number(required.has(a)))
+				.map((k) =>
+					buildField(root, k, itemProps[k] ?? {}, [...path, 0, k], {
+						required: required.has(k),
+						depth: (options.depth ?? 0) + 1
+					})
+				);
+		}
 	} else if (s.type === 'object' && s.properties && (options.depth ?? 0) < 3) {
 		const props = s.properties;
 		const required = new Set(s.required ?? []);
@@ -213,6 +236,34 @@ export function buildField(
 /** The fields of the section listing `keys`, in that order (keys the schema lacks are JSON). */
 export function sectionFields(schema: JsonSchema, keys: string[]): FormField[] {
 	return keys.map((key) => buildField(schema, key, schema.properties?.[key] ?? {}, [key]));
+}
+
+/** The fields of item `index` of an `objectList`, with the paths of that item. */
+export function itemFieldsAt(list: FormField, index: number): FormField[] {
+	const at = list.path.length;
+	const rebase = (f: FormField): FormField => ({
+		...f,
+		path: f.path.map((seg, i) => (i === at ? index : seg)),
+		children: f.children?.map(rebase),
+		itemFields: f.itemFields?.map(rebase)
+	});
+	return (list.itemFields ?? []).map(rebase);
+}
+
+/** A new item of an `objectList`: required enums start at their first value, required strings empty. */
+export function newItem(list: FormField): Record<string, unknown> {
+	const item: Record<string, unknown> = {};
+	for (const f of list.itemFields ?? []) {
+		if (!f.required) continue;
+		if (f.kind === 'enum' && f.options?.[0]) item[f.key] = f.options[0].value;
+		else if (f.kind === 'string') item[f.key] = '';
+	}
+	return item;
+}
+
+/** What one item of a list is called: the `Rollout windows` field holds `Rollout window`s. */
+export function itemName(list: FormField): string {
+	return list.title.replace(/s$/, '');
 }
 
 /** The value at `path` in `doc`, or undefined. */
@@ -275,6 +326,22 @@ function startsWith(path: ConfigPath, prefix: ConfigPath): boolean {
  */
 export function issuesAt(issues: ConfigIssue[], path: ConfigPath, leaf = true): ConfigIssue[] {
 	return issues.filter((i) => (leaf ? startsWith(i.path, path) : samePath(i.path, path)));
+}
+
+/**
+ * Issues for required values that are missing or empty, in objects and list items the document
+ * has. The server accepts an empty string for most of them, which would save a blank item.
+ */
+export function requiredIssues(fields: FormField[], doc: Record<string, unknown>): ConfigIssue[] {
+	return fields.flatMap((f) => {
+		const value = getAt(doc, f.path);
+		if (f.kind === 'objectList') {
+			const count = Array.isArray(value) ? value.length : 0;
+			return Array.from({ length: count }, (_, i) => requiredIssues(itemFieldsAt(f, i), doc)).flat();
+		}
+		if (f.kind === 'object') return value === undefined ? [] : requiredIssues(f.children ?? [], doc);
+		return f.required && (value === undefined || value === '') ? [{ path: f.path, message: 'Required.' }] : [];
+	});
 }
 
 /** Splits text on backticks so `code` spans can be rendered as code. */

@@ -242,6 +242,12 @@ pub const SETTINGS_SECTIONS: &[ConfigSection] = &[
         description: "Links on the search home page and banners shown to users.",
         keys: &["quicklinks", "notices"],
     },
+    ConfigSection {
+        id: "organization",
+        title: "Organization",
+        description: "How an organization's members work together.",
+        keys: &["orgs.allMembersBatchChangesAdmin"],
+    },
 ];
 
 /// A JSONC document listing every property of `schema`, commented out with its default and

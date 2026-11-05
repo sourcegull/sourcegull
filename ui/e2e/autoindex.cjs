@@ -96,7 +96,23 @@ function step(name) {
 	const inferred = await page.textContent('ul[aria-label="Inferred jobs"]');
 	if (!inferred.includes('scip-rust') || !inferred.includes('ui')) fail(`inferred configuration: ${inferred}`);
 	await page.click('button:has-text("Use inferred configuration")');
+	if (!(await page.inputValue('#cfg-index_jobs--0--indexer')).includes('scip')) fail('the form does not show the inferred jobs');
+	await page.click('button[role=tab]:has-text("Edit as JSON")');
 	if (!(await page.inputValue('#index-config')).includes('index_jobs')) fail('the inferred configuration was not copied');
+	await page.click('button[role=tab]:has-text("Jobs")');
+
+	step('a job without an indexer is refused and marked; a command stays one entry');
+	await page.click('button:has-text("Add index job")');
+	const added = await page.locator('li.item:has(> .item-head:has-text("Index job"))').count();
+	await page.click('button:has-text("Save")');
+	await page.waitForSelector(`#cfg-index_jobs--${added - 1}--indexer-error:has-text("Required.")`, { timeout: 10000 });
+	await page.fill(`#cfg-index_jobs--${added - 1}--local_steps`, 'go mod download');
+	await page.press(`#cfg-index_jobs--${added - 1}--local_steps`, 'Enter');
+	await page.click('button[role=tab]:has-text("Edit as JSON")');
+	if (!(await page.inputValue('#index-config')).includes('"go mod download"')) fail('the command was split');
+	await page.click('button[role=tab]:has-text("Jobs")');
+	await page.click(`button[aria-label="Remove Index job ${added}"]`);
+
 	await page.click('button:has-text("Save")');
 	await page.waitForSelector('.alert-info:has-text("Saved")', { timeout: 10000 });
 	await page.screenshot({ path: `${OUT}/autoindex-02-configuration.png` });

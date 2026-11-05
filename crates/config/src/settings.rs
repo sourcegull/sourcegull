@@ -78,6 +78,11 @@ pub struct Settings {
     /// adding `archived:yes` to the query. Links, saved searches and the APIs are not affected.
     #[serde(rename = "search.includeArchived")]
     pub search_include_archived: bool,
+    /// In an organization's settings: whether every member may close and delete the bulk changes
+    /// in the organization's namespace and run bulk operations on them, not only their creator
+    /// and site admins.
+    #[serde(rename = "orgs.allMembersBatchChangesAdmin")]
+    pub orgs_all_members_batch_changes_admin: bool,
     /// Links shown on the search home page.
     pub quicklinks: Vec<Quicklink>,
     /// Banners shown to users.
@@ -93,6 +98,7 @@ impl Default for Settings {
             search_default_pattern_type: PatternType::Keyword,
             search_include_forks: false,
             search_include_archived: false,
+            orgs_all_members_batch_changes_admin: false,
             quicklinks: Vec::new(),
             notices: Vec::new(),
             extra: BTreeMap::new(),

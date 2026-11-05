@@ -33,8 +33,7 @@
 	<div>
 		<h1>Global settings</h1>
 		<p class="page-description">
-			Settings for every user, overridden by organization and user settings (the settings cascade). JSON with comments{#if !readOnly};
-				press <kbd>Ctrl</kbd>/<kbd>⌘</kbd>+<kbd>S</kbd> to save{/if}.
+			Settings for every user, overridden by organization and user settings (the settings cascade).
 		</p>
 	</div>
 </div>
@@ -48,7 +47,14 @@
 {/if}
 {#if site}
 	{#key readOnly}
-		<SettingsEditor subject={site.id} latest={site.latestSettings} onsaved={load} label="Global settings" {readOnly} />
+		<SettingsEditor
+			subject={site.id}
+			latest={site.latestSettings}
+			onsaved={load}
+			label="Global settings"
+			{readOnly}
+			scope="global"
+		/>
 	{/key}
 {:else if !error}
 	<p class="loading"><span class="spinner"></span> Loading…</p>

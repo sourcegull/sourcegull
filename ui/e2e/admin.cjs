@@ -3,7 +3,7 @@
 // users and their roles, custom roles,
 // related links between admin pages and their settings, the settings search, the overview's
 // setup checklist, the sign-in choice of "Connect an agent", "why can X see Y", sync now and the
-// job history, access tokens, and the phone layout of each page. Fails on any page or console
+// job history, the global and organization settings forms, access tokens, and the phone layout of each page. Fails on any page or console
 // error. Screenshots go to OUT.
 //
 // Run it with scripts/test/e2e-ui.sh, after ui/e2e/search.cjs has signed up the admin and with
@@ -124,6 +124,77 @@ function step(name) {
 	await admin.waitForSelector(`${row} .badge:has-text("${ROLE}")`);
 	await admin.screenshot({ path: `${OUT}/a04-users.png` });
 
+	step('global settings: forms keep comments, save, and show in the JSON view');
+	await admin.goto(`${BASE}/site-admin/global-settings`);
+	await admin.waitForSelector('#cfg-search_defaultPatternType');
+	if (await admin.locator('#cfg-search_includeForks').count()) fail('a setting without effect is in the form');
+	if (await admin.locator('#cfg-orgs_allMembersBatchChangesAdmin').count()) fail('an organization setting is in the global form');
+	await admin.click('button[role=tab]:has-text("Edit as JSON")');
+	await admin.waitForSelector('.cm-content');
+	await admin.click('.cm-content');
+	await admin.keyboard.press('Control+A');
+	await admin.keyboard.insertText('{\n  // kept by the forms\n  "my.custom": 1\n}\n');
+	await admin.click('button[role=tab]:has-text("Settings")');
+	await admin.selectOption('#cfg-search_defaultPatternType', 'regexp');
+	await admin.click('button:has-text("Add notice")');
+	await admin.click('.settings-toolbar button:text-is("Save")');
+	await admin.waitForSelector('#cfg-notices--0--message-error:has-text("Required.")');
+	await admin.fill('#cfg-notices--0--message', 'First');
+	await admin.click('button:has-text("Add notice")');
+	await admin.fill('#cfg-notices--1--message', 'Second');
+	await admin.selectOption('#cfg-notices--1--location', 'home');
+	await admin.click('button[aria-label="Move Notice 2 up"]');
+	if ((await admin.inputValue('#cfg-notices--0--message')) !== 'Second') fail('moving a notice did not reorder the list');
+	await admin.click('button[aria-label="Remove Notice 2"]');
+	await admin.click('button:has-text("Add quicklink")');
+	await admin.fill('#cfg-quicklinks--0--name', 'Docs');
+	await admin.fill('#cfg-quicklinks--0--url', '/help');
+	await admin.click('.settings-toolbar button:text-is("Save")');
+	await admin.waitForSelector('.alert-success:text-is("Saved.")');
+	if (await admin.getAttribute('#cfg-quicklinks--0--name', 'aria-invalid')) fail('a filled-in value is still marked invalid');
+	await admin.waitForTimeout(400);
+	await admin.screenshot({ path: `${OUT}/a05-global-settings.png`, fullPage: true });
+	await admin.reload();
+	await admin.waitForSelector('#cfg-notices--0--message');
+	if ((await admin.inputValue('#cfg-notices--0--message')) !== 'Second') fail('the notice was not saved');
+	if ((await admin.inputValue('#cfg-notices--0--location')) !== 'home') fail('the notice location was not saved');
+	if (!(await admin.textContent('.settings-section:last-of-type, #settings-panel')).includes('my.custom')) fail('an unknown key is not listed');
+	await admin.click('button[role=tab]:has-text("Edit as JSON")');
+	const globalJson = await admin.textContent('.cm-content');
+	if (!globalJson.includes('kept by the forms') || !globalJson.includes('my.custom')) fail(`the forms lost text: ${globalJson}`);
+
+	step('organization settings: inherited values, and the organization-only setting');
+	await admin.goto(`${BASE}/organizations/new`);
+	await admin.fill('#name', 'e2e-settings');
+	await admin.click('button[type=submit]');
+	await admin.waitForURL(/organizations\/e2e-settings/);
+	await admin.goto(`${BASE}/organizations/e2e-settings/settings`);
+	await admin.waitForSelector('#cfg-orgs_allMembersBatchChangesAdmin');
+	const inherited = await admin.textContent('#cfg-search_defaultPatternType option:first-child');
+	if (!inherited.includes('regexp')) fail(`the inherited value is not shown: ${inherited}`);
+	await admin.waitForSelector('#settings-panel :text("Inherited from the global settings.")');
+	await admin.check('#cfg-orgs_allMembersBatchChangesAdmin');
+	await admin.click('form.profile button:has-text("Save")');
+	await admin.waitForSelector('.alert-success:has-text("Reload to see the new name")');
+	if (!(await admin.isChecked('#cfg-orgs_allMembersBatchChangesAdmin'))) fail('saving the profile dropped unsaved settings');
+	await admin.click('.settings-toolbar button:text-is("Save")');
+	await admin.waitForSelector('.alert-success:text-is("Saved.")');
+	await admin.screenshot({ path: `${OUT}/a06-organization-settings.png`, fullPage: true });
+	await admin.reload();
+	await admin.waitForSelector('#cfg-orgs_allMembersBatchChangesAdmin:checked');
+
+	step('site configuration: lists of objects are forms too');
+	await admin.goto(`${BASE}/site-admin/configuration?section=repositories`);
+	await admin.click('button:has-text("Add git update interval")');
+	await admin.fill('#cfg-gitUpdateInterval--0--pattern', '^gitlab');
+	await admin.fill('#cfg-gitUpdateInterval--0--interval', '30');
+	await admin.waitForTimeout(400);
+	await admin.screenshot({ path: `${OUT}/a07-config-list.png`, fullPage: true });
+	await admin.click('button[role=tab]:has-text("Edit as JSON")');
+	const configJson = await admin.textContent('.cm-content');
+	if (!/"interval":\s*30/.test(configJson)) fail(`the interval is not in the document: ${configJson}`);
+	await admin.goto(`${BASE}/site-admin/users`);
+
 	step('related links: users to the sign-in settings and back');
 	await admin.click('nav[aria-label="Related pages"] a:has-text("Authentication & sign-in settings")');
 	await admin.waitForURL(/\/site-admin\/configuration\?section=auth$/);
@@ -203,7 +274,7 @@ function step(name) {
 	step('mobile layout of the admin, tokens and contexts pages');
 	await admin.setViewportSize({ width: 390, height: 844 });
 	const pages = ['users', 'roles', 'permissions', 'access-requests', 'configuration'].map((p) => `/site-admin/${p}`);
-	for (const path of ['/site-admin', ...pages, '/user/settings/tokens', '/contexts', '/connect-agent']) {
+	for (const path of ['/site-admin', ...pages, '/site-admin/global-settings', '/organizations/e2e-settings/settings', '/user/settings/tokens', '/contexts', '/connect-agent']) {
 		await admin.goto(`${BASE}${path}`);
 		await admin.waitForSelector('h1');
 		await admin.waitForTimeout(300);

@@ -1,5 +1,13 @@
+<!--
+	Edits one subject's settings document, as forms (the default) or as JSON with comments. Both
+	edit the same text: a form changes only the value it touches, so comments and keys it does not
+	show stay as they are.
+-->
 <script lang="ts">
+	import { beforeNavigate } from '$app/navigation';
+	import { onMount } from 'svelte';
 	import JsoncEditor from '#lib/components/JsoncEditor.svelte';
+	import ConfigField from '#lib/components/site-config/ConfigField.svelte';
 	import { errorMessage, graphql } from '#lib/graphql.ts';
 	import {
 		DEFAULT_SETTINGS,
@@ -8,7 +16,10 @@
 		type DefaultSettingsResult,
 		type SettingsVersion
 	} from '#lib/orgs/queries.ts';
-	import { SETTINGS_REFERENCE_PATH } from '#lib/settings/reference.ts';
+	import { parseJsonc, setAt } from '#lib/jsonc-edit.ts';
+	import { settingsForm, type SettingsSchema, type SettingsScope } from '#lib/settings/form.ts';
+	import { SETTINGS_REFERENCE_PATH, SETTINGS_SCHEMA_URL } from '#lib/settings/reference.ts';
+	import { requiredIssues, type ConfigPath } from '#lib/site-config-form.ts';
 	import { isConflictError } from '#lib/site-config.ts';
 
 	interface Props {
@@ -20,9 +31,15 @@
 		onsaved: () => Promise<void>;
 		label: string;
 		readOnly?: boolean;
+		/** Which settings apply to the subject. */
+		scope: SettingsScope;
+		/** The higher level of the cascade, whose values apply where this document sets none. */
+		inherited?: Record<string, unknown> | null;
+		/** Where an inherited value comes from, shown next to it. */
+		inheritedNote?: string;
 	}
 
-	let { subject, latest, onsaved, label, readOnly = false }: Props = $props();
+	let { subject, latest, onsaved, label, readOnly = false, scope, inherited = null, inheritedNote }: Props = $props();
 
 	let contents = $state('');
 	let baseline = $state('');
@@ -49,19 +66,77 @@
 		}
 	}
 
-	// Reset the editor whenever a new version arrives from the server; a subject without
-	// settings starts from the commented template of every setting.
+	/** The version the editor shows; undefined until the first one arrives. */
+	let shownVersion: number | null | undefined = undefined;
+
+	// Reset the editor when another version arrives from the server, not when the same one is
+	// loaded again, which would drop unsaved edits. A subject without settings starts from the
+	// commented template of every setting.
 	$effect(() => {
+		const version = latest?.id ?? null;
+		if (version === shownVersion) return;
+		shownVersion = version;
 		const text = latest?.contents ?? template ?? EMPTY_SETTINGS;
 		contents = text;
 		baseline = text;
+		showRequired = false;
 		if (!latest && !templateRequested) void loadTemplate();
 	});
 
 	const dirty = $derived(contents !== baseline);
 
+	let schema = $state.raw<SettingsSchema | null>(null);
+	let view = $state<'settings' | 'json'>('settings');
+	let schemaFailed = $state(false);
+	/** Whether a save was refused for empty required values; they are marked from then on. */
+	let showRequired = $state(false);
+
+	/** The document being edited, parsed (null while it has a syntax error). */
+	const parsed = $derived(parseJsonc(contents));
+	const savedDoc = $derived(parseJsonc(baseline));
+	const sections = $derived(schema && parsed ? settingsForm(schema, parsed, scope, inherited) : []);
+	const missing = $derived(
+		parsed
+			? requiredIssues(
+					sections.flatMap((s) => s.fields),
+					parsed
+				)
+			: []
+	);
+	const issues = $derived(showRequired ? missing : []);
+
+	function setValue(path: ConfigPath, value: unknown): void {
+		contents = setAt(contents, path, value);
+		notice = null;
+	}
+
+	onMount(async () => {
+		try {
+			const resp = await fetch(SETTINGS_SCHEMA_URL);
+			if (!resp.ok) throw new Error(resp.statusText);
+			schema = (await resp.json()) as SettingsSchema;
+		} catch {
+			// Without the schema there are no forms; the JSON editor still works.
+			schemaFailed = true;
+			view = 'json';
+		}
+	});
+
+	beforeNavigate(({ cancel, willUnload }) => {
+		if (!dirty || readOnly) return;
+		// For full page unloads the browser shows its own prompt when we cancel.
+		if (willUnload || !confirm('Discard unsaved changes to these settings?')) cancel();
+	});
+
 	async function save(): Promise<void> {
 		if (saving || !dirty || readOnly) return;
+		showRequired = true;
+		if (missing.length > 0) {
+			view = 'settings';
+			notice = null;
+			error = 'Fill in the required values marked below.';
+			return;
+		}
 		saving = true;
 		error = null;
 		notice = null;
@@ -82,8 +157,8 @@
 <div class="toolbar settings-toolbar">
 	{#if latest}
 		<span class="muted"
-			>Last saved {new Date(latest.createdAt).toLocaleString()}{#if latest.author}
-				by {latest.author.username}{/if}</span
+			>Last saved {new Date(latest.createdAt).toLocaleString()}{#if latest.author}{' '}by
+				{latest.author.username}{/if}</span
 		>
 	{:else}
 		<span class="muted">No settings saved yet.</span>
@@ -122,7 +197,69 @@
 {/if}
 {#if notice}<div class="alert alert-success" role="status">{notice}</div>{/if}
 
-<JsoncEditor bind:value={contents} {label} {readOnly} onsave={save} />
+<div class="tabs view-tabs" role="tablist" aria-label="Editor">
+	<button
+		class="tab"
+		type="button"
+		role="tab"
+		id="settings-tab-form"
+		aria-selected={view === 'settings'}
+		aria-controls="settings-panel"
+		disabled={schemaFailed}
+		onclick={() => (view = 'settings')}
+	>
+		Settings
+	</button>
+	<button
+		class="tab"
+		type="button"
+		role="tab"
+		id="settings-tab-json"
+		aria-selected={view === 'json'}
+		aria-controls="settings-panel"
+		onclick={() => (view = 'json')}
+	>
+		Edit as JSON
+	</button>
+</div>
+
+<div
+	id="settings-panel"
+	role="tabpanel"
+	aria-labelledby={view === 'settings' ? 'settings-tab-form' : 'settings-tab-json'}
+>
+	{#if view === 'json'}
+		<p class="muted json-hint">
+			JSON with comments{#if !readOnly}; press <kbd>Ctrl</kbd>/<kbd>⌘</kbd>+<kbd>S</kbd> to save{/if}.
+		</p>
+		<JsoncEditor bind:value={contents} {label} {readOnly} onsave={save} />
+	{:else if parsed === null}
+		<div class="alert alert-warning" role="status">
+			The document has a syntax error, so the settings can't be shown.
+			<button class="btn btn-sm" type="button" onclick={() => (view = 'json')}>Fix it in the JSON editor</button>
+		</div>
+	{:else if !schema}
+		<p class="loading" aria-live="polite"><span class="spinner"></span> Loading settings…</p>
+	{:else}
+		{#each sections as { section, fields } (section.id)}
+			<section class="card settings-section" aria-labelledby="settings-section-{section.id}">
+				<h3 id="settings-section-{section.id}">{section.title}</h3>
+				<p class="muted section-description">{section.description}</p>
+				{#each fields as field (field.key)}
+					<ConfigField
+						{field}
+						doc={parsed}
+						saved={savedDoc}
+						{issues}
+						disabled={readOnly}
+						onchange={setValue}
+						defaultNote={inherited?.[field.key] !== undefined ? inheritedNote : undefined}
+					/>
+				{/each}
+			</section>
+		{/each}
+	{/if}
+</div>
 
 <style>
 	.settings-toolbar {
@@ -130,5 +267,20 @@
 	}
 	.spacer {
 		flex: 1;
+	}
+	.view-tabs {
+		margin-bottom: var(--space-3);
+	}
+	.json-hint {
+		margin: 0 0 var(--space-2);
+	}
+	.settings-section {
+		margin-bottom: var(--space-4);
+	}
+	.settings-section h3 {
+		margin: 0;
+	}
+	.section-description {
+		margin: var(--space-1) 0 var(--space-2);
 	}
 </style>

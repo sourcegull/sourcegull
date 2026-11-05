@@ -53,7 +53,9 @@ repositories reached that way, e.g. `precise: 5 repositories · other versions: 
 linked.
 
 The uploads, their processing state and the index configuration of a repository are on its
-**Code graph** page (`/<repo>/-/code-graph`).
+**Code graph** page (`/<repo>/-/code-graph`). The index configuration edits its jobs as a form or
+as JSON. A saved configuration takes precedence over `sourcegull.yaml` and inference even when it
+has no jobs; **Remove configuration** deletes it.
 
 ### Uploading from GitLab CI
 

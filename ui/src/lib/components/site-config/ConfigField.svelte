@@ -6,7 +6,10 @@
 		displayValue,
 		getAt,
 		issuesAt,
+		itemFieldsAt,
+		itemName,
 		jsonEqual,
+		newItem,
 		type ConfigIssue,
 		type ConfigPath,
 		type FormField
@@ -36,7 +39,8 @@
 	const fallback = $derived(field.default !== undefined ? field.default : inheritedDefault);
 	const effective = $derived(isSet ? value : fallback);
 	const changed = $derived(saved !== null && !jsonEqual(value, getAt(saved, field.path)));
-	const leaf = $derived(field.kind !== 'object');
+	const grouped = $derived(field.kind === 'object' || field.kind === 'objectList');
+	const leaf = $derived(!grouped);
 	const fieldIssues = $derived(issuesAt(issues, field.path, leaf));
 	const invalid = $derived(fieldIssues.length > 0);
 	const describedBy = $derived(
@@ -111,11 +115,29 @@
 	function addItem(): void {
 		const v = itemDraft.trim();
 		if (!v) return;
-		set([...items, ...v.split(/[\s,]+/).filter((s) => s && !items.includes(s))]);
+		set(field.wholeItems ? [...items, v] : [...items, ...v.split(/[\s,]+/).filter((s) => s && !items.includes(s))]);
 		itemDraft = '';
 	}
 	function removeItem(i: number): void {
 		set(items.filter((_, j) => j !== i));
+	}
+
+	// Lists of objects: appending and removing touch only that item, so comments in the list survive.
+	const objects = $derived(Array.isArray(value) ? (value as unknown[]) : []);
+	const inheritedCount = $derived(!isSet && Array.isArray(fallback) ? fallback.length : 0);
+	function addObject(): void {
+		if (Array.isArray(value)) onchange([...field.path, -1], newItem(field));
+		else set([newItem(field)]);
+	}
+	function removeObject(i: number): void {
+		if (objects.length === 1 && !field.required) set(undefined);
+		else onchange([...field.path, i], undefined);
+	}
+	function moveObject(i: number, by: number): void {
+		const next = [...objects];
+		const [item] = next.splice(i, 1);
+		next.splice(i + by, 0, item);
+		set(next);
 	}
 
 	// Raw JSON fallback: a local draft, applied on blur when it parses.
@@ -145,7 +167,7 @@
 {#snippet header()}
 	<div class="field-head">
 		<span class="field-title">
-			{#if field.kind === 'object'}
+			{#if grouped}
 				<span class="label">{field.title}</span>
 			{:else}
 				<label class="label" for={id}>{field.title}</label>
@@ -202,6 +224,59 @@
 				/>
 			{/each}
 		</div>
+	</fieldset>
+{:else if field.kind === 'objectList' && field.itemFields}
+	{@const name = itemName(field)}
+	<fieldset class="object" aria-describedby={describedBy}>
+		<legend class="visually-hidden">{field.title}</legend>
+		{@render header()}
+		{@render errors()}
+		{#if inheritedCount > 0}
+			<p class="subtle small">
+				{inheritedCount}
+				{inheritedCount === 1 ? 'item applies' : 'items apply'} from a higher level or the default. Adding one here replaces
+				them, because lists don't merge.
+			</p>
+		{:else if objects.length === 0}
+			<p class="subtle small">None.</p>
+		{/if}
+		{#if objects.length > 0}
+			<ol class="items">
+				{#each objects as _, i (i)}
+					<li class="item">
+						<div class="item-head">
+							<span class="item-title">{name} {i + 1}</span>
+							<span class="spacer"></span>
+							<button
+								class="btn btn-sm"
+								type="button"
+								aria-label="Move {name} {i + 1} up"
+								disabled={disabled || i === 0}
+								onclick={() => moveObject(i, -1)}>↑</button
+							>
+							<button
+								class="btn btn-sm"
+								type="button"
+								aria-label="Move {name} {i + 1} down"
+								disabled={disabled || i === objects.length - 1}
+								onclick={() => moveObject(i, 1)}>↓</button
+							>
+							<button
+								class="btn btn-sm"
+								type="button"
+								aria-label="Remove {name} {i + 1}"
+								{disabled}
+								onclick={() => removeObject(i)}>Remove</button
+							>
+						</div>
+						{#each itemFieldsAt(field, i) as child (child.key)}
+							<ConfigField field={child} {doc} {saved} {issues} {disabled} {onchange} />
+						{/each}
+					</li>
+				{/each}
+			</ol>
+		{/if}
+		<button class="btn btn-sm add-item" type="button" {disabled} onclick={addObject}>Add {name.toLowerCase()}</button>
 	</fieldset>
 {:else}
 	<div class="config-field" class:is-invalid={invalid}>
@@ -518,6 +593,34 @@
 		margin-top: var(--space-2);
 		padding-left: var(--space-4);
 		border-left: 2px solid var(--color-border);
+	}
+	.items {
+		display: flex;
+		flex-direction: column;
+		gap: var(--space-3);
+		list-style: none;
+		margin: var(--space-2) 0 0;
+		padding: 0;
+	}
+	.item {
+		padding: var(--space-3);
+		border: 1px solid var(--color-border);
+		border-radius: var(--radius);
+	}
+	.item-head {
+		display: flex;
+		flex-wrap: wrap;
+		align-items: center;
+		gap: var(--space-2);
+	}
+	.item-title {
+		font-weight: 600;
+	}
+	.spacer {
+		flex: 1;
+	}
+	.add-item {
+		margin-top: var(--space-2);
 	}
 	.is-invalid .field-title .label {
 		color: var(--color-danger);

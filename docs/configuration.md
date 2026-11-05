@@ -149,9 +149,14 @@ Settings are per-viewer preferences. They exist at three levels:
 A user's effective settings merge them in that order: objects merge key by key, and any other
 value at a later level replaces the earlier one. Known keys include
 `search.defaultPatternType` (default `keyword`), `search.includeArchived` (see
-[Archived repositories](search.md#archived-repositories)), `quicklinks` and `notices`; other keys
-are passed through to the UI. `search.includeForks` is accepted but has no effect yet: use
-`fork:yes` in the query.
+[Archived repositories](search.md#archived-repositories)), `quicklinks`, `notices` and, in an
+organization's settings, `orgs.allMembersBatchChangesAdmin`; other keys are passed through to the
+UI. `search.includeForks` is accepted but has no effect yet: use `fork:yes` in the query.
+
+The global and organization settings pages edit the document as forms or, under **Edit as JSON**,
+as text. A form changes only the value it touches, so comments and other keys stay. On an
+organization's page, a value the global settings set shows as the inherited default. Keys this
+version does not know are listed under **Other**.
 
 The **settings reference** page at `/help/settings` lists every setting with its type,
 allowed values and description; the editor's starting document links to it. The schema is
