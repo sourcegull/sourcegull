@@ -206,6 +206,7 @@
 					><span class="repo-owner">{owner}</span><span class="repo-short">{shortName}</span></a
 				>
 			</h1>
+			{#if header?.isArchived}<span class="badge">archived</span>{/if}
 			{#if showSwitcher && header && cloned}
 				<RevisionSwitcher repo={route.repo} current={route.rev} {defaultBranch} {onselect} />
 			{/if}

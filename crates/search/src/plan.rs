@@ -511,6 +511,31 @@ fn plan_basic(
     Ok(job)
 }
 
+/// Whether a `repo:` pattern names one repository: `^name$` with no regexp syntax beyond
+/// escaped characters and `.`, which names usually contain unescaped.
+fn is_exact_repo(pattern: &str) -> bool {
+    let Some(name) = pattern
+        .strip_prefix('^')
+        .and_then(|p| p.strip_suffix('$'))
+        .filter(|name| !name.is_empty())
+    else {
+        return false;
+    };
+    let mut chars = name.chars();
+    while let Some(c) = chars.next() {
+        match c {
+            '\\' => {
+                if chars.next().is_none_or(char::is_alphanumeric) {
+                    return false;
+                }
+            }
+            '*' | '+' | '?' | '(' | ')' | '[' | ']' | '{' | '}' | '|' | '^' | '$' => return false,
+            _ => {}
+        }
+    }
+    true
+}
+
 fn repo_filter(b: &BasicQuery) -> RepoFilter {
     let mut f = RepoFilter::default();
     for p in b.fields("repo") {
@@ -550,10 +575,12 @@ fn repo_filter(b: &BasicQuery) -> RepoFilter {
         }
     }
     f.fork = b.value("fork").map(YesNoOnly::parse).unwrap_or_default();
-    f.archived = b
-        .value("archived")
-        .map(YesNoOnly::parse)
-        .unwrap_or_default();
+    f.archived = match b.value("archived") {
+        Some(v) => YesNoOnly::parse(v),
+        // Naming one repository is enough to search it.
+        None if f.include.iter().any(|p| is_exact_repo(p)) => YesNoOnly::Yes,
+        None => YesNoOnly::No,
+    };
     f.visibility = match b
         .value("visibility")
         .map(str::to_ascii_lowercase)
@@ -946,5 +973,49 @@ mod tests {
         assert_eq!(p("  "), Err(PlanError::Empty));
         assert!(matches!(p("foo)"), Err(PlanError::Parse(_))));
         assert!(matches!(p("case:maybe foo"), Err(PlanError::Validation(_))));
+    }
+
+    fn archived(query: &str) -> YesNoOnly {
+        fn find(job: Job) -> YesNoOnly {
+            match job {
+                Job::Content { repos, .. }
+                | Job::Path { repos, .. }
+                | Job::Repo { repos, .. }
+                | Job::Symbol { repos, .. }
+                | Job::Commit { repos, .. } => repos.archived,
+                Job::Parallel(jobs) => find(jobs.into_iter().next().expect("job")),
+                Job::Select { child, .. }
+                | Job::Limit { child, .. }
+                | Job::Timeout { child, .. } => find(*child),
+            }
+        }
+        find(plan(query))
+    }
+
+    #[test]
+    fn naming_one_repository_includes_it_when_archived() {
+        for q in [
+            "repo:^gitlab\\.com/acme/old$ foo",
+            "repo:^gitlab.com/acme/old$ foo",
+            "repo:^gitlab\\.com/acme/old$@main foo",
+            "repo:acme repo:^gitlab\\.com/acme/my-old$ foo",
+        ] {
+            assert_eq!(archived(q), YesNoOnly::Yes, "{q}");
+        }
+        for q in [
+            "foo",
+            "repo:acme foo",
+            "repo:^acme foo",
+            "repo:old$ foo",
+            "repo:^a$|^b$ foo",
+            "repo:^a(b|c)$ foo",
+            "repo:^a.*$ foo",
+            "repo:^a\\d$ foo",
+            "-repo:^a$ foo",
+            "repo:^a$ archived:no foo",
+        ] {
+            assert_eq!(archived(q), YesNoOnly::No, "{q}");
+        }
+        assert_eq!(archived("repo:^a$ archived:only foo"), YesNoOnly::Only);
     }
 }

@@ -325,6 +325,7 @@
 							class:badge-info={state === 'cloning'}
 							title={m.cloneProgress ?? undefined}>{state}</span
 						>
+						{#if repo.isArchived}<span class="badge">archived</span>{/if}
 						{#if m.isCorrupted}<span class="badge badge-danger">corrupted</span>{/if}
 						{#if m.lastError}<span class="badge badge-danger">fetch failed</span>{/if}
 						{#if emptyRepoBadge(m)}

@@ -62,7 +62,7 @@ Query syntax (search tool): terms are ANDed per file, \"quoted phrase\" is exact
 regular expression. Filters: repo:<regexp> (repo:^gitlab\\.com/acme/api$), file:<regexp> \
 (file:\\.go$, -file:_test), lang:go, case:yes, type:symbol|file|path|commit|diff|repo, \
 author:, before:/after: (commits), rev:<branch> (or repo:x@branch), select:repo|file, \
-count:N, context:<name>. Combine with and/or/not and parentheses. Use count:all with care.";
+archived:yes|only, fork:yes|only (both left out by default), count:N, context:<name>. Combine with and/or/not and parentheses. Use count:all with care.";
 
 /// The MCP routes, to merge into the public router.
 pub fn routes() -> Router<AppState> {

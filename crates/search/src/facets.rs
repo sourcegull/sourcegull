@@ -132,6 +132,7 @@ mod tests {
             path_matches: Vec::new(),
             repository_id: 1,
             repository: repo.into(),
+            archived: false,
             commit: "c".into(),
             branches: Vec::new(),
             language: lang.map(Into::into),

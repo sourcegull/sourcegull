@@ -8,6 +8,7 @@ import type {
 	RepositoryIdQuery,
 	RepositoryNamesQuery,
 	SavedSearchesQuery,
+	ViewerSearchSettingsQuery,
 	SavedSearchQuery,
 	SearchAggregateQuery,
 	SearchAggregationMode,
@@ -303,6 +304,23 @@ export interface SearchAggregateVariables {
 	mode: AggregationMode | null;
 	limit: number;
 	extendedTimeout: boolean;
+}
+
+// ---- Settings --------------------------------------------------------------------------------
+
+export const VIEWER_SEARCH_SETTINGS = `query ViewerSearchSettings {
+	viewerSettings { final }
+}`;
+
+export type ViewerSearchSettingsResult = ViewerSearchSettingsQuery;
+
+/** `search.includeArchived` from the viewer's merged settings. */
+export function includeArchivedSetting(final: string): boolean {
+	try {
+		return (JSON.parse(final) as Record<string, unknown>)['search.includeArchived'] === true;
+	} catch {
+		return false;
+	}
 }
 
 // ---- Autocomplete ----------------------------------------------------------------------------

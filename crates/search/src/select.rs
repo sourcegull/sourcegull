@@ -133,6 +133,7 @@ impl Selector {
                 ))
             }
             SelectPath::File | SelectPath::FileDirectory => {
+                let archived = archived_of(&m);
                 let (path, commit, branches, language) = file_of(m)?;
                 let path = match self.path {
                     SelectPath::FileDirectory => path[..=path.rfind('/')?].to_owned(),
@@ -146,6 +147,7 @@ impl Selector {
                         path_matches: Vec::new(),
                         repository_id: repo_id,
                         repository: repo,
+                        archived,
                         commit,
                         branches,
                         language,
@@ -158,6 +160,7 @@ impl Selector {
                     path,
                     repository_id,
                     repository,
+                    archived,
                     commit,
                     branches,
                     language,
@@ -172,6 +175,7 @@ impl Selector {
                             path,
                             repository_id,
                             repository,
+                            archived,
                             commit,
                             branches,
                             language,
@@ -236,6 +240,17 @@ fn repo_of(m: &Match) -> Option<(i32, &str)> {
     })
 }
 
+fn archived_of(m: &Match) -> bool {
+    match m {
+        Match::Content { archived, .. }
+        | Match::Path { archived, .. }
+        | Match::Symbol { archived, .. }
+        | Match::Commit { archived, .. }
+        | Match::Repo { archived, .. } => *archived,
+        Match::Person { .. } | Match::Team { .. } => false,
+    }
+}
+
 /// A file result's path, commit, branches and language.
 type FileOf = (String, String, Vec<String>, Option<String>);
 
@@ -279,6 +294,7 @@ mod tests {
             path: path.into(),
             repository_id: repo,
             repository: format!("r{repo}"),
+            archived: false,
             commit: "c".into(),
             branches: Vec::new(),
             chunk_matches: Vec::new(),
@@ -395,6 +411,7 @@ mod tests {
             path: "a.go".into(),
             repository_id: 1,
             repository: "r1".into(),
+            archived: false,
             commit: "c".into(),
             branches: Vec::new(),
             language: None,

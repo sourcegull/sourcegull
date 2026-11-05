@@ -98,7 +98,7 @@ export const ADMIN_REPOSITORIES = `query AdminRepositories($first: Int, $after: 
 		totalCount
 		pageInfo { hasNextPage endCursor }
 		nodes {
-			id name url
+			id name url isArchived
 			mirrorInfo { ${MIRROR_FIELDS} }
 			textSearchIndex { lastIndexedAt lastError }
 		}
@@ -123,6 +123,7 @@ export interface AdminRepositoryNode {
 	id: string;
 	name: string;
 	url: string;
+	isArchived: boolean;
 	mirrorInfo: MirrorInfo;
 	textSearchIndex: { lastIndexedAt: string | null; lastError: string | null } | null;
 }

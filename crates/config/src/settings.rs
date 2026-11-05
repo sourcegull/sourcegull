@@ -71,10 +71,11 @@ pub struct Settings {
     /// Pattern type used when a query has no `patternType:`.
     #[serde(rename = "search.defaultPatternType")]
     pub search_default_pattern_type: PatternType,
-    /// Include forked repositories in search results by default.
+    /// Accepted but has no effect: use `fork:yes` in the query.
     #[serde(rename = "search.includeForks")]
     pub search_include_forks: bool,
-    /// Include archived repositories in search results by default.
+    /// Whether searches typed in the search page's box include archived repositories, by
+    /// adding `archived:yes` to the query. Links, saved searches and the APIs are not affected.
     #[serde(rename = "search.includeArchived")]
     pub search_include_archived: bool,
     /// Links shown on the search home page.

@@ -75,6 +75,7 @@ pub fn definitions() -> Value {
              per file; \"quoted phrase\" is exact; /regexp/ is a regex. Filters: repo:<regexp>, \
              file:<regexp>, -file:<regexp>, lang:<language>, case:yes, type:symbol|path|commit|diff|repo, \
              author:, after:/before: (commit and diff searches), rev:<branch>, select:repo|file, \
+             archived:yes|only and fork:yes|only (both left out by default), \
              and/or/not with parentheses. Examples: `lang:go func NewServer`, \
              `repo:acme/api file:\\.proto$ /rpc \\w+Stream/`, `type:diff after:\"1 week ago\" timeout`.",
             json!({
@@ -773,6 +774,7 @@ impl<'a> Ctx<'a> {
             let Match::Symbol {
                 path,
                 repository,
+                archived,
                 symbols,
                 ..
             } = m
@@ -787,7 +789,12 @@ impl<'a> Ctx<'a> {
                 if !s.container_name.is_empty() {
                     let _ = write!(l, " (in {})", s.container_name);
                 }
-                let _ = write!(l, "  {repository} {path}:{}", s.line);
+                let _ = write!(
+                    l,
+                    "  {repository} {path}:{}{}",
+                    s.line,
+                    archived_tag(*archived)
+                );
                 if !text.line(l) {
                     break 'outer;
                 }
@@ -1631,11 +1638,17 @@ fn match_lines(m: &Match) -> usize {
 }
 
 /// `repo path` with the branch when the result is not on the default branch.
-fn file_header(repo: &str, path: &str, branches: &[String]) -> String {
+fn file_header(repo: &str, path: &str, branches: &[String], archived: bool) -> String {
+    let tag = archived_tag(archived);
     match branches.first().filter(|b| !b.is_empty() && *b != "HEAD") {
-        Some(b) => format!("{repo}@{b} {path}"),
-        None => format!("{repo} {path}"),
+        Some(b) => format!("{repo}@{b} {path}{tag}"),
+        None => format!("{repo} {path}{tag}"),
     }
+}
+
+/// Appended to a result line of an archived repository.
+fn archived_tag(archived: bool) -> &'static str {
+    if archived { " [archived]" } else { "" }
 }
 
 /// Writes one search result; false once the output budget is used up.
@@ -1644,11 +1657,12 @@ fn format_match(text: &mut Out, m: &Match, per_file: usize) -> bool {
         Match::Content {
             path,
             repository,
+            archived,
             branches,
             chunk_matches,
             ..
         } => {
-            if !text.line(file_header(repository, path, branches)) {
+            if !text.line(file_header(repository, path, branches, *archived)) {
                 return false;
             }
             let mut shown = 0;
@@ -1680,20 +1694,22 @@ fn format_match(text: &mut Out, m: &Match, per_file: usize) -> bool {
         Match::Path {
             path,
             repository,
+            archived,
             branches,
             ..
         } => text.line(format!(
             "{} (path match)",
-            file_header(repository, path, branches)
+            file_header(repository, path, branches, *archived)
         )),
         Match::Symbol {
             path,
             repository,
+            archived,
             branches,
             symbols,
             ..
         } => {
-            if !text.line(file_header(repository, path, branches)) {
+            if !text.line(file_header(repository, path, branches, *archived)) {
                 return false;
             }
             symbols.iter().all(|s| {
@@ -1706,6 +1722,7 @@ fn format_match(text: &mut Out, m: &Match, per_file: usize) -> bool {
         }
         Match::Commit {
             repository,
+            archived,
             oid,
             author_name,
             author_date,
@@ -1715,9 +1732,10 @@ fn format_match(text: &mut Out, m: &Match, per_file: usize) -> bool {
         } => {
             let day = author_date.get(..10).unwrap_or(author_date);
             if !text.line(format!(
-                "{repository} commit {} {day} {author_name}  {}",
+                "{repository} commit {} {day} {author_name}  {}{}",
                 short(oid),
-                clip(commit_subject(message))
+                clip(commit_subject(message)),
+                archived_tag(*archived)
             )) {
                 return false;
             }
@@ -1734,9 +1752,10 @@ fn format_match(text: &mut Out, m: &Match, per_file: usize) -> bool {
         Match::Repo {
             repository,
             description,
+            archived,
             ..
         } => {
-            let mut l = format!("{repository} (repository)");
+            let mut l = format!("{repository} (repository){}", archived_tag(*archived));
             if let Some(d) = description.as_deref().filter(|d| !d.trim().is_empty()) {
                 let _ = write!(l, " — {}", clip(d.lines().next().unwrap_or("")));
             }
@@ -1943,5 +1962,47 @@ mod references_tests {
              \n\
              Coverage: precise: 2 repositories · other versions: lib (v1.1.0) · search-based: none"
         );
+    }
+}
+
+#[cfg(test)]
+mod archived_tag_tests {
+    use super::*;
+
+    fn formatted(m: &Match) -> String {
+        let mut out = Out::default();
+        assert!(format_match(&mut out, m, 10));
+        out.finish("").trim_end().to_owned()
+    }
+
+    #[test]
+    fn results_of_archived_repositories_are_tagged() {
+        let path = |archived| Match::Path {
+            path: "a.go".into(),
+            path_matches: vec![],
+            repository_id: 1,
+            repository: "gitlab.com/a/old".into(),
+            archived,
+            commit: "abc".into(),
+            branches: vec![],
+            language: None,
+        };
+        assert_eq!(
+            formatted(&path(true)),
+            "gitlab.com/a/old a.go [archived] (path match)"
+        );
+        assert_eq!(
+            formatted(&path(false)),
+            "gitlab.com/a/old a.go (path match)"
+        );
+        let repo = Match::Repo {
+            repository_id: 1,
+            repository: "gitlab.com/a/old".into(),
+            description: None,
+            fork: false,
+            archived: true,
+            private: false,
+        };
+        assert_eq!(formatted(&repo), "gitlab.com/a/old (repository) [archived]");
     }
 }

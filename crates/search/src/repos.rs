@@ -81,6 +81,8 @@ pub struct RepoRevs {
     pub revs: Vec<String>,
     /// For ranking.
     pub stars: i32,
+    /// Marks the repository's results as archived.
+    pub archived: bool,
 }
 
 /// One page of resolved repositories.
@@ -97,6 +99,15 @@ pub enum ResolveError {
     InvalidRegexp { pattern: String, message: String },
     #[error("search context {0:?} not found")]
     UnknownContext(String),
+}
+
+/// Whether a repository with the property `value` passes a `yes|no|only` filter.
+fn flag(setting: YesNoOnly, value: bool) -> bool {
+    match setting {
+        YesNoOnly::Yes => true,
+        YesNoOnly::No => !value,
+        YesNoOnly::Only => value,
+    }
 }
 
 /// A compiled [`RepoFilter`].
@@ -260,11 +271,26 @@ impl RepoMatcher {
     }
 
     pub fn matches(&self, repo: &CatalogRepo) -> bool {
-        let flag = |setting: YesNoOnly, value: bool| match setting {
-            YesNoOnly::Yes => true,
-            YesNoOnly::No => !value,
-            YesNoOnly::Only => value,
-        };
+        flag(self.archived, repo.archived) && self.matches_any_archived(repo)
+    }
+
+    /// The archived repositories the viewer can read that only the `archived:` filter left
+    /// out. Deferred predicates are not evaluated, so some may have no match anyway.
+    pub fn excluded_archived<'a>(
+        &'a self,
+        catalog: &'a RepoCatalog,
+    ) -> impl Iterator<Item = i32> + 'a {
+        catalog
+            .repos
+            .iter()
+            .filter(|repo| {
+                self.archived == YesNoOnly::No && repo.archived && self.matches_any_archived(repo)
+            })
+            .map(|repo| repo.id)
+    }
+
+    /// Every check of [`Self::matches`] except the `archived:` filter.
+    fn matches_any_archived(&self, repo: &CatalogRepo) -> bool {
         let visible = match self.visibility {
             Visibility::Any => true,
             Visibility::Public => !repo.private,
@@ -278,7 +304,6 @@ impl RepoMatcher {
                 .as_ref()
                 .is_none_or(|c| c.contains_key(&repo.id))
             && flag(self.fork, repo.fork)
-            && flag(self.archived, repo.archived)
             && self.include.iter().all(|re| re.is_match(&repo.name))
             && !self.exclude.iter().any(|re| re.is_match(&repo.name))
             && self.metadata.iter().all(|(negated, pred)| {
@@ -315,6 +340,7 @@ impl RepoMatcher {
                     name: repo.name.clone(),
                     revs,
                     stars: repo.stars,
+                    archived: repo.archived,
                 });
             }
         }
@@ -545,8 +571,25 @@ mod tests {
                 name: "gitlab.com/acme/api".into(),
                 revs: vec!["main".into(), "v2".into()],
                 stars: 10,
+                archived: false,
             }]
         );
+    }
+
+    #[test]
+    fn counts_the_archived_repositories_left_out() {
+        let excluded = |query: &str, access: RepoAccess| {
+            let m = RepoMatcher::new(&filter(query), &ContextScope::Global, access).unwrap();
+            m.excluded_archived(&catalog()).collect::<Vec<_>>()
+        };
+        assert_eq!(excluded("foo", RepoAccess::All), [3]);
+        assert_eq!(excluded("repo:acme foo", RepoAccess::All), [3]);
+        assert!(excluded("repo:other foo", RepoAccess::All).is_empty());
+        assert!(excluded("archived:yes foo", RepoAccess::All).is_empty());
+        assert!(excluded("archived:only foo", RepoAccess::All).is_empty());
+        // A repository the viewer can't read is not counted.
+        let none = RepoAccess::anonymous(false, Default::default());
+        assert!(excluded("foo", none).is_empty());
     }
 
     #[test]

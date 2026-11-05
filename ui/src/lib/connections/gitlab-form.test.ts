@@ -38,7 +38,8 @@ describe('GitLab connection form', () => {
 			mode: 'selected',
 			groups: ['acme/platform', 'tools'],
 			projects: ['other/api', '42'],
-			queries: [groupQuery('acme/platform'), groupQuery('tools')]
+			queries: [groupQuery('acme/platform'), groupQuery('tools')],
+			archived: true
 		});
 		// No projectQuery means "none": only the explicit projects.
 		expect(readProjects({ projects: [{ name: 'a/b' }] }).mode).toBe('selected');
@@ -48,11 +49,17 @@ describe('GitLab connection form', () => {
 
 	it('writes a selection and reads it back, keeping comments', () => {
 		const text = '{\n  // the instance\n  "url": "https://gitlab.com",\n  "projectQuery": ["none"]\n}\n';
-		const sel = { mode: 'selected' as const, groups: ['acme/platform'], projects: ['x/y', '7'], queries: [] };
+		const sel = {
+			mode: 'selected' as const,
+			groups: ['acme/platform'],
+			projects: ['x/y', '7'],
+			queries: [],
+			archived: true
+		};
 		const out = apply(text, projectEdits(sel));
 		expect(out).toContain('// the instance');
 		const doc = parseJsonc(out)!;
-		expect(doc.projectQuery).toEqual(['groups/acme%2Fplatform/projects?include_subgroups=true&archived=no']);
+		expect(doc.projectQuery).toEqual(['groups/acme%2Fplatform/projects?include_subgroups=true']);
 		expect(doc.projects).toEqual([{ name: 'x/y' }, { id: 7 }]);
 		expect(readProjects(doc)).toMatchObject({ mode: 'selected', groups: ['acme/platform'], projects: ['x/y', '7'] });
 
@@ -60,9 +67,35 @@ describe('GitLab connection form', () => {
 		expect(member.projectQuery).toEqual([MEMBERSHIP_QUERY]);
 		expect(member.projects).toBeUndefined();
 
-		const empty = parseJsonc(apply(out, projectEdits({ mode: 'selected', groups: [], projects: [], queries: [] })))!;
+		const empty = parseJsonc(
+			apply(out, projectEdits({ mode: 'selected', groups: [], projects: [], queries: [], archived: true }))
+		)!;
 		expect(empty.projectQuery).toBeUndefined();
 		expect(empty.projects).toBeUndefined();
+	});
+
+	it('indexes archived projects unless a saved query skips them', () => {
+		expect(readProjects(parseJsonc(DEFAULT_GITLAB_CONFIG)!).archived).toBe(true);
+
+		const member = 'projects?membership=true&archived=no';
+		const group = 'groups/acme/projects?include_subgroups=true&archived=no';
+		expect(readProjects({ projectQuery: [member] })).toMatchObject({ mode: 'membership', archived: false });
+		expect(readProjects({ projectQuery: [group] })).toMatchObject({
+			mode: 'selected',
+			groups: ['acme'],
+			archived: false
+		});
+
+		// Saving a saved selection keeps its queries.
+		expect(projectEdits(readProjects({ projectQuery: [member] }))[0]).toEqual([['projectQuery'], [member]]);
+		expect(projectEdits(readProjects({ projectQuery: [group] }))[0]).toEqual([['projectQuery'], [group]]);
+
+		// Ticking the checkbox drops the parameter.
+		const sel = { ...readProjects({ projectQuery: [group] }), archived: true };
+		expect(projectEdits(sel)[0]).toEqual([['projectQuery'], [groupQuery('acme')]]);
+
+		// Groups that differ stay custom queries.
+		expect(readProjects({ projectQuery: [group, groupQuery('tools')] }).mode).toBe('custom');
 	});
 
 	it('normalizes pasted paths and URLs', () => {
