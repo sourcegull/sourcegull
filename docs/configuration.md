@@ -148,8 +148,10 @@ Settings are per-viewer preferences. They exist at three levels:
 
 A user's effective settings merge them in that order: objects merge key by key, and any other
 value at a later level replaces the earlier one. Known keys include
-`search.defaultPatternType` (default `keyword`), `search.includeForks`,
-`search.includeArchived`, `quicklinks` and `notices`; other keys are passed through to the UI.
+`search.defaultPatternType` (default `keyword`), `search.includeArchived` (see
+[Archived repositories](search.md#archived-repositories)), `quicklinks` and `notices`; other keys
+are passed through to the UI. `search.includeForks` is accepted but has no effect yet: use
+`fork:yes` in the query.
 
 The **settings reference** page at `/help/settings` lists every setting with its type,
 allowed values and description; the editor's starting document links to it. The schema is

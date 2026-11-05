@@ -223,6 +223,47 @@ export function removeFilter(query: string, filter: string): string {
 		.join(' ');
 }
 
+const ARCHIVED_FILTER = /(^|\s)archived:(\S*)/gi;
+
+/**
+ * Whether a `repo:` filter names one repository, which search includes even when archived. The
+ * same rule as the server's: `^name$` with no regexp syntax beyond escapes and `.`.
+ */
+function namesOneRepo(query: string): boolean {
+	return /(^|\s)(repo|r):\^(\\[^\sa-z0-9]|[^\s\\*+?()[\]{}|^$])+\$(@\S*)?(\s|$)/i.test(query);
+}
+
+/** Whether the query has an `archived:` filter of its own. */
+function hasArchivedFilter(query: string): boolean {
+	return query.search(ARCHIVED_FILTER) >= 0;
+}
+
+/**
+ * The state of the "Include archived" checkbox for a query, `null` when it has no effect
+ * because the query names one repository and sets no filter.
+ */
+export function includesArchived(query: string): boolean | null {
+	const m = [...query.matchAll(ARCHIVED_FILTER)].at(-1);
+	if (!m) return namesOneRepo(query) ? null : false;
+	return /^(yes|y|true|only)$/i.test(m[2] ?? '');
+}
+
+/**
+ * The query after the checkbox changes. `settingOn` is `search.includeArchived`: the search box
+ * would add the filter again, so leaving archived repositories out has to be written down.
+ */
+export function withIncludeArchived(query: string, include: boolean, settingOn: boolean): string {
+	const rest = query.replace(ARCHIVED_FILTER, '$1').replace(/\s+/g, ' ').trim();
+	if (include) return appendFilter(rest, 'archived:yes');
+	return settingOn ? appendFilter(rest, 'archived:no') : rest;
+}
+
+/** A query typed in the search box when `search.includeArchived` is on. */
+export function withArchivedDefault(query: string): string {
+	if (!query.trim() || hasArchivedFilter(query) || namesOneRepo(query)) return query;
+	return appendFilter(query, 'archived:yes');
+}
+
 /**
  * The query with a `patternType:` (saved searches require one), unless it has one already.
  * Searches in the URL keep the pattern type in a parameter instead.

@@ -349,6 +349,7 @@ mod tests {
             path: path.into(),
             repository_id: 1,
             repository: repo.into(),
+            archived: false,
             commit: "c".into(),
             branches: Vec::new(),
             chunk_matches: vec![ChunkMatch {

@@ -220,8 +220,9 @@ export const DEFAULT_GITLAB_CONFIG = `{
   // A personal access token with the read_api scope (api for batch changes).
   "token": "<access token>",
   // Which projects to mirror: API paths with query parameters, e.g.
-  // "groups/mygroup/projects" or "projects?membership=true&archived=no".
-  "projectQuery": ["projects?membership=true&archived=no"]
+  // "groups/mygroup/projects" or "projects?membership=true". Add "&archived=no" to skip
+  // archived projects.
+  "projectQuery": ["projects?membership=true"]
 }
 `;
 

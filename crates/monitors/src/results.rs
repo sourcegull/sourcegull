@@ -77,6 +77,7 @@ mod tests {
             detail: String::new(),
             repository_id: 3,
             repository: "r".into(),
+            archived: false,
             oid: "abcdef0123".into(),
             message: "fix: things\n\nbody\n".into(),
             author_name: "alice".into(),

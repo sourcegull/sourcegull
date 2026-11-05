@@ -9,8 +9,11 @@ import type { ConfigPath } from '#lib/site-config-form.ts';
 /** A change to apply to the document; `undefined` removes the key. */
 export type Edit = [ConfigPath, unknown];
 
-/** Every project the token's user is a member of, archived ones skipped. */
-export const MEMBERSHIP_QUERY = 'projects?membership=true&archived=no';
+/** Every project the token's user is a member of. */
+export const MEMBERSHIP_QUERY = 'projects?membership=true';
+
+/** The GitLab API parameter that leaves archived projects out of a listing. */
+const SKIP_ARCHIVED = '&archived=no';
 
 /** How the projects to mirror are chosen. */
 export type ProjectMode = 'membership' | 'selected' | 'custom';
@@ -23,13 +26,21 @@ export interface ProjectSelection {
 	projects: string[];
 	/** Raw `projectQuery` entries (`custom`). */
 	queries: string[];
+	/** Whether archived projects are mirrored (`membership` and `selected`). */
+	archived: boolean;
 }
 
-const GROUP_QUERY = /^groups\/([^/?]+)\/projects\?include_subgroups=true&archived=no$/;
+const GROUP_QUERY = /^groups\/([^/?]+)\/projects\?include_subgroups=true(&archived=no)?$/;
+
+/** The `projectQuery` entry for every project the token's user is a member of. */
+export function membershipQuery(archived = true): string {
+	return archived ? MEMBERSHIP_QUERY : MEMBERSHIP_QUERY + SKIP_ARCHIVED;
+}
 
 /** The `projectQuery` entry for every project of `group` and its subgroups. */
-export function groupQuery(group: string): string {
-	return `groups/${encodeURIComponent(group)}/projects?include_subgroups=true&archived=no`;
+export function groupQuery(group: string, archived = true): string {
+	const query = `groups/${encodeURIComponent(group)}/projects?include_subgroups=true`;
+	return archived ? query : query + SKIP_ARCHIVED;
 }
 
 /**
@@ -75,16 +86,24 @@ function projectRefs(v: unknown): string[] {
 export function readProjects(doc: Record<string, unknown>): ProjectSelection {
 	const queries = strings(doc.projectQuery ?? ['none']).filter((q) => q !== 'none');
 	const projects = projectRefs(doc.projects);
-	if (queries.length === 1 && queries[0] === MEMBERSHIP_QUERY && projects.length === 0) {
-		return { mode: 'membership', groups: [], projects, queries };
+	if (
+		queries.length === 1 &&
+		projects.length === 0 &&
+		[membershipQuery(), membershipQuery(false)].includes(queries[0]!)
+	) {
+		return { mode: 'membership', groups: [], projects, queries, archived: queries[0] === MEMBERSHIP_QUERY };
 	}
 	const groups: string[] = [];
+	const skipping = new Set<boolean>();
 	for (const q of queries) {
 		const m = GROUP_QUERY.exec(q);
-		if (!m) return { mode: 'custom', groups: [], projects, queries };
+		if (!m) return { mode: 'custom', groups: [], projects, queries, archived: true };
 		groups.push(decodeURIComponent(m[1] ?? ''));
+		skipping.add(m[2] !== undefined);
 	}
-	return { mode: 'selected', groups, projects, queries };
+	// One checkbox can't show groups that differ.
+	if (skipping.size > 1) return { mode: 'custom', groups: [], projects, queries, archived: true };
+	return { mode: 'selected', groups, projects, queries, archived: !skipping.has(true) };
 }
 
 /** The edits that store `sel`. */
@@ -93,12 +112,12 @@ export function projectEdits(sel: ProjectSelection): Edit[] {
 	switch (sel.mode) {
 		case 'membership':
 			return [
-				[['projectQuery'], [MEMBERSHIP_QUERY]],
+				[['projectQuery'], [membershipQuery(sel.archived)]],
 				[['projects'], undefined]
 			];
 		case 'selected':
 			return [
-				[['projectQuery'], sel.groups.length > 0 ? sel.groups.map(groupQuery) : undefined],
+				[['projectQuery'], sel.groups.length > 0 ? sel.groups.map((g) => groupQuery(g, sel.archived)) : undefined],
 				[['projects'], projects.length > 0 ? projects : undefined]
 			];
 		case 'custom':

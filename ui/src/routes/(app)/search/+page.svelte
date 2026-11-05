@@ -25,22 +25,28 @@
 		DEFAULT_SEARCH_CONTEXT,
 		REPOSITORY_NAMES,
 		SEARCH_CONTEXTS,
+		VIEWER_SEARCH_SETTINGS,
+		includeArchivedSetting,
 		type CreateSavedSearchVariables,
 		type DefaultSearchContextResult,
 		type RepositoryNamesResult,
 		type SearchContextsResult,
-		type SearchContextsVariables
+		type SearchContextsVariables,
+		type ViewerSearchSettingsResult
 	} from '#lib/search/queries.ts';
 	import {
 		PATTERN_TYPES,
 		appendFilter,
 		exactRepo,
+		includesArchived,
 		parsePatternType,
 		removeFilter,
 		searchQueryURL,
 		searchURL,
 		splitContext,
+		withArchivedDefault,
 		withContext,
+		withIncludeArchived,
 		withPatternType,
 		type PatternType,
 		type QueryDiagnostic
@@ -138,7 +144,15 @@
 		}
 	}
 
+	/** `search.includeArchived`: whether a search from the box includes archived repositories. */
+	let archivedByDefault = $state(false);
+
 	onMount(() => {
+		graphql<ViewerSearchSettingsResult>(VIEWER_SEARCH_SETTINGS)
+			.then((r) => {
+				archivedByDefault = includeArchivedSetting(r.viewerSettings.final);
+			})
+			.catch(() => {});
 		if (!user) return;
 		graphql<DefaultSearchContextResult>(DEFAULT_SEARCH_CONTEXT)
 			.then((r) => {
@@ -223,6 +237,17 @@
 		else void goto(url);
 	}
 
+	/** A search started from the box, as opposed to a filter or a link on the page. */
+	function submitTyped(): void {
+		if (archivedByDefault) text = withArchivedDefault(text);
+		submit();
+	}
+
+	function setIncludeArchived(include: boolean): void {
+		text = withIncludeArchived(text, include, archivedByDefault);
+		submit();
+	}
+
 	function changeFilters(remove: string[], add: string[]): void {
 		let q = text;
 		for (const r of remove) q = removeFilter(q, r);
@@ -285,6 +310,9 @@
 
 	const resultCount = $derived(results.reduce((n, m) => n + matchCount(m), 0));
 	const skipped = $derived(progress?.skipped ?? []);
+	const archivedNote = $derived(skipped.find((s) => s.reason === 'excluded-archive'));
+	const otherNotes = $derived(skipped.filter((s) => s.reason !== 'excluded-archive'));
+	const archivedChecked = $derived(includesArchived(text));
 
 	function seconds(ms: number): string {
 		return ms < 1000 ? `${ms} ms` : `${(ms / 1000).toFixed(2)} s`;
@@ -371,7 +399,7 @@
 		role="search"
 		onsubmit={(e) => {
 			e.preventDefault();
-			submit();
+			submitTyped();
 		}}
 	>
 		<ContextPicker value={context} onselect={selectContext} />
@@ -382,7 +410,7 @@
 			{autofocus}
 			{suggest}
 			placeholder="Search code… (repo:, file:, lang:, type:commit, …)"
-			onsubmit={submit}
+			onsubmit={submitTyped}
 			ondiagnostics={(d) => (diagnostics = d)}
 			recent={$recent}
 			onselectrecent={selectRecent}
@@ -499,6 +527,16 @@
 					{#if running}<span class="spinner" aria-hidden="true"></span>{/if}
 				</span>
 				<span class="spacer"></span>
+				{#if archivedChecked !== null}
+					<label class="checkbox archived-toggle" title="Search archived repositories too (archived:yes).">
+						<input
+							type="checkbox"
+							checked={archivedChecked}
+							onchange={(e) => setIncludeArchived(e.currentTarget.checked)}
+						/>
+						Include archived
+					</label>
+				{/if}
 				<div class="actions">
 					<button
 						type="button"
@@ -577,15 +615,23 @@
 				</form>
 			{/if}
 
-			{#if skipped.length > 0}
+			{#if archivedNote}
+				<p class="archived-note muted">
+					<Icon name="help" size={14} />
+					{archivedNote.title} ·
+					<button type="button" class="btn-link" onclick={() => setIncludeArchived(true)}>Include them</button>
+				</p>
+			{/if}
+
+			{#if otherNotes.length > 0}
 				<details class="skipped" class:warn={incomplete}>
 					<summary>
 						<Icon name="chevron-right" size={14} class="skipped-chevron" />
-						{skipped.length} note{skipped.length === 1 ? '' : 's'} about this search
+						{otherNotes.length} note{otherNotes.length === 1 ? '' : 's'} about this search
 						{#if incomplete}<span class="badge badge-warning">incomplete</span>{/if}
 					</summary>
 					<ul>
-						{#each skipped as s, i (i)}
+						{#each otherNotes as s, i (i)}
 							<li>
 								<strong>{s.title}</strong>{#if s.message}
 									— {s.message}{/if}
@@ -968,6 +1014,17 @@
 	}
 	.results > li {
 		min-width: 0;
+	}
+	.archived-toggle {
+		font-size: 0.8125rem;
+		white-space: nowrap;
+	}
+	.archived-note {
+		display: flex;
+		align-items: center;
+		gap: 0.375rem;
+		font-size: 0.8125rem;
+		margin: 0;
 	}
 	.skipped {
 		font-size: var(--text-sm);

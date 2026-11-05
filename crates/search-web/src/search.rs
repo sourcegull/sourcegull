@@ -165,6 +165,28 @@ fn repo_limit_skipped(max: usize) -> Skipped {
     }
 }
 
+/// The note that `count` archived repositories were left out by default.
+fn excluded_archive_skipped(count: usize) -> Skipped {
+    let (repositories, were) = if count == 1 {
+        ("repository", "was")
+    } else {
+        ("repositories", "were")
+    };
+    Skipped {
+        reason: SkippedReason::ExcludedArchive,
+        title: format!("{count} archived {repositories} not searched"),
+        message: format!(
+            "Archived repositories are left out by default, so {count} matching the repository \
+             filters {were} not searched. Include them with \"archived:yes\"."
+        ),
+        severity: Severity::Info,
+        suggested: Some(SkippedSuggested {
+            title: "include archived".to_owned(),
+            query_expression: "archived:yes".to_owned(),
+        }),
+    }
+}
+
 /// The alert for a commit or diff search over more repositories than
 /// [`Limits::commit_diff_max_repos`] allows (`RepoLimitError`).
 fn repo_limit_alert(query: &str, diff: bool, max: usize, time_filtered: bool) -> Event {
@@ -1009,6 +1031,7 @@ pub async fn run(
     let mut progress = Progress::default();
     let mut searched = std::collections::HashSet::new();
     let mut predicate_cache = PredicateCache::default();
+    let mut excluded_archived = std::collections::HashSet::new();
     let work = async {
         for unit in list {
             let remaining = limit.saturating_sub(progress.match_count as usize);
@@ -1024,6 +1047,7 @@ pub async fn run(
                     continue;
                 }
             };
+            excluded_archived.extend(matcher.excluded_archived(&catalog));
             // Validated when the query was prepared.
             let preds = match RepoPredicates::compile(matcher.deferred(), chrono::Utc::now()) {
                 Ok(p) => p,
@@ -1193,6 +1217,12 @@ pub async fn run(
             false
         }
     };
+    if !excluded_archived.is_empty() {
+        add_skipped(
+            &mut progress,
+            [excluded_archive_skipped(excluded_archived.len())],
+        );
+    }
     if timed_out {
         let _ = tx
             .send(alert(

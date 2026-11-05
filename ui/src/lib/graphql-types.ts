@@ -3558,7 +3558,7 @@ export type RepositoryHeaderQueryVariables = Exact<{
 }>;
 
 
-export type RepositoryHeaderQuery = { repository: { id: string, name: string, url: string, description: string, externalURLs: Array<{ url: string, serviceKind: ExternalServiceKind | null }>, mirrorInfo: { cloned: boolean, cloneInProgress: boolean, isEmpty: boolean, remoteUnavailable: RemoteUnavailableReason | null }, defaultBranch: { displayName: string } | null } | null };
+export type RepositoryHeaderQuery = { repository: { id: string, name: string, url: string, description: string, isArchived: boolean, externalURLs: Array<{ url: string, serviceKind: ExternalServiceKind | null }>, mirrorInfo: { cloned: boolean, cloneInProgress: boolean, isEmpty: boolean, remoteUnavailable: RemoteUnavailableReason | null }, defaultBranch: { displayName: string } | null } | null };
 
 export type TreeEntriesQueryVariables = Exact<{
   repo: string;
@@ -3593,7 +3593,7 @@ export type AdminRepositoriesQuery = { repositoryStats: { total: number, cloned:
     | { __typename: 'SyncError' }
     | { __typename: 'IndexingProgress' }
     | { __typename: 'GitserverDiskThresholdReached', message: string, address: string, clonesPaused: boolean }
-  >, repositories: { totalCount: number, pageInfo: { hasNextPage: boolean, endCursor: string | null }, nodes: Array<{ id: string, name: string, url: string, mirrorInfo: { cloned: boolean, cloneInProgress: boolean, cloneProgress: string | null, isCorrupted: boolean, updatedAt: string | null, lastChanged: string | null, lastError: string | null, byteSize: string, shard: string | null, isEmpty: boolean, remoteUnavailable: RemoteUnavailableReason | null }, textSearchIndex: { lastIndexedAt: string | null, lastError: string | null } | null }> } };
+  >, repositories: { totalCount: number, pageInfo: { hasNextPage: boolean, endCursor: string | null }, nodes: Array<{ id: string, name: string, url: string, isArchived: boolean, mirrorInfo: { cloned: boolean, cloneInProgress: boolean, cloneProgress: string | null, isCorrupted: boolean, updatedAt: string | null, lastChanged: string | null, lastError: string | null, byteSize: string, shard: string | null, isEmpty: boolean, remoteUnavailable: RemoteUnavailableReason | null }, textSearchIndex: { lastIndexedAt: string | null, lastError: string | null } | null }> } };
 
 export type AdminRepositoryQueryVariables = Exact<{
   name: string;
@@ -3845,6 +3845,11 @@ export type ViewerNamespacesQueryVariables = Exact<{ [key: string]: never; }>;
 
 
 export type ViewerNamespacesQuery = { currentUser: { id: string, username: string, siteAdmin: boolean, organizations: { nodes: Array<{ id: string, name: string }> } } | null };
+
+export type ViewerSearchSettingsQueryVariables = Exact<{ [key: string]: never; }>;
+
+
+export type ViewerSearchSettingsQuery = { viewerSettings: { final: string } };
 
 export type EditTemporarySettingsMutationVariables = Exact<{
   contents: string;

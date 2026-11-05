@@ -228,7 +228,11 @@ Add a connection under **Site admin → Code host connections**. The **Settings*
   A group or project access token works too.
 - **Projects to mirror**: every project the token's user is a member of, selected groups
   (with subgroups) and projects, or custom GitLab API queries. Paths and URLs can be pasted.
-  **Exclusions** skip projects by path, by regular expression or when empty.
+  **Index archived projects**, on for new connections, mirrors archived projects too; search
+  [leaves them out](search.md#archived-repositories) unless asked. A connection saved earlier, or
+  a file-managed one, keeps `&archived=no` in its `projectQuery` until you tick the box or remove
+  it from the query. GitLab reports a newly archived project at the next full listing, within
+  an hour. **Exclusions** skip projects by path, by regular expression or when empty.
 - **Repository permissions**: every Sourcegull user, or GitLab permissions (see
   [permissions](permissions.md)).
 - **Advanced**: clone over HTTPS or SSH, request budget, repository name pattern, internal

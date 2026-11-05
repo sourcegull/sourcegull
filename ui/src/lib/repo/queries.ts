@@ -119,7 +119,7 @@ export type RepositoriesResult = RepositoriesQuery;
 
 export const REPOSITORY_HEADER = `query RepositoryHeader($name: String!) {
 	repository(name: $name) {
-		id name url description
+		id name url description isArchived
 		externalURLs { url serviceKind }
 		mirrorInfo { cloned cloneInProgress isEmpty remoteUnavailable }
 		defaultBranch { displayName }
@@ -131,6 +131,7 @@ export interface RepositoryHeader {
 	name: string;
 	url: string;
 	description: string;
+	isArchived: boolean;
 	externalURLs: { url: string; serviceKind: string | null }[];
 	mirrorInfo: { cloned: boolean; cloneInProgress: boolean } & MirrorEmptiness;
 	defaultBranch: { displayName: string } | null;

@@ -119,6 +119,7 @@
 		{:else if match.type === 'commit'}
 			<span class="type-icon" aria-hidden="true"><Icon name="commit" size={15} /></span>
 			<a class="repo" href={repoURL(match.repository)}>{match.repository}</a>
+			{#if match.archived}<span class="badge">archived</span>{/if}
 			<span class="sep">›</span>
 			<a class="title" href={match.url}>{subject}</a>
 			<span class="spacer"></span>
@@ -133,6 +134,7 @@
 				><Icon name={match.type === 'symbol' ? 'symbol' : 'file'} size={15} /></span
 			>
 			<a class="repo" href={repoURL(match.repository, fileRev(match))}>{match.repository}</a>
+			{#if match.archived}<span class="badge">archived</span>{/if}
 			<span class="sep">›</span>
 			<a class="path mono" href={blobURL(match)}>
 				{#if match.type === 'path' && match.pathMatches?.length}

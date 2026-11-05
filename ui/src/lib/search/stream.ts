@@ -28,6 +28,8 @@ interface FileMatchBase {
 	path: string;
 	repositoryID: number;
 	repository: string;
+	/** Omitted when false. */
+	archived?: boolean;
 	commit: string;
 	branches?: string[];
 	language?: string;
@@ -63,6 +65,8 @@ export interface CommitMatch {
 	detail: string;
 	repositoryID: number;
 	repository: string;
+	/** Omitted when false. */
+	archived?: boolean;
 	oid: string;
 	message: string;
 	authorName: string;

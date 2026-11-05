@@ -75,8 +75,8 @@ Filters narrow the search. Most filters can be negated with `-` (`-file:_test\.g
 | `rev:<rev>` (`revision:`) | Revisions to search, for every matched repository. |
 | `rev:at.time(<time>[, <ref>])` | The commit that was at the tip of a branch at a point in time, e.g. `rev:at.time(2026-01-01)`. |
 | `context:<name>` | A [search context](#search-contexts); `global` (all repositories) by default. |
-| `fork:yes\|no\|only` | Include forks (excluded by default, unless the `search.includeForks` setting is on). |
-| `archived:yes\|no\|only` | Include archived repositories (excluded by default; setting `search.includeArchived`). |
+| `fork:yes\|no\|only` | Include forks (excluded by default). |
+| `archived:yes\|no\|only` | Include archived repositories (see [Archived repositories](#archived-repositories)). |
 | `visibility:any\|public\|private` | Repository visibility. |
 | `index:yes\|no\|only` | Use indexed and unindexed revisions (default), only unindexed ones, or only the index. |
 
@@ -96,6 +96,22 @@ Repository predicates (the value is a function call):
 `contains.file`, `contains.path`, `contains.content` and `contains.commit.after` are aliases,
 as are `repo:has.key(<key>)` for `repo:has.meta(<key>)` and `repo:has(<key>:<value>)` for
 `repo:has.meta(<key>:<value>)`. Every repository predicate can be negated (`-repo:has.tag(legacy)`).
+
+### Archived repositories
+
+Archived repositories are indexed but left out of results unless a query asks for them:
+
+- `archived:yes` includes them and `archived:only` searches nothing else.
+- A `repo:` filter that names one repository, such as `repo:^gitlab\.example\.com/acme/old$`,
+  includes it even when it is archived. Add `archived:no` to leave it out.
+- The search page shows how many archived repositories were left out, with a link to include
+  them, and has an **Include archived** checkbox that edits `archived:yes` in the query.
+- The `search.includeArchived` setting ticks that checkbox for searches typed in the search box
+  by adding `archived:yes` to the query, so it stays visible and carries over in shared links.
+  It doesn't change links, saved searches, code monitors, insights or the APIs.
+
+Results from an archived repository carry an **archived** badge in the UI. In the APIs, see
+[APIs](#apis).
 
 ### Files and content
 
@@ -206,7 +222,11 @@ and `exhaustiveTimeoutSeconds`). Use it for audits and exports.
 ## APIs
 
 - `GET /.api/search/stream?q=<query>` streams results as server-sent events (matches,
-  progress, filters, alerts).
+  progress, filters, alerts). A result from an archived repository has `"archived": true`; the
+  field is omitted otherwise. When archived repositories were left out, the final progress event
+  has a `skipped` entry with reason `excluded-archive`, their count in its title and
+  `archived:yes` as its suggested query.
 - GraphQL `search`, `searchQueryAggregate` (aggregations) and the saved search, search context
   and search job types at `/.api/graphql`.
-- The [MCP server](mcp.md) exposes search to AI agents.
+- The [MCP server](mcp.md) exposes search to AI agents. Results from archived repositories end
+  in `[archived]`, and left-out ones are reported in a note.

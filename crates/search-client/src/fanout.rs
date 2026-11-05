@@ -618,6 +618,7 @@ async fn search_indexed(
                 name: repo.name.clone(),
                 revs,
                 stars: repo.stars,
+                archived: repo.archived,
             });
         }
         let msg_files_empty = msg.files.is_empty();
@@ -962,6 +963,7 @@ pub fn to_commit_match(repo: &RepoRevs, m: pb::SearchCommitMatch, diff: bool) ->
         url,
         repository_id: repo.id,
         repository: repo.name.clone(),
+        archived: repo.archived,
         content,
         oid: c.oid,
         message: c.message,
@@ -1038,6 +1040,7 @@ pub fn to_match(
             path: f.path,
             repository_id: repo.id,
             repository: repo.name.clone(),
+            archived: repo.archived,
             commit: commit.to_owned(),
             branches,
             language,
@@ -1050,6 +1053,7 @@ pub fn to_match(
             path_matches: f.path_ranges.into_iter().map(range).collect(),
             repository_id: repo.id,
             repository: repo.name.clone(),
+            archived: repo.archived,
             commit: commit.to_owned(),
             branches,
             language,
@@ -1058,6 +1062,7 @@ pub fn to_match(
     Match::Content {
         repository_id: repo.id,
         repository: repo.name.clone(),
+        archived: repo.archived,
         commit: commit.to_owned(),
         branches,
         chunk_matches: f
@@ -1108,6 +1113,7 @@ mod tests {
             path: "a".into(),
             repository_id: 1,
             repository: "r".into(),
+            archived: false,
             commit: "c".into(),
             branches: Vec::new(),
             chunk_matches: vec![ChunkMatch {
@@ -1136,6 +1142,7 @@ mod tests {
             name: "gitlab.com/a/b".into(),
             revs: Vec::new(),
             stars: 0,
+            archived: false,
         };
         let m = to_match(
             &repo,
@@ -1177,6 +1184,7 @@ mod tests {
             name: "gitlab.com/a/b".into(),
             revs: Vec::new(),
             stars: 0,
+            archived: false,
         };
         let at = |line, column| {
             Some(pb::SearchLocation {
@@ -1238,6 +1246,7 @@ mod tests {
             name: "r".into(),
             revs: Vec::new(),
             stars: 0,
+            archived: false,
         };
         let at = |offset, line, column| {
             Some(pb::SearchLocation {

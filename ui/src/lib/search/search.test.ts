@@ -6,15 +6,65 @@ import {
 	QueryParser,
 	appendFilter,
 	exactRepo,
+	includesArchived,
 	removeFilter,
 	searchQueryURL,
 	searchURL,
 	splitContext,
+	withArchivedDefault,
 	withContext,
+	withIncludeArchived,
 	withPatternType,
 	wordAt
 } from './query.ts';
+import { includeArchivedSetting } from './queries.ts';
 import { SSEParser, dispatch, matchCount, streamSearch, streamURL, type SearchMatch } from './stream.ts';
+
+describe('archived filter', () => {
+	it('reads the checkbox state from the query', () => {
+		expect(includesArchived('foo')).toBe(false);
+		expect(includesArchived('repo:acme foo')).toBe(false);
+		expect(includesArchived('foo archived:yes')).toBe(true);
+		expect(includesArchived('foo archived:ONLY')).toBe(true);
+		expect(includesArchived('foo archived:no')).toBe(false);
+		expect(includesArchived('foo-archived:yes')).toBe(false);
+	});
+
+	it('has no checkbox when the query names one repository', () => {
+		expect(includesArchived(String.raw`repo:^gitlab\.com/a/b$ foo`)).toBeNull();
+		expect(includesArchived('repo:^gitlab.com/a/b$@main foo')).toBeNull();
+		expect(includesArchived('r:^a/b$')).toBeNull();
+		expect(includesArchived('repo:^a/b$ archived:no foo')).toBe(false);
+		expect(includesArchived('-repo:^a/b$ foo')).toBe(false);
+		expect(includesArchived('repo:^a$|^b$ foo')).toBe(false);
+		expect(includesArchived('repo:^a.*$ foo')).toBe(false);
+		expect(includesArchived(String.raw`repo:^a\d$ foo`)).toBe(false);
+	});
+
+	it('changes the query with the checkbox', () => {
+		expect(withIncludeArchived('foo', true, false)).toBe('foo archived:yes');
+		expect(withIncludeArchived('foo archived:yes bar', false, false)).toBe('foo bar');
+		expect(withIncludeArchived('foo archived:only', true, false)).toBe('foo archived:yes');
+		// The setting would add the filter back, so turning it off is written down.
+		expect(withIncludeArchived('foo archived:yes', false, true)).toBe('foo archived:no');
+		expect(withIncludeArchived('foo archived:no', true, true)).toBe('foo archived:yes');
+	});
+
+	it('adds the default only when the query says nothing', () => {
+		expect(withArchivedDefault('foo')).toBe('foo archived:yes');
+		expect(withArchivedDefault('foo archived:no')).toBe('foo archived:no');
+		expect(withArchivedDefault('foo archived:only')).toBe('foo archived:only');
+		expect(withArchivedDefault('repo:^a/b$ foo')).toBe('repo:^a/b$ foo');
+		expect(withArchivedDefault('  ')).toBe('  ');
+	});
+
+	it('reads the setting from merged settings', () => {
+		expect(includeArchivedSetting('{"search.includeArchived": true}')).toBe(true);
+		expect(includeArchivedSetting('{"search.includeArchived": false}')).toBe(false);
+		expect(includeArchivedSetting('{}')).toBe(false);
+		expect(includeArchivedSetting('not json')).toBe(false);
+	});
+});
 
 describe('query helpers', () => {
 	it('splits and restores the context', () => {

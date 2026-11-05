@@ -9,11 +9,11 @@
 	import { untrack } from 'svelte';
 	import CodeSnippet from '#lib/components/CodeSnippet.svelte';
 	import {
-		MEMBERSHIP_QUERY,
 		exclusionsValue,
 		gitlabBase,
 		jsonOnlyKeys,
 		lines,
+		membershipQuery,
 		normalizePath,
 		OAUTH_REDIRECT,
 		oauthAuthorizeURL,
@@ -66,6 +66,7 @@
 	let groupsText = $state(initialProjects.groups.join('\n'));
 	let projectsText = $state(initialProjects.projects.join('\n'));
 	let queriesText = $state(initialProjects.queries.join('\n'));
+	let mirrorArchived = $state(initialProjects.archived);
 	let excludeNamesText = $state(initialExclusions.names.join('\n'));
 	let excludePatternsText = $state(initialExclusions.patterns.join('\n'));
 	let excludeEmpty = $state(initialExclusions.emptyRepos);
@@ -83,7 +84,8 @@
 				mode,
 				groups: lines(groupsText),
 				projects: lines(projectsText),
-				queries: lines(queriesText)
+				queries: lines(queriesText),
+				archived: mirrorArchived
 			})
 		);
 	}
@@ -92,7 +94,7 @@
 		if (m === 'custom' && mode !== 'custom') {
 			// Start from what the other mode would store.
 			const current = readProjects(doc);
-			queriesText = (mode === 'membership' ? [MEMBERSHIP_QUERY] : current.queries).join('\n');
+			queriesText = (mode === 'membership' ? [membershipQuery(mirrorArchived)] : current.queries).join('\n');
 		}
 		mode = m;
 		writeProjects();
@@ -305,7 +307,7 @@
 			<legend class="visually-hidden">Which projects</legend>
 			<label class="checkbox">
 				<input type="radio" name="gl-mode" checked={mode === 'membership'} onchange={() => setMode('membership')} />
-				<span>Every project the token's user is a member of <span class="muted">(archived ones skipped)</span></span>
+				<span>Every project the token's user is a member of</span>
 			</label>
 			<label class="checkbox">
 				<input type="radio" name="gl-mode" checked={mode === 'selected'} onchange={() => setMode('selected')} />
@@ -316,6 +318,20 @@
 				<span>Custom API queries</span>
 			</label>
 		</fieldset>
+
+		{#if mode !== 'custom'}
+			<div class="field">
+				<label class="checkbox">
+					<input type="checkbox" bind:checked={mirrorArchived} {disabled} onchange={writeProjects} />
+					<span>Index archived projects</span>
+				</label>
+				<span class="hint">
+					Search leaves them out unless a query asks for them with
+					<code class="code-inline">archived:yes</code>.
+					{#if mode === 'selected'}Projects listed by name are always mirrored.{/if}
+				</span>
+			</div>
+		{/if}
 
 		{#if mode === 'selected'}
 			<div class="field">
@@ -329,9 +345,7 @@
 					{disabled}
 					onchange={writeProjects}
 				></textarea>
-				<span class="hint"
-					>One per line: a group path or its URL. Subgroups are included, archived projects skipped.</span
-				>
+				<span class="hint">One per line: a group path or its URL. Subgroups are included.</span>
 			</div>
 		{:else if mode === 'custom'}
 			<div class="field">
@@ -340,7 +354,7 @@
 					id="gl-queries"
 					class="input mono"
 					rows="3"
-					placeholder={'projects?membership=true&archived=no\ngroups/acme/projects?with_shared=false'}
+					placeholder={'projects?membership=true\ngroups/acme/projects?with_shared=false'}
 					bind:value={queriesText}
 					{disabled}
 					onchange={writeProjects}

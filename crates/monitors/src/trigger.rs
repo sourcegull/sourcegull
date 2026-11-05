@@ -235,6 +235,7 @@ impl TriggerHandler {
                         name: repo.name.clone(),
                         revs: vec![range.to.clone()],
                         stars: repo.stars,
+                        archived: repo.archived,
                     };
                     let f = filter_repos(
                         self.backend.repo_clients.clone(),
@@ -261,6 +262,7 @@ impl TriggerHandler {
                     name: repo.name.clone(),
                     revs,
                     stars: repo.stars,
+                    archived: repo.archived,
                 };
                 let mut search = unit.search.clone();
                 search.limit = remaining;

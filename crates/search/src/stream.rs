@@ -40,6 +40,9 @@ pub enum Match {
         #[serde(rename = "repositoryID")]
         repository_id: i32,
         repository: String,
+        /// The repository is archived. Omitted when false.
+        #[serde(skip_serializing_if = "is_false")]
+        archived: bool,
         commit: String,
         #[serde(skip_serializing_if = "Vec::is_empty")]
         branches: Vec<String>,
@@ -56,6 +59,9 @@ pub enum Match {
         #[serde(rename = "repositoryID")]
         repository_id: i32,
         repository: String,
+        /// The repository is archived. Omitted when false.
+        #[serde(skip_serializing_if = "is_false")]
+        archived: bool,
         commit: String,
         #[serde(skip_serializing_if = "Vec::is_empty")]
         branches: Vec<String>,
@@ -69,6 +75,9 @@ pub enum Match {
         #[serde(rename = "repositoryID")]
         repository_id: i32,
         repository: String,
+        /// The repository is archived. Omitted when false.
+        #[serde(skip_serializing_if = "is_false")]
+        archived: bool,
         commit: String,
         #[serde(skip_serializing_if = "Vec::is_empty")]
         branches: Vec<String>,
@@ -87,6 +96,9 @@ pub enum Match {
         #[serde(rename = "repositoryID")]
         repository_id: i32,
         repository: String,
+        /// The repository is archived. Omitted when false.
+        #[serde(skip_serializing_if = "is_false")]
+        archived: bool,
         oid: String,
         message: String,
         author_name: String,
@@ -375,6 +387,7 @@ mod tests {
             path: "a.go".into(),
             repository_id: 3,
             repository: "gitlab.com/x/y".into(),
+            archived: false,
             commit: "abc".into(),
             branches: Vec::new(),
             chunk_matches: vec![ChunkMatch {
