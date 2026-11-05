@@ -17,6 +17,7 @@
 		type SettingsVersion
 	} from '#lib/orgs/queries.ts';
 	import { parseJsonc, setAt } from '#lib/jsonc-edit.ts';
+	import { refreshViewerSettings } from '#lib/settings/viewer-settings.ts';
 	import { settingsForm, type SettingsSchema, type SettingsScope } from '#lib/settings/form.ts';
 	import { SETTINGS_REFERENCE_PATH, SETTINGS_SCHEMA_URL } from '#lib/settings/reference.ts';
 	import { requiredIssues, type ConfigPath } from '#lib/site-config-form.ts';
@@ -144,6 +145,7 @@
 		try {
 			await graphql(OVERWRITE_SETTINGS, { subject, lastID: latest?.id ?? null, contents });
 			await onsaved();
+			void refreshViewerSettings();
 			notice = 'Saved.';
 		} catch (err) {
 			if (isConflictError(err)) conflict = true;

@@ -12,6 +12,9 @@
 	import StatusMessagesNavItem from '#lib/components/StatusMessagesNavItem.svelte';
 	import UserMenu from '#lib/components/UserMenu.svelte';
 	import Wordmark from '#lib/components/Wordmark.svelte';
+	import { defaultPatternType } from '#lib/settings/viewer.ts';
+	import NoticeList from '#lib/settings/NoticeList.svelte';
+	import { refreshViewerSettings, viewerSettings } from '#lib/settings/viewer-settings.ts';
 	import { loadSidebarCollapsed, storeSidebarCollapsed } from '#lib/theme/theme.ts';
 	import type { LayoutProps } from './$types';
 
@@ -72,6 +75,13 @@
 		menuButton?.focus();
 	}
 
+	// The merged settings differ per viewer.
+	$effect(() => {
+		void data.auth.user?.id;
+		void refreshViewerSettings();
+	});
+	const quickSearchPatternType = $derived(defaultPatternType($viewerSettings));
+
 	/** The top bar search box; hidden on the search page, which has its own. */
 	const showQuickSearch = $derived(!/^\/search(?:\/|$)/.test(page.url.pathname));
 </script>
@@ -120,6 +130,9 @@
 						autocomplete="off"
 						spellcheck="false"
 					/>
+					{#if quickSearchPatternType !== 'keyword'}
+						<input type="hidden" name="patternType" value={quickSearchPatternType} />
+					{/if}
 				</form>
 			{/if}
 			<div class="spacer"></div>
@@ -143,6 +156,8 @@
 			<CodeHostSignInBanner />
 			<PermissionsSyncBanner />
 		{/if}
+
+		<div class="notices"><NoticeList location="top" /></div>
 
 		<main id="main" tabindex="-1">
 			{@render children()}
@@ -255,6 +270,9 @@
 		background: var(--overlay);
 	}
 	.banner {
+		margin: var(--space-3) var(--space-4) 0;
+	}
+	.notices :global(.notice) {
 		margin: var(--space-3) var(--space-4) 0;
 	}
 	main {

@@ -6,6 +6,7 @@
 
 	const items = $derived([
 		{ href: '/user/settings/profile', title: 'Profile' },
+		{ href: '/user/settings/preferences', title: 'Preferences' },
 		...(data.auth.builtin ? [{ href: '/user/settings/password', title: 'Password' }] : []),
 		{ href: '/user/settings/emails', title: 'Emails' },
 		{ href: '/user/settings/tokens', title: 'Access tokens' },

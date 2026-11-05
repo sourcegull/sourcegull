@@ -3012,6 +3012,15 @@ export type UpdateTeamMutationVariables = Exact<{
 
 export type UpdateTeamMutation = { updateTeam: { id: string } };
 
+export type UserSettingsQueryVariables = Exact<{ [key: string]: never; }>;
+
+
+export type UserSettingsQuery = { currentUser: { id: string, latestSettings: { id: number, contents: string, createdAt: string, author: { username: string } | null } | null, settingsCascade: { subjects: Array<
+        | { __typename: 'Org', latestSettings: { contents: string } | null }
+        | { __typename: 'Site', latestSettings: { contents: string } | null }
+        | { __typename: 'User', latestSettings: { contents: string } | null }
+      > } } | null };
+
 export type ViewerOrganizationsQueryVariables = Exact<{ [key: string]: never; }>;
 
 

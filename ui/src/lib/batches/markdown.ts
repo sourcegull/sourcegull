@@ -54,7 +54,11 @@ export type MdBlock =
 
 /** Whether a link target is safe to render. */
 export function safeHref(href: string): string | null {
-	const h = href.trim();
+	// Browsers ignore these characters in a URL, so `java\tscript:` is a script link to them.
+	const h = href
+		.replace(/[\t\r\n]/g, '')
+		.replace(/^[\u0000-\u0020]+/, '')
+		.trimEnd();
 	if (/^(https?:|mailto:)/i.test(h)) return h;
 	if (/^[a-z][a-z0-9+.-]*:/i.test(h)) return null;
 	return h === '' ? null : h;

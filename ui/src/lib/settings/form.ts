@@ -6,7 +6,7 @@ import { sectionsOf, type ConfigSection, type SiteConfigSchema } from '#lib/site
 import { sectionFields, type FormField, type JsonSchema } from '#lib/site-config-form.ts';
 
 /** The subject whose settings a form edits. */
-export type SettingsScope = 'global' | 'organization';
+export type SettingsScope = 'global' | 'organization' | 'user';
 
 export type SettingsSchema = SiteConfigSchema & JsonSchema;
 
@@ -19,6 +19,8 @@ export interface SettingsFormSection {
 const NO_EFFECT = new Set(['search.includeForks']);
 /** Settings read only from an organization's own document. */
 const ORGANIZATION_ONLY = new Set(['orgs.allMembersBatchChangesAdmin']);
+/** Settings for others to read: in a user's own settings they would only hide what others set. */
+const NOT_FOR_USERS = new Set(['notices']);
 /** Labels the key names don't give, in the words the UI uses. */
 const TITLES: Record<string, string> = {
 	'orgs.allMembersBatchChangesAdmin': 'All members administer bulk changes'
@@ -27,6 +29,7 @@ const TITLES: Record<string, string> = {
 function applies(key: string, scope: SettingsScope, doc: Record<string, unknown>): boolean {
 	if (key in doc) return true;
 	if (NO_EFFECT.has(key)) return false;
+	if (scope === 'user' && NOT_FOR_USERS.has(key)) return false;
 	return scope === 'organization' || !ORGANIZATION_ONLY.has(key);
 }
 

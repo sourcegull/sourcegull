@@ -7,6 +7,7 @@ import type {
 	CreateOrganizationMutation,
 	CreateTeamMutation,
 	DefaultSettingsQuery,
+	UserSettingsQuery,
 	GlobalSettingsQuery,
 	InvitationByTokenQuery,
 	InviteUserToOrganizationMutation,
@@ -202,6 +203,15 @@ export const GLOBAL_SETTINGS = `query GlobalSettings {
 	}
 }`;
 export type GlobalSettingsResult = GlobalSettingsQuery;
+
+export const USER_SETTINGS = `query UserSettings {
+	currentUser {
+		id
+		latestSettings { id contents createdAt author { username } }
+		settingsCascade { subjects { __typename latestSettings { contents } } }
+	}
+}`;
+export type UserSettingsResult = UserSettingsQuery;
 
 export const OVERWRITE_SETTINGS = `mutation OverwriteSettings($subject: ID!, $lastID: Int, $contents: String!) {
 	settingsMutation(input: { subject: $subject, lastID: $lastID }) {

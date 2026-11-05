@@ -163,6 +163,64 @@ function step(name) {
 	const globalJson = await admin.textContent('.cm-content');
 	if (!globalJson.includes('kept by the forms') || !globalJson.includes('my.custom')) fail(`the forms lost text: ${globalJson}`);
 
+	step('the saved settings take effect: pattern type, quicklinks, notices');
+	await admin.goto(`${BASE}/search`);
+	await admin.waitForFunction(() => document.querySelector('#pattern-type')?.value === 'regexp');
+	await admin.waitForSelector('nav[aria-label="Quick links"] a[href="/help"]:has-text("Docs")');
+	await admin.waitForSelector('[data-testid="notice-home"]:has-text("Second")');
+	await admin.screenshot({ path: `${OUT}/a05b-search-home-settings.png`, fullPage: true });
+	await admin.goto(`${BASE}/search?q=settings-link`);
+	await admin.waitForTimeout(500);
+	if ((await admin.inputValue('#pattern-type')) !== 'keyword') fail('the setting changed what a link searches for');
+	await admin.goto(`${BASE}/site-admin/global-settings`);
+	await admin.waitForSelector('input[name="patternType"][value="regexp"]', { state: 'attached' });
+
+	step('notices are Markdown without unsafe links, and stay dismissed');
+	await admin.click('button[role=tab]:has-text("Edit as JSON")');
+	await admin.waitForSelector('.cm-content');
+	await admin.click('.cm-content');
+	await admin.keyboard.press('Control+A');
+	await admin.keyboard.insertText(
+		JSON.stringify({
+			'search.defaultPatternType': 'regexp',
+			quicklinks: [
+				{ name: 'Docs', url: '/help' },
+				{ name: 'Unsafe', url: 'java\tscript:alert(1)' }
+			],
+			notices: [{ message: '**Maintenance** [link](javascript:alert(1))', location: 'top', dismissible: true }]
+		})
+	);
+	await admin.click('.settings-toolbar button:text-is("Save")');
+	await admin.waitForSelector('.alert-success:text-is("Saved.")');
+	await admin.waitForSelector('[data-testid="notice-top"] strong:has-text("Maintenance")');
+	if (await admin.locator('[data-testid="notice-top"] a[href*="script"]').count()) fail('a notice rendered a script link');
+	await admin.screenshot({ path: `${OUT}/a05c-top-notice.png` });
+	await admin.click('[data-testid="notice-top"] button:has-text("Dismiss")');
+	await admin.reload();
+	await admin.waitForSelector('#cfg-search_defaultPatternType');
+	await admin.waitForSelector('input[name="patternType"]', { state: 'attached' });
+	if (await admin.locator('[data-testid="notice-top"]').count()) fail('a dismissed notice came back');
+	await admin.goto(`${BASE}/search`);
+	await admin.waitForSelector('nav[aria-label="Quick links"] a[href="/help"]');
+	if (await admin.locator('nav[aria-label="Quick links"] a:has-text("Unsafe")').count()) fail('an unsafe quicklink is shown');
+
+	step('user preferences: inherited values, and they override the global settings');
+	await admin.goto(`${BASE}/user/settings/preferences`);
+	await admin.waitForSelector('#cfg-search_defaultPatternType');
+	if (!(await admin.textContent('#cfg-search_defaultPatternType option:first-child')).includes('regexp')) fail('the inherited value is not shown');
+	if (await admin.locator('#cfg-orgs_allMembersBatchChangesAdmin, button:has-text("Add notice")').count()) fail('the user form shows settings for others');
+	await admin.selectOption('#cfg-search_defaultPatternType', 'literal');
+	await admin.click('.settings-toolbar button:text-is("Save")');
+	await admin.waitForSelector('.alert-success:text-is("Saved.")');
+	await admin.screenshot({ path: `${OUT}/a05d-preferences.png`, fullPage: true });
+	await admin.goto(`${BASE}/search`);
+	await admin.waitForFunction(() => document.querySelector('#pattern-type')?.value === 'literal');
+	await admin.goto(`${BASE}/user/settings/preferences`);
+	await admin.waitForSelector('#cfg-search_defaultPatternType');
+	await admin.selectOption('#cfg-search_defaultPatternType', '');
+	await admin.click('.settings-toolbar button:text-is("Save")');
+	await admin.waitForSelector('.alert-success:text-is("Saved.")');
+
 	step('organization settings: inherited values, and the organization-only setting');
 	await admin.goto(`${BASE}/organizations/new`);
 	await admin.fill('#name', 'e2e-settings');
@@ -182,6 +240,16 @@ function step(name) {
 	await admin.screenshot({ path: `${OUT}/a06-organization-settings.png`, fullPage: true });
 	await admin.reload();
 	await admin.waitForSelector('#cfg-orgs_allMembersBatchChangesAdmin:checked');
+
+	step('clear the global settings for the checks after this one');
+	await admin.goto(`${BASE}/site-admin/global-settings`);
+	await admin.click('button[role=tab]:has-text("Edit as JSON")');
+	await admin.waitForSelector('.cm-content');
+	await admin.click('.cm-content');
+	await admin.keyboard.press('Control+A');
+	await admin.keyboard.insertText('{}');
+	await admin.click('.settings-toolbar button:text-is("Save")');
+	await admin.waitForSelector('.alert-success:text-is("Saved.")');
 
 	step('site configuration: lists of objects are forms too');
 	await admin.goto(`${BASE}/site-admin/configuration?section=repositories`);
@@ -274,7 +342,7 @@ function step(name) {
 	step('mobile layout of the admin, tokens and contexts pages');
 	await admin.setViewportSize({ width: 390, height: 844 });
 	const pages = ['users', 'roles', 'permissions', 'access-requests', 'configuration'].map((p) => `/site-admin/${p}`);
-	for (const path of ['/site-admin', ...pages, '/site-admin/global-settings', '/organizations/e2e-settings/settings', '/user/settings/tokens', '/contexts', '/connect-agent']) {
+	for (const path of ['/site-admin', ...pages, '/site-admin/global-settings', '/organizations/e2e-settings/settings', '/user/settings/preferences', '/user/settings/tokens', '/contexts', '/connect-agent']) {
 		await admin.goto(`${BASE}${path}`);
 		await admin.waitForSelector('h1');
 		await admin.waitForTimeout(300);

@@ -24,6 +24,17 @@ describe('settingsForm', () => {
 		expect(keys(settingsForm(schema, {}, 'organization'))).toContain('orgs.allMembersBatchChangesAdmin');
 	});
 
+	it('leaves notices out of a user form, unless the document sets them', () => {
+		const withNotices: SettingsSchema = {
+			...schema,
+			properties: { ...schema.properties, notices: { type: 'array', default: [] } },
+			'x-sections': [{ id: 'home', title: 'Home', description: '', keys: ['notices'] }]
+		};
+		expect(keys(settingsForm(withNotices, {}, 'user'))).toEqual([]);
+		expect(keys(settingsForm(withNotices, { notices: [] }, 'user'))).toEqual(['notices']);
+		expect(keys(settingsForm(withNotices, {}, 'organization'))).toEqual(['notices']);
+	});
+
 	it('shows a setting without effect only while the document sets it', () => {
 		expect(keys(settingsForm(schema, {}, 'global'))).not.toContain('search.includeForks');
 		expect(keys(settingsForm(schema, { 'search.includeForks': true }, 'global'))).toContain('search.includeForks');
