@@ -6,7 +6,7 @@ import { sectionsOf, type ConfigSection, type SiteConfigSchema } from '#lib/site
 import { sectionFields, type FormField, type JsonSchema } from '#lib/site-config-form.ts';
 
 /** The subject whose settings a form edits. */
-export type SettingsScope = 'global' | 'organization';
+export type SettingsScope = 'global' | 'organization' | 'user';
 
 export type SettingsSchema = SiteConfigSchema & JsonSchema;
 
@@ -19,14 +19,41 @@ export interface SettingsFormSection {
 const NO_EFFECT = new Set(['search.includeForks']);
 /** Settings read only from an organization's own document. */
 const ORGANIZATION_ONLY = new Set(['orgs.allMembersBatchChangesAdmin']);
+/** Settings for others to read: in a user's own settings they would only hide what others set. */
+const NOT_FOR_USERS = new Set(['notices']);
 /** Labels the key names don't give, in the words the UI uses. */
 const TITLES: Record<string, string> = {
 	'orgs.allMembersBatchChangesAdmin': 'All members administer bulk changes'
 };
 
+/** The notice form: what is written first, and the location and dismissal in plain words. */
+function refineNotices(field: FormField): FormField {
+	const copy: Record<string, Partial<FormField>> = {
+		message: {
+			markdown: true,
+			description: 'The text of the banner. Markdown works, for example `**bold**` and `[a link](https://example.com)`.'
+		},
+		location: { title: 'Where it appears', description: '' },
+		dismissible: { title: 'Users can dismiss it', description: '' }
+	};
+	const labels: Record<string, string> = { top: 'At the top of every page', home: 'On the search home page' };
+	const order = ['message', 'location', 'dismissible'];
+	return {
+		...field,
+		itemFields: (field.itemFields ?? [])
+			.map((f) => ({
+				...f,
+				...copy[f.key],
+				options: f.options?.map((o) => ({ ...o, label: labels[o.value], description: '' }))
+			}))
+			.sort((a, b) => order.indexOf(a.key) - order.indexOf(b.key))
+	};
+}
+
 function applies(key: string, scope: SettingsScope, doc: Record<string, unknown>): boolean {
 	if (key in doc) return true;
 	if (NO_EFFECT.has(key)) return false;
+	if (scope === 'user' && NOT_FOR_USERS.has(key)) return false;
 	return scope === 'organization' || !ORGANIZATION_ONLY.has(key);
 }
 
@@ -47,7 +74,7 @@ export function settingsForm(
 				schema,
 				section.keys.filter((key) => applies(key, scope, doc))
 			).map((field) => ({
-				...field,
+				...(field.key === 'notices' ? refineNotices(field) : field),
 				title: TITLES[field.key] ?? field.title,
 				default: inherited?.[field.key] ?? field.default
 			}))

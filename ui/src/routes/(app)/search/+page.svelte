@@ -2,7 +2,7 @@
 	import type { CreateSavedSearchMutation } from '#lib/graphql-types.ts';
 	import { goto } from '$app/navigation';
 	import { page } from '$app/state';
-	import { onMount, tick } from 'svelte';
+	import { onMount, tick, untrack } from 'svelte';
 	import { errorMessage, graphql } from '#lib/graphql.ts';
 	import { createInsightFromSearchURL } from '#lib/insights/initial.ts';
 	import Aggregations from '#lib/search/Aggregations.svelte';
@@ -25,15 +25,16 @@
 		DEFAULT_SEARCH_CONTEXT,
 		REPOSITORY_NAMES,
 		SEARCH_CONTEXTS,
-		VIEWER_SEARCH_SETTINGS,
 		includeArchivedSetting,
 		type CreateSavedSearchVariables,
 		type DefaultSearchContextResult,
 		type RepositoryNamesResult,
 		type SearchContextsResult,
-		type SearchContextsVariables,
-		type ViewerSearchSettingsResult
+		type SearchContextsVariables
 	} from '#lib/search/queries.ts';
+	import NoticeList from '#lib/settings/NoticeList.svelte';
+	import { defaultPatternType, quicklinks } from '#lib/settings/viewer.ts';
+	import { viewerSettings } from '#lib/settings/viewer-settings.ts';
 	import {
 		PATTERN_TYPES,
 		appendFilter,
@@ -145,14 +146,21 @@
 	}
 
 	/** `search.includeArchived`: whether a search from the box includes archived repositories. */
-	let archivedByDefault = $state(false);
+	const archivedByDefault = $derived(includeArchivedSetting($viewerSettings));
+	/** `search.defaultPatternType`: what the box starts with. Links keep their own pattern type. */
+	const startingPatternType = $derived(defaultPatternType($viewerSettings));
+	/** Whether the viewer chose a pattern type, which settings arriving late must not replace. */
+	let patternTypeChosen = false;
+	const homeQuicklinks = $derived(quicklinks($viewerSettings));
+
+	$effect(() => {
+		const start = startingPatternType;
+		untrack(() => {
+			if (urlQuery === null && !patternTypeChosen) patternType = start;
+		});
+	});
 
 	onMount(() => {
-		graphql<ViewerSearchSettingsResult>(VIEWER_SEARCH_SETTINGS)
-			.then((r) => {
-				archivedByDefault = includeArchivedSetting(r.viewerSettings.final);
-			})
-			.catch(() => {});
 		if (!user) return;
 		graphql<DefaultSearchContextResult>(DEFAULT_SEARCH_CONTEXT)
 			.then((r) => {
@@ -167,7 +175,7 @@
 	$effect(() => {
 		const q = urlQuery;
 		const pt = urlPatternType;
-		patternType = pt;
+		patternType = q === null ? untrack(() => startingPatternType) : pt;
 		if (q === null) {
 			controller?.abort();
 			submitted = null;
@@ -422,7 +430,10 @@
 			id="pattern-type"
 			class="input pattern-type"
 			bind:value={patternType}
-			onchange={() => submitted && submit()}
+			onchange={() => {
+				patternTypeChosen = true;
+				if (submitted) submit();
+			}}
 		>
 			{#each PATTERN_TYPES as t (t)}<option value={t}>{t}</option>{/each}
 		</select>
@@ -438,6 +449,7 @@
 {#if !submitted}
 	<div class="home">
 		{#if user?.siteAdmin}<MigrationsBanner />{/if}
+		<NoticeList location="home" />
 		<div class="hero">
 			<img class="hero-mark" src="/logo.png" alt="" width="88" height="64" />
 			<h1>Search code</h1>
@@ -447,6 +459,14 @@
 		<p class="home-hint">
 			Press <kbd>/</kbd> to focus the search box, <kbd>↑</kbd> for recent searches.
 		</p>
+
+		{#if homeQuicklinks.length > 0}
+			<nav class="quicklinks" aria-label="Quick links">
+				{#each homeQuicklinks as link, i (i)}
+					<a class="btn btn-sm" href={link.url} title={link.description} rel="noopener noreferrer">{link.name}</a>
+				{/each}
+			</nav>
+		{/if}
 
 		<section class="examples" aria-labelledby="examples-heading">
 			<h2 id="examples-heading" class="section-label">Try a query</h2>
@@ -730,6 +750,12 @@
 	.home-search :global(.query-input .cm-content) {
 		padding-block: 0.7rem;
 		font-size: var(--text-md);
+	}
+	.quicklinks {
+		display: flex;
+		flex-wrap: wrap;
+		justify-content: center;
+		gap: var(--space-2);
 	}
 	.home-hint {
 		margin: calc(-1 * var(--space-4)) 0 0;

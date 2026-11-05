@@ -144,19 +144,29 @@ Settings are per-viewer preferences. They exist at three levels:
 
 1. **Global settings** (Site admin → Global settings),
 2. each **organization's** settings, for its members,
-3. each **user's** own settings.
+3. each **user's** own settings (User settings → Preferences).
 
 A user's effective settings merge them in that order: objects merge key by key, and any other
-value at a later level replaces the earlier one. Known keys include
-`search.defaultPatternType` (default `keyword`), `search.includeArchived` (see
-[Archived repositories](search.md#archived-repositories)), `quicklinks`, `notices` and, in an
-organization's settings, `orgs.allMembersBatchChangesAdmin`; other keys are passed through to the
-UI. `search.includeForks` is accepted but has no effect yet: use `fork:yes` in the query.
+value at a later level replaces the earlier one, so a list set at one level replaces the whole
+list from the levels before it. The settings:
 
-The global and organization settings pages edit the document as forms or, under **Edit as JSON**,
-as text. A form changes only the value it touches, so comments and other keys stay. On an
-organization's page, a value the global settings set shows as the inherited default. Keys this
-version does not know are listed under **Other**.
+- `search.defaultPatternType` (default `keyword`): the pattern type the search boxes start with. A
+  link to a search keeps its own, so it gives everyone the same results.
+- `search.includeArchived`: see [Archived repositories](search.md#archived-repositories).
+- `quicklinks`: links on the search home page. Targets are `http`, `https`, `mailto` or relative;
+  others are not shown.
+- `notices`: banners, at the top of every page or on the search home page. Messages are Markdown,
+  without HTML. A dismissible notice stays dismissed in that browser until its message changes.
+- `orgs.allMembersBatchChangesAdmin`, in an organization's settings: every member may close and
+  delete the organization's bulk changes.
+
+Other keys are kept and passed through to the UI. `search.includeForks` is accepted but has no
+effect yet: use `fork:yes` in the query.
+
+**Site admin → Global settings**, an organization's **Settings** page and **User settings →
+Preferences** edit the document as forms or, under **Edit as JSON**, as text. A form changes only
+the value it touches, so comments and other keys stay. A value set at a higher level shows as the
+inherited default. Keys this version does not know are listed under **Other**.
 
 The **settings reference** page at `/help/settings` lists every setting with its type,
 allowed values and description; the editor's starting document links to it. The schema is

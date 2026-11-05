@@ -68,7 +68,8 @@ impl SettingsCascade {
 #[serde(default)]
 #[schemars(title = "Settings")]
 pub struct Settings {
-    /// Pattern type used when a query has no `patternType:`.
+    /// The pattern type the search boxes start with. A link to a search keeps its own, and saved
+    /// searches and the APIs are not affected.
     #[serde(rename = "search.defaultPatternType")]
     pub search_default_pattern_type: PatternType,
     /// Accepted but has no effect: use `fork:yes` in the query.

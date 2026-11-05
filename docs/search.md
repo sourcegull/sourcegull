@@ -26,8 +26,9 @@ Patterns match the whole path from the repository root: `*` and `?` stay within 
 
 A query is a mix of **patterns** (text to find) and **filters** (`field:value`). How patterns
 are read depends on the pattern type, which you choose with the toggle in the search box,
-with `patterntype:` in the query, or by default with the `search.defaultPatternType`
-[setting](configuration.md#settings-and-the-settings-cascade).
+or with `patterntype:` in the query. The `search.defaultPatternType`
+[setting](configuration.md#settings-and-the-settings-cascade) sets what the search boxes start
+with; a link to a search keeps its own pattern type.
 
 | Type | Behaviour | Example |
 |---|---|---|

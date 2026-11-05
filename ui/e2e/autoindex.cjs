@@ -102,7 +102,7 @@ function step(name) {
 	await page.click('button[role=tab]:has-text("Jobs")');
 
 	step('a job without an indexer is refused and marked; a command stays one entry');
-	await page.click('button:has-text("Add index job")');
+	await page.click('button:has-text("Add another index job")');
 	const added = await page.locator('li.item:has(> .item-head:has-text("Index job"))').count();
 	await page.click('button:has-text("Save")');
 	await page.waitForSelector(`#cfg-index_jobs--${added - 1}--indexer-error:has-text("Required.")`, { timeout: 10000 });
@@ -114,7 +114,7 @@ function step(name) {
 	await page.click(`button[aria-label="Remove Index job ${added}"]`);
 
 	await page.click('button:has-text("Save")');
-	await page.waitForSelector('.alert-info:has-text("Saved")', { timeout: 10000 });
+	await page.waitForSelector('[data-testid="save-bar-saved"]', { timeout: 10000 });
 	await page.screenshot({ path: `${OUT}/autoindex-02-configuration.png` });
 
 	step('queue the jobs');

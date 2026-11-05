@@ -1,5 +1,7 @@
 <script lang="ts">
 	import { untrack } from 'svelte';
+	import Markdown from '#lib/batches/Markdown.svelte';
+	import Icon from '#lib/components/Icon.svelte';
 	import ConfigField from './ConfigField.svelte';
 	import DocText from './DocText.svelte';
 	import {
@@ -41,6 +43,7 @@
 	const changed = $derived(saved !== null && !jsonEqual(value, getAt(saved, field.path)));
 	const grouped = $derived(field.kind === 'object' || field.kind === 'objectList');
 	const leaf = $derived(!grouped);
+	const inItem = $derived(field.path.some((seg) => typeof seg === 'number'));
 	const fieldIssues = $derived(issuesAt(issues, field.path, leaf));
 	const invalid = $derived(fieldIssues.length > 0);
 	const describedBy = $derived(
@@ -176,7 +179,8 @@
 			{#if field.secret}<span class="badge" title="Stored in the site configuration; shown masked">Secret</span>{/if}
 			{#if changed}<span class="badge badge-warning">Changed</span>{/if}
 		</span>
-		<code class="field-key">{field.key}</code>
+		<!-- An item's fields are found through the list's key; repeating theirs is only noise. -->
+		{#if !inItem}<code class="field-key">{field.key}</code>{/if}
 		{#if isSet && !field.required}
 			<button
 				class="btn btn-link btn-sm reset"
@@ -276,7 +280,11 @@
 				{/each}
 			</ol>
 		{/if}
-		<button class="btn btn-sm add-item" type="button" {disabled} onclick={addObject}>Add {name.toLowerCase()}</button>
+		<button class="add-item" type="button" {disabled} onclick={addObject}>
+			<Icon name="plus" size={14} />
+			{objects.length > 0 ? 'Add another' : 'Add'}
+			{name.toLowerCase()}
+		</button>
 	</fieldset>
 {:else}
 	<div class="config-field" class:is-invalid={invalid}>
@@ -313,7 +321,7 @@
 					<option value="">Default{fallback !== undefined ? ` (${displayValue(fallback)})` : ''}</option>
 				{/if}
 				{#each field.options as option (option.value)}
-					<option value={option.value}>{option.value}</option>
+					<option value={option.value}>{option.label ?? option.value}</option>
 				{/each}
 			</select>
 			{#if selectedOption?.description}<p class="hint option-hint">{selectedOption.description}</p>{/if}
@@ -354,6 +362,23 @@
 						<span class="subtle small">{changed ? 'new value, not saved yet' : 'stored'}</span>
 					</span>
 					<button class="btn btn-sm" type="button" onclick={startSecret} {disabled}>Replace</button>
+				</div>
+			{/if}
+		{:else if field.kind === 'string' && field.markdown}
+			<textarea
+				{id}
+				class="input"
+				rows="3"
+				{disabled}
+				aria-describedby={describedBy}
+				aria-invalid={invalid || undefined}
+				value={typeof value === 'string' ? value : ''}
+				oninput={onString}
+			></textarea>
+			{#if typeof value === 'string' && value.trim()}
+				<div class="preview">
+					<span class="subtle small">Preview</span>
+					<div class="alert alert-info preview-box"><Markdown source={value} /></div>
 				</div>
 			{/if}
 		{:else if field.kind === 'string'}
@@ -620,7 +645,36 @@
 		flex: 1;
 	}
 	.add-item {
+		display: flex;
+		align-items: center;
+		justify-content: center;
+		gap: var(--space-1);
+		width: 100%;
 		margin-top: var(--space-2);
+		padding: var(--space-2) var(--space-3);
+		border: 1px dashed var(--color-border-strong);
+		border-radius: var(--radius);
+		background: none;
+		color: var(--color-text-muted);
+		font-size: var(--text-sm);
+		cursor: pointer;
+	}
+	.add-item:hover:not(:disabled) {
+		background: var(--color-bg-hover);
+		color: var(--color-text);
+	}
+	.add-item:disabled {
+		cursor: not-allowed;
+		opacity: 0.6;
+	}
+	.preview {
+		display: flex;
+		flex-direction: column;
+		gap: var(--space-1);
+		max-width: 32rem;
+	}
+	.preview-box {
+		margin: 0;
 	}
 	.is-invalid .field-title .label {
 		color: var(--color-danger);
