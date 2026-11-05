@@ -2908,7 +2908,7 @@ export type OrganizationSettingsQueryVariables = Exact<{
 }>;
 
 
-export type OrganizationSettingsQuery = { organization: { id: string, displayName: string | null, latestSettings: { id: number, contents: string, createdAt: string, author: { username: string } | null } | null, settingsCascade: { final: string } } | null };
+export type OrganizationSettingsQuery = { organization: { id: string, displayName: string | null, latestSettings: { id: number, contents: string, createdAt: string, author: { username: string } | null } | null, settingsCascade: { final: string } } | null, site: { latestSettings: { contents: string } | null } };
 
 export type OrganizationsQueryVariables = Exact<{
   first?: number | null | undefined;

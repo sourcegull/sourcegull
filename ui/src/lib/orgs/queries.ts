@@ -185,6 +185,7 @@ export const ORGANIZATION_SETTINGS = `query OrganizationSettings($name: String!)
 		latestSettings { id contents createdAt author { username } }
 		settingsCascade { final }
 	}
+	site { latestSettings { contents } }
 }`;
 export type OrganizationSettingsResult = OrganizationSettingsQuery;
 

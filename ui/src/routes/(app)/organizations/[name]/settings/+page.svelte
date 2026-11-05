@@ -3,6 +3,7 @@
 	import { untrack } from 'svelte';
 	import SettingsEditor from '#lib/components/SettingsEditor.svelte';
 	import { errorMessage, graphql } from '#lib/graphql.ts';
+	import { parseJsonc } from '#lib/jsonc-edit.ts';
 	import {
 		ORGANIZATION_SETTINGS,
 		UPDATE_ORGANIZATION,
@@ -13,6 +14,7 @@
 
 	const name = $derived(page.params.name ?? '');
 	let org = $state<OrganizationSettingsResult['organization']>(null);
+	let globalSettings = $state.raw<Record<string, unknown> | null>(null);
 	let displayName = $state('');
 	let error = $state<string | null>(null);
 	let notice = $state<string | null>(null);
@@ -21,7 +23,9 @@
 
 	async function load(): Promise<void> {
 		try {
-			org = (await graphql<OrganizationSettingsResult, Vars>(ORGANIZATION_SETTINGS, { name })).organization;
+			const result = await graphql<OrganizationSettingsResult, Vars>(ORGANIZATION_SETTINGS, { name });
+			org = result.organization;
+			globalSettings = parseJsonc(result.site.latestSettings?.contents ?? '');
 			displayName = org?.displayName ?? '';
 			error = null;
 		} catch (err) {
@@ -75,16 +79,15 @@
 
 	<section>
 		<h2>Organization settings</h2>
-		<p class="muted">
-			Apply to every member, over the global settings and under each member's own settings. JSON with comments; press <kbd
-				>Ctrl</kbd
-			>/<kbd>⌘</kbd>+<kbd>S</kbd> to save.
-		</p>
+		<p class="muted">Apply to every member, over the global settings and under each member's own settings.</p>
 		<SettingsEditor
 			subject={org.id}
 			latest={org.latestSettings}
 			onsaved={load}
 			label="Organization settings (JSON with comments)"
+			scope="organization"
+			inherited={globalSettings}
+			inheritedNote="Inherited from the global settings."
 		/>
 		<button class="btn btn-link" type="button" onclick={() => (showMerged = !showMerged)}>
 			{showMerged ? 'Hide' : 'Show'} merged settings (global + organization)

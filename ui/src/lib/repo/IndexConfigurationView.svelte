@@ -1,6 +1,9 @@
 <script lang="ts">
 	import type { QueueAutoIndexJobsForRepoMutation } from '#lib/graphql-types.ts';
+	import ConfigField from '#lib/components/site-config/ConfigField.svelte';
 	import { errorMessage, graphql } from '#lib/graphql.ts';
+	import { parseJsonc, setAt } from '#lib/jsonc-edit.ts';
+	import { requiredIssues, type ConfigPath } from '#lib/site-config-form.ts';
 	import {
 		INDEX_CONFIGURATION,
 		QUEUE_AUTO_INDEX_JOBS,
@@ -9,6 +12,7 @@
 		type IndexConfigurationResult,
 		type InferredConfiguration
 	} from './codegraph.ts';
+	import { indexJobsField } from './index-config-form.ts';
 
 	interface Props {
 		/** The repository's node ID. */
@@ -27,6 +31,22 @@
 	let busy = $state(false);
 	let error = $state<string | null>(null);
 	let notice = $state<string | null>(null);
+
+	let view = $state<'jobs' | 'json'>('jobs');
+	const jobsField = indexJobsField();
+	/** Both views edit `text`; null while it has a syntax error. */
+	const doc = $derived(parseJsonc(text));
+	const savedDoc = $derived(parseJsonc(saved ?? ''));
+	/** A saved configuration without jobs runs none: it still takes precedence over the others. */
+	const runsNoJobs = $derived(text.trim() !== '' && doc !== null && !(doc.index_jobs as unknown[] | undefined)?.length);
+	const missing = $derived(doc ? requiredIssues([jobsField], doc) : []);
+	/** Whether a save was refused for empty required values; they are marked from then on. */
+	let showRequired = $state(false);
+
+	function setValue(path: ConfigPath, value: unknown): void {
+		text = setAt(text, path, value);
+		notice = null;
+	}
 
 	$effect(() => {
 		void load(repoId);
@@ -49,6 +69,13 @@
 	}
 
 	async function save(): Promise<void> {
+		showRequired = true;
+		if (missing.length > 0) {
+			view = 'jobs';
+			notice = null;
+			error = 'Fill in the required values marked below.';
+			return;
+		}
 		busy = true;
 		error = null;
 		notice = null;
@@ -61,6 +88,12 @@
 		} finally {
 			busy = false;
 		}
+	}
+
+	/** Deletes the saved configuration, so `sourcegull.yaml` or inference applies again. */
+	async function remove(): Promise<void> {
+		text = '';
+		await save();
 	}
 
 	async function queue(): Promise<void> {
@@ -105,16 +138,64 @@
 	{#if loading}
 		<p class="muted">Loading…</p>
 	{:else}
-		<label class="label" for="index-config">Configuration (JSON)</label>
-		<textarea
-			id="index-config"
-			class="input mono editor"
-			rows="16"
-			spellcheck="false"
-			placeholder={'{"index_jobs": []}'}
-			readonly={!siteAdmin}
-			bind:value={text}
-		></textarea>
+		<div class="tabs view-tabs" role="tablist" aria-label="Editor">
+			<button
+				class="tab"
+				type="button"
+				role="tab"
+				id="index-config-tab-jobs"
+				aria-selected={view === 'jobs'}
+				aria-controls="index-config-panel"
+				onclick={() => (view = 'jobs')}>Jobs</button
+			>
+			<button
+				class="tab"
+				type="button"
+				role="tab"
+				id="index-config-tab-json"
+				aria-selected={view === 'json'}
+				aria-controls="index-config-panel"
+				onclick={() => (view = 'json')}>Edit as JSON</button
+			>
+		</div>
+		<div
+			id="index-config-panel"
+			role="tabpanel"
+			aria-labelledby={view === 'jobs' ? 'index-config-tab-jobs' : 'index-config-tab-json'}
+		>
+			{#if view === 'json'}
+				<label class="label" for="index-config">Configuration (JSON)</label>
+				<textarea
+					id="index-config"
+					class="input mono editor"
+					rows="16"
+					spellcheck="false"
+					placeholder={'{"index_jobs": []}'}
+					readonly={!siteAdmin}
+					bind:value={text}
+				></textarea>
+			{:else if doc === null}
+				<div class="alert alert-warning" role="status">
+					The JSON has a syntax error, so the jobs can't be shown.
+					<button class="btn btn-sm" type="button" onclick={() => (view = 'json')}>Fix it in the JSON editor</button>
+				</div>
+			{:else}
+				<ConfigField
+					field={jobsField}
+					{doc}
+					saved={savedDoc}
+					issues={showRequired ? missing : []}
+					disabled={!siteAdmin}
+					onchange={setValue}
+				/>
+				{#if runsNoJobs}
+					<div class="alert alert-warning" role="status" data-testid="index-config-no-jobs">
+						A saved configuration without jobs indexes nothing, even if the repository has <code>sourcegull.yaml</code>
+						or inferred jobs. Remove the configuration to use those again.
+					</div>
+				{/if}
+			{/if}
+		</div>
 		{#if siteAdmin}
 			<div class="actions">
 				<button class="btn btn-primary" disabled={busy || text === (saved ?? '')} onclick={save}>Save</button>
@@ -122,9 +203,17 @@
 					class="btn"
 					disabled={busy || !inferred}
 					onclick={() => (text = inferred?.configuration ?? '')}
-					title="Replace the text with the inferred configuration">Use inferred configuration</button
+					title="Replace the jobs with the inferred ones">Use inferred configuration</button
 				>
 				<button class="btn" disabled={busy} onclick={queue}>Queue jobs at HEAD</button>
+				{#if saved !== null}
+					<button
+						class="btn"
+						disabled={busy}
+						onclick={remove}
+						title="Delete the saved configuration, so sourcegull.yaml or inference applies">Remove configuration</button
+					>
+				{/if}
 			</div>
 		{/if}
 
@@ -152,6 +241,9 @@
 	.intro {
 		margin-top: 0;
 	}
+	.view-tabs {
+		margin-bottom: var(--space-2);
+	}
 	.editor {
 		width: 100%;
 		font-family: var(--font-mono, monospace);
@@ -159,6 +251,7 @@
 	}
 	.actions {
 		display: flex;
+		flex-wrap: wrap;
 		gap: var(--space-2);
 		margin: var(--space-2) 0 var(--space-4);
 	}

@@ -5,6 +5,10 @@ import {
 	humanize,
 	isSecret,
 	issuesAt,
+	itemFieldsAt,
+	itemName,
+	newItem,
+	requiredIssues,
 	issuesFromError,
 	keyTitle,
 	parseIssue,
@@ -88,7 +92,7 @@ describe('schema to form model', () => {
 		expect(at('auth.sessionExpiry').kind).toBe('string');
 		expect(at('auth.sessionExpiry').pattern).toBeDefined();
 		expect(at('webhooks.outbound.allowedHosts').kind).toBe('stringList');
-		expect(at('gitUpdateInterval').kind).toBe('json');
+		expect(at('gitUpdateInterval').kind).toBe('objectList');
 		expect(at('codeIntelAutoIndexing.indexerMap').kind).toBe('json');
 	});
 
@@ -164,5 +168,59 @@ describe('values and issues', () => {
 		// An object fieldset shows only problems at its own path.
 		expect(issuesAt(issues, ['auth.providers'], false)).toHaveLength(0);
 		expect(issuesAt(issues, ['auth.providers'], true)).toHaveLength(1);
+	});
+});
+
+describe('lists of objects', () => {
+	const root: JsonSchema = {
+		definitions: {
+			Where: { oneOf: [{ enum: ['top'] }, { enum: ['home'] }].map((o) => ({ ...o, type: 'string' })) },
+			Notice: {
+				type: 'object',
+				required: ['message', 'where'],
+				properties: {
+					dismissible: { type: 'boolean' },
+					message: { type: 'string' },
+					where: { $ref: '#/definitions/Where' },
+					tags: { type: 'array', items: { type: 'string' }, 'x-whole-items': true },
+					parts: { type: 'array', items: { type: 'object', required: ['a'], properties: { a: { type: 'string' } } } }
+				}
+			}
+		},
+		properties: { notices: { type: 'array', default: [], items: { $ref: '#/definitions/Notice' } } }
+	};
+	const list = buildField(root, 'notices', root.properties!.notices!, ['notices']);
+
+	it('builds item fields, required ones first', () => {
+		expect(list.kind).toBe('objectList');
+		expect(list.itemFields?.map((f) => f.key)).toEqual(['message', 'where', 'dismissible', 'tags', 'parts']);
+		expect(list.itemFields?.find((f) => f.key === 'tags')?.wholeItems).toBe(true);
+	});
+
+	it('names an item and starts it valid where it can', () => {
+		expect(itemName(list)).toBe('Notice');
+		expect(newItem(list)).toEqual({ message: '', where: 'top' });
+	});
+
+	it('gives each item its own paths, also in nested lists', () => {
+		const fields = itemFieldsAt(list, 2);
+		expect(fields[0]?.path).toEqual(['notices', 2, 'message']);
+		const parts = fields.find((f) => f.key === 'parts')!;
+		expect(parts.kind).toBe('objectList');
+		expect(itemFieldsAt(parts, 1)[0]?.path).toEqual(['notices', 2, 'parts', 1, 'a']);
+	});
+
+	it('reports required values that are empty, per item', () => {
+		const doc = {
+			notices: [
+				{ message: 'ok', where: 'top' },
+				{ message: '', where: 'top', parts: [{}] }
+			]
+		};
+		expect(requiredIssues([list], doc)).toEqual([
+			{ path: ['notices', 1, 'message'], message: 'Required.' },
+			{ path: ['notices', 1, 'parts', 0, 'a'], message: 'Required.' }
+		]);
+		expect(requiredIssues([list], {})).toEqual([]);
 	});
 });
