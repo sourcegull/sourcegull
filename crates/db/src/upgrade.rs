@@ -71,6 +71,7 @@ pub const RELEASES: &[Release] = &[
     release!("0.6.1", 20261209000001),
     release!("0.6.2", 20261209000001),
     release!("0.7.0", 20261209000001),
+    release!("0.8.0", 20261209000001),
 ];
 
 /// The description of the schema of every embedded migration (the version under
