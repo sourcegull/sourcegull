@@ -172,26 +172,27 @@ More in [docs/development.md](docs/development.md).
 
 | | Sourcegull | [Sourcegraph](https://sourcegraph.com) | [Sourcebot](https://github.com/sourcebot-dev/sourcebot) | [Zoekt](https://github.com/sourcegraph/zoekt) | [OpenGrok](https://github.com/oracle/opengrok) | [Hound](https://github.com/hound-search/hound) | GitLab code search |
 |---|---|---|---|---|---|---|---|
-| Licence | 🟢 Apache-2.0 | 💰 proprietary | 💰 MIT core, paid plans | 🟢 Apache-2.0 | 🟢 CDDL-1.0 | 🟢 MIT | 💰 GitLab tiers |
+| Licence | 🟢 Apache-2.0 | 💰 proprietary | 💰 proprietary, free to 5 users | 🟢 Apache-2.0 | 🟢 CDDL-1.0 | 🟢 MIT | 💰 GitLab tiers |
 | Every feature free | 🟢 | 🔴 | 🔴 | 🟢 | 🟢 | 🟢 | 🔴 |
 | Written in | Rust | Go, TypeScript | TypeScript (Zoekt inside) | Go | Java | Go | Ruby, Go |
-| Indexed regex search | 🟢 | 💰 | 🟢 | 🟢 | 🟢 | 🟢 | 💰/🟡 beta |
-| Unindexed revisions (any branch, tag, commit) | 🟢 | 💰 | 🔴 | 🔴 | 🔴 | 🔴 | 🔴 |
+| Indexed regex search | 🟢 | 💰 | 🟢 to 5 users | 🟢 | 🟢 | 🟢 | 💰 default branch only |
+| Unindexed revisions (any branch, tag, commit) | 🟢 | 💰 | 🔴 | 🔴 | 🔴 | 🔴 | 🟡 any branch, one project at a time |
 | Structural and BM25 keyword search | 🟢 | 💰 | 🔴 | 🔴 | 🔴 | 🔴 | 🔴 |
-| Code hosts | 🟢 GitLab, GitHub, Gitea | 💰 many | 🟢 many | 🟡 mirror tools | 🟡 local checkouts (many VCS) | 🟢 git and others | 🟢 GitLab only |
+| Code hosts | 🟢 GitLab, GitHub, Gitea | 💰 many | 🟢 many, to 5 users | 🟡 mirror tools | 🟡 local checkouts (many VCS) | 🟢 git and others | 🟢 GitLab only |
 | Precise code navigation (SCIP), cross-repository | 🟢 | 💰 | 🔴 | 🔴 | 🔴 | 🔴 | 🟡 within one project |
 | Repository permissions synced from the code host | 🟢 | 💰 | 💰 | 🔴 | 🔴 | 🔴 | 🟢 built in |
-| SSO, SCIM, RBAC, audit log | 🟢 | 💰 | 💰 SSO free, rest paid | 🔴 | 🔴 | 🔴 | 💰 partly paid |
+| SSO, SCIM, RBAC, audit log | 🟢 | 💰 | 💰 SSO free to 5 users, rest paid | 🔴 | 🔴 | 🔴 | 💰 partly paid |
 | Bulk changes across repositories | 🟢 | 💰 | 🔴 | 🔴 | 🔴 | 🔴 | 🔴 |
 | Trends, watches, search jobs | 🟢 | 💰 | 🔴 | 🔴 | 🔴 | 🔴 | 🔴 |
-| MCP server for AI agents | 🟢 | 💰 | 💰 | 🔴 | 🔴 | 🔴 | 💰/🟡 beta |
-| Hosted AI assistant | 🔴 | 💰 | 💰 | 🔴 | 🔴 | 🔴 | 💰 |
+| MCP server for AI agents | 🟢 | 💰 | 🟢 to 5 users | 🔴 | 🔴 | 🔴 | 🟡 free, cross-project code search paid |
+| Hosted AI assistant | 🔴 | 💰 | 🟢 to 5 users | 🔴 | 🔴 | 🔴 | 💰 |
 
-🟢 free · 💰 paid · 🟡 incomplete · 💰/🟡 paid and incomplete · 🔴 not available
+🟢 free · 💰 paid · 🟡 incomplete · 🔴 not available
 
 - **Sourcegraph** is the most complete code intelligence platform, self-hosted under a commercial licence.
-- **Sourcebot** builds a web UI, an MCP server and an AI assistant on Zoekt; the MCP server, the
-  assistant, permission syncing, analytics and audit logs are in paid plans.
+- **Sourcebot** builds a web UI, an MCP server and an AI assistant on Zoekt. It is closed source
+  since version 6. The free plan stops at 5 users, permission syncing and analytics are in paid
+  plans, and SCIM and audit logs are in the Enterprise plan.
 - **Zoekt** is a fast trigram search engine and nothing else. It answers literal queries faster
   than Sourcegull; Sourcegull indexes faster, needs less disk and answers regexps faster (below).
 
@@ -229,7 +230,8 @@ fresh install, next to GitLab on one host with 6 CPUs and 24 GB of memory.
 - Sourcegraph 5.0.6 is the single-container image from 2023, before the source was closed.
   Sourcebot 6 needs the deployment registered with the vendor before its API answers, so 5.1.16,
   the last release without that, was measured. GitLab's own code search is not included: GitLab CE
-  searches code one project at a time, and instance-wide search needs Elasticsearch on a paid tier.
+  searches code one project at a time, and instance-wide search needs exact code search (Zoekt) or
+  advanced search (Elasticsearch or OpenSearch), both on Premium or Ultimate.
 
 ## Contributing
 
