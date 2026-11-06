@@ -425,14 +425,14 @@ mod tests {
   "auth.public": true, // trailing
 
   // ── Search & indexing ──
+  // Branches:
+  // "search.index.branches": { "a": ["b"] },
+
   // About search.
   "search.limits": {
     // inner
     "maxTimeoutSeconds": 60,
   },
-
-  // Branches:
-  // "search.index.branches": { "a": ["b"] },
 
   // ── Other ──
   "unknownKey": 1,

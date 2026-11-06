@@ -202,14 +202,16 @@ pub struct SiteConfig {
     /// Branches to index besides the default branch, per repository name, e.g.
     /// `{"gitlab.com/acme/api": ["release", "dev"]}`. Branches the index does not
     /// hold are searched unindexed. At most 63 per repository.
+    #[schemars(title = "Specific branches per repository")]
     #[serde(
         rename = "search.index.branches",
         skip_serializing_if = "BTreeMap::is_empty"
     )]
     pub search_index_branches: BTreeMap<String, Vec<String>>,
 
-    /// Also index each repository's recently updated branches, so that a search over all
-    /// branches (`rev:*refs/heads/*`) answers from the index. Off when unset.
+    /// Also index each repository's recently updated branches, so that "Include other
+    /// branches" on the results page (`rev:*refs/heads/*`) finds them. Off when unset.
+    #[schemars(title = "Index recently updated branches")]
     #[serde(
         rename = "search.index.recentBranches",
         skip_serializing_if = "Option::is_none"
@@ -221,6 +223,7 @@ pub struct SiteConfig {
     /// `{"*": ["**/schema.graphql"], "gitlab.com/acme/api": ["gen/**/*.ts"]}`. Patterns
     /// match the whole path: `*` stays within a directory, `**` spans any number of them.
     /// Unindexed search follows the same rule.
+    #[schemars(title = "Large files to index")]
     #[serde(
         rename = "search.index.alwaysIndex",
         skip_serializing_if = "BTreeMap::is_empty"

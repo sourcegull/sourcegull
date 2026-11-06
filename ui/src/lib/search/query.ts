@@ -264,6 +264,35 @@ export function withArchivedDefault(query: string): string {
 	return appendFilter(query, 'archived:yes');
 }
 
+/** Searches every indexed branch, not only the default branch. */
+const ALL_BRANCHES = 'rev:*refs/heads/*';
+const ALL_BRANCHES_REV = /(^|\s)(?:rev|revision):\*refs\/heads\/\*(?=\s|$)/gi;
+const ALL_BRANCHES_REPO = /((?:^|\s)(?:repo|r):\S*?)@\*refs\/heads\/\*(?=\s|$)/gi;
+/** Revisions the query chooses itself, which the checkbox must not overrule. */
+const NAMED_REVISIONS = /(^|\s)(?:(?:rev|revision):\S|(?:repo|r):\S*@\S)/i;
+/** Commit and diff search do not use the index, so a branch glob adds nothing to them. */
+const COMMIT_SEARCH = /(^|\s)type:(?:commit|diff)(\s|$)/i;
+
+function withoutAllBranches(query: string): string {
+	return query.replace(ALL_BRANCHES_REV, '$1').replace(ALL_BRANCHES_REPO, '$1');
+}
+
+/**
+ * The state of the "Include other branches" checkbox for a query, `null` when it does not apply:
+ * the query chooses revisions itself, or searches commits or diffs.
+ */
+export function includesOtherBranches(query: string): boolean | null {
+	const rest = withoutAllBranches(query);
+	if (rest !== query) return true;
+	return NAMED_REVISIONS.test(query) || COMMIT_SEARCH.test(query) ? null : false;
+}
+
+/** The query after the "Include other branches" checkbox changes. */
+export function withOtherBranches(query: string, include: boolean): string {
+	const rest = withoutAllBranches(query).replace(/\s+/g, ' ').trim();
+	return include ? appendFilter(rest, ALL_BRANCHES) : rest;
+}
+
 /**
  * The query with a `patternType:` (saved searches require one), unless it has one already.
  * Searches in the URL keep the pattern type in a parameter instead.

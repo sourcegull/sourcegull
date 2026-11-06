@@ -7,6 +7,7 @@ import {
 	appendFilter,
 	exactRepo,
 	includesArchived,
+	includesOtherBranches,
 	removeFilter,
 	searchQueryURL,
 	searchURL,
@@ -14,6 +15,7 @@ import {
 	withArchivedDefault,
 	withContext,
 	withIncludeArchived,
+	withOtherBranches,
 	withPatternType,
 	wordAt
 } from './query.ts';
@@ -96,6 +98,30 @@ describe('query helpers', () => {
 		expect(wordAt('foo rep', 7)).toEqual({ kind: 'word', from: 4, prefix: 'rep' });
 		expect(wordAt('foo -repo:gi', 12)).toEqual({ kind: 'value', field: 'repo', from: 10, prefix: 'gi' });
 		expect(wordAt('(lang:', 6)).toEqual({ kind: 'value', field: 'lang', from: 6, prefix: '' });
+	});
+});
+
+describe('other branches filter', () => {
+	it('reads the checkbox state from the query', () => {
+		expect(includesOtherBranches('foo')).toBe(false);
+		expect(includesOtherBranches('repo:^a$ foo')).toBe(false);
+		expect(includesOtherBranches('foo rev:*refs/heads/*')).toBe(true);
+		expect(includesOtherBranches('repo:a@*refs/heads/* foo')).toBe(true);
+	});
+
+	it('does not apply when the query chooses revisions or searches commits', () => {
+		expect(includesOtherBranches('rev:dev foo')).toBeNull();
+		expect(includesOtherBranches('repo:a@dev foo')).toBeNull();
+		expect(includesOtherBranches('rev:*!refs/heads/old foo')).toBeNull();
+		expect(includesOtherBranches('type:commit foo')).toBeNull();
+		expect(includesOtherBranches('type:diff foo')).toBeNull();
+	});
+
+	it('adds and removes the filter', () => {
+		expect(withOtherBranches('foo', true)).toBe('foo rev:*refs/heads/*');
+		expect(withOtherBranches('foo rev:*refs/heads/*', true)).toBe('foo rev:*refs/heads/*');
+		expect(withOtherBranches('foo rev:*refs/heads/* bar', false)).toBe('foo bar');
+		expect(withOtherBranches('repo:a@*refs/heads/* foo', false)).toBe('repo:a foo');
 	});
 });
 

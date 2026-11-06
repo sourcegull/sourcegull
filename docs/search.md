@@ -118,12 +118,15 @@ Results from an archived repository carry an **archived** badge in the UI. In th
 
 ### Searching all branches
 
-`rev:*refs/heads/*` (or `repo:acme/api@*refs/heads/*`) searches the matched repositories' branches
+**Include other branches** on the results page adds `rev:*refs/heads/*`. That filter (or
+`repo:acme/api@*refs/heads/*`) searches the matched repositories' branches
 **in the index**, and the results say that other branches were not searched. Searching every
 branch of many repositories through git takes minutes, so this form does not do it. A repository
 that has no index yet is searched on its default branch.
 
-To index the branches people work on, set `search.index.recentBranches` in the site configuration:
+To index the branches people work on, a site admin turns on **Index recently updated branches**
+under Site admin > Site configuration > Search & indexing. It is `search.index.recentBranches` in
+the site configuration:
 
 ```jsonc
 "search.index.recentBranches": { "maxAge": "30d", "max": 20 }

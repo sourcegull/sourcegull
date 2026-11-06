@@ -72,7 +72,12 @@ export interface FormField {
 	markdown?: boolean;
 	/** On a `stringList`: an entered line is one value, not split on spaces and commas. */
 	wholeItems?: boolean;
+	/** On an `object`: unset means off, so it has an on/off switch and its fields show when on. */
+	toggle?: boolean;
 }
+
+/** Objects that are off when unset and whose fields all have defaults. */
+const TOGGLED_KEYS = new Set(['search.index.recentBranches']);
 
 const DEFINITIONS = '#/definitions/';
 
@@ -179,7 +184,7 @@ export function buildField(
 	const field: FormField = {
 		key,
 		path,
-		title: options.title ?? (path.length === 1 ? keyTitle(key) : humanize(key)),
+		title: options.title ?? s.title ?? (path.length === 1 ? keyTitle(key) : humanize(key)),
 		description: s.description ?? '',
 		kind: 'json',
 		default: s.default,
@@ -225,6 +230,7 @@ export function buildField(
 		const required = new Set(s.required ?? []);
 		const defaults = (s.default && typeof s.default === 'object' ? s.default : {}) as Record<string, unknown>;
 		field.kind = 'object';
+		field.toggle = path.length === 1 && TOGGLED_KEYS.has(key);
 		field.children = Object.keys(props).map((k) => {
 			const child = buildField(root, k, props[k] ?? {}, [...path, k], {
 				required: required.has(k),
