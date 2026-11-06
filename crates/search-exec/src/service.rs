@@ -14,6 +14,7 @@ use sourcegull_search::index::{
     Cancel, CancelOnDrop, DEFAULT_BRANCH, IndexQuery, IndexSearchStats, IndexedFile, RepoBranches,
     SearchIndex,
 };
+use sourcegull_search::rev_globs::{RevSpec, is_rev_glob};
 use sourcegull_search_client::{
     OwnerSearch, commit_filters_from_pb, path_filter_from_pb, spec_from_pb,
 };
@@ -369,6 +370,7 @@ fn split_indexed(
     repos: Vec<pb::IndexedRepoBranches>,
 ) -> Result<SplitBranches, Status> {
     let mut out = SplitBranches::default();
+    let mut parsed: HashMap<String, RevSpec> = HashMap::new();
     for rb in repos {
         let repo = rb
             .repo
@@ -376,14 +378,24 @@ fn split_indexed(
             .ok_or_else(|| Status::invalid_argument("a valid repo is required"))?;
         let id = RepoId(repo.id);
         let held = index.branches(id).unwrap_or_default();
-        let (mut has, mut lacks): (Vec<String>, Vec<String>) = rb
+        let (mut has, lacks): (Vec<String>, Vec<String>) = rb
             .branches
             .into_iter()
             .partition(|b| held.iter().any(|h| &h.name == b));
+        // Ref globs select among the branches the index holds; without a shard they are missing.
+        let (globs, mut lacks): (Vec<String>, Vec<String>) =
+            lacks.into_iter().partition(|b| is_rev_glob(b));
+        let held_glob = !globs.is_empty() && !held.is_empty();
+        if !globs.is_empty() && !held_glob {
+            lacks.extend(globs.iter().cloned());
+        }
+        let default = (held_glob || !lacks.is_empty())
+            .then(|| default_branch_name(store, id))
+            .flatten();
         if !lacks.is_empty() && held.iter().any(|h| h.name == DEFAULT_BRANCH) {
-            if let Some(default) = default_branch_name(store, id) {
+            if let Some(default) = &default {
                 let (named, rest): (Vec<String>, Vec<String>) =
-                    lacks.into_iter().partition(|b| names_branch(b, &default));
+                    lacks.into_iter().partition(|b| names_branch(b, default));
                 lacks = rest;
                 if !named.is_empty() {
                     let mut names = named;
@@ -393,6 +405,18 @@ fn split_indexed(
                         has.push(DEFAULT_BRANCH.to_owned());
                     }
                     out.head_names.insert(id, names);
+                }
+            }
+        }
+        if held_glob {
+            let spec = parsed
+                .entry(globs.join(":"))
+                .or_insert_with_key(|spec| RevSpec::parse(spec));
+            for name in held_branches_matching(spec, &held, default.as_deref()) {
+                // `HEAD` already requested by name keeps that name alone.
+                let as_name = out.head_names.contains_key(&id) && name == DEFAULT_BRANCH;
+                if !as_name && !has.contains(&name) {
+                    has.push(name);
                 }
             }
         }
@@ -410,6 +434,25 @@ fn split_indexed(
         }
     }
     Ok(out)
+}
+
+/// The names of the `held` branches that `globs` select. The index's branches are matched as
+/// `refs/heads/<name>`, with `HEAD` as the default branch.
+fn held_branches_matching(
+    globs: &RevSpec,
+    held: &[sourcegull_search::index::Branch],
+    default: Option<&str>,
+) -> Vec<String> {
+    held.iter()
+        .filter(|b| {
+            if b.name == DEFAULT_BRANCH {
+                default.is_some_and(|d| globs.selects(&format!("refs/heads/{d}")))
+            } else {
+                globs.selects(&format!("refs/heads/{}", b.name))
+            }
+        })
+        .map(|b| b.name.clone())
+        .collect()
 }
 
 /// Reports `HEAD` in `branches` under the names the search asked for it by.

@@ -190,6 +190,8 @@ pub enum SkippedReason {
     #[serde(rename = "repository-fork")]
     ExcludedFork,
     ExcludedArchive,
+    /// A ref glob searched only the branches the index holds.
+    UnindexedBranches,
     #[serde(rename = "display")]
     DisplayLimit,
     Error,

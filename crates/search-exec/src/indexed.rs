@@ -33,6 +33,7 @@ use std::time::{Duration, Instant};
 use arc_swap::ArcSwap;
 use roaring::RoaringBitmap;
 use sourcegull_gitstore::ObjectId;
+use sourcegull_gitstore::refs::{ListRefsFilter, list_refs};
 use sourcegull_index_format::{
     BranchMeta, Doc, EXTENSION, FLAG_TOO_LARGE, FormatError, RepoMeta, Shard,
 };
@@ -1301,6 +1302,30 @@ pub fn branches_to_index(
     git: &gix::Repository,
     extra: &[String],
 ) -> Result<Vec<Branch>, IndexError> {
+    branches_to_index_with(git, extra, None)
+}
+
+/// Which recently updated branches [`branches_to_index_with`] adds.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct RecentBranchRule {
+    /// Branches whose latest commit is older than this time (seconds since the epoch) are not
+    /// selected.
+    pub since: i64,
+    /// At most this many are selected, newest first.
+    pub max: usize,
+    /// Branches that stay indexed while they exist, even if they no longer qualify. A push
+    /// keeps the indexed ones, so only the periodic pass drops old branches and rebuilds for it.
+    pub keep: Vec<String>,
+}
+
+/// The branches to index, as [`branches_to_index`] selects them, then the branches `recent`
+/// selects, sorted by name: a delta build needs the same branches in the same order, so a
+/// push must not reorder them.
+pub fn branches_to_index_with(
+    git: &gix::Repository,
+    extra: &[String],
+    recent: Option<&RecentBranchRule>,
+) -> Result<Vec<Branch>, IndexError> {
     let gix_err = |e: &dyn std::fmt::Display| IndexError::Git(e.to_string());
     let head = git.head().map_err(|e| gix_err(&e))?;
     let Some(head) = head.id() else {
@@ -1328,7 +1353,72 @@ pub fn branches_to_index(
             commit: commit.id.to_string(),
         });
     }
+    if let Some(rule) = recent {
+        add_recent_branches(git, rule, &mut out)?;
+    }
     Ok(out)
+}
+
+/// Adds the branches `rule` selects to `out`, up to [`MAX_BRANCHES`] in all.
+fn add_recent_branches(
+    git: &gix::Repository,
+    rule: &RecentBranchRule,
+    out: &mut Vec<Branch>,
+) -> Result<(), IndexError> {
+    let default = git
+        .head_name()
+        .map_err(|e| IndexError::Git(e.to_string()))?
+        .map(|n| n.shorten().to_string());
+    let refs = list_refs(
+        git,
+        ListRefsFilter {
+            branches: true,
+            tags: false,
+            prefix: "",
+        },
+    )
+    .map_err(|e| IndexError::Git(e.to_string()))?;
+    let candidates: Vec<_> = refs
+        .iter()
+        .filter(|r| default.as_deref() != Some(r.short_name.as_str()))
+        .filter(|r| !out.iter().any(|b| b.name == r.short_name))
+        .filter_map(|r| Some((r, r.commit?)))
+        .collect();
+    let mut selected: Vec<Branch> = Vec::new();
+    let mut select = |name: &str, commit: gix::ObjectId| {
+        if !selected.iter().any(|b: &Branch| b.name == name) {
+            selected.push(Branch {
+                name: name.to_owned(),
+                commit: commit.to_string(),
+            });
+        }
+    };
+    // `list_refs` returns the newest first.
+    for (r, commit) in candidates
+        .iter()
+        .filter(|(r, _)| r.commit_time.is_some_and(|t| t >= rule.since))
+        .take(rule.max)
+    {
+        select(&r.short_name, *commit);
+    }
+    for (r, commit) in candidates
+        .iter()
+        .filter(|(r, _)| rule.keep.contains(&r.short_name))
+    {
+        select(&r.short_name, *commit);
+    }
+    let room = MAX_BRANCHES.saturating_sub(out.len());
+    if selected.len() > room {
+        tracing::warn!(
+            selected = selected.len(),
+            room,
+            "more branches selected for indexing than fit in a shard; the oldest are left out"
+        );
+        selected.truncate(room);
+    }
+    selected.sort_by(|a, b| a.name.cmp(&b.name));
+    out.append(&mut selected);
+    Ok(())
 }
 
 /// What [`update_index`] did.

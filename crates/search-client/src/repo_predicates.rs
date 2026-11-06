@@ -33,6 +33,7 @@ use sourcegull_query::Predicate;
 use sourcegull_rpc::repo::v1 as pb;
 use sourcegull_rpc::tonic::Code;
 use sourcegull_rpc::{ErrorKind, RepoClients};
+use sourcegull_search::rev_globs::is_rev_glob;
 use sourcegull_search::stream::{Skipped, SkippedReason};
 use sourcegull_search::{FileFilter, PatternSpec, RepoRevs, YesNoOnly, parse_date};
 use sourcegull_types::RepoId;
@@ -610,7 +611,7 @@ async fn indexed_hits(
             .map(|r| {
                 r.revs
                     .iter()
-                    .filter(|v| index_branch(v) == branch)
+                    .filter(|v| index_branch(v) == branch || is_rev_glob(v))
                     .map(|v| (id, v.clone()))
                     .collect()
             })

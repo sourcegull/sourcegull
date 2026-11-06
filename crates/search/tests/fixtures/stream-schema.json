@@ -47,7 +47,7 @@
     "full": {"done": true, "repositoriesCount": 3, "matchCount": 42, "durationMs": 120, "skipped": [{"reason": "excluded-archive", "title": "1 archived", "message": "By default we exclude archived repositories. Include them with `archived:yes` in your query.", "severity": "info", "suggested": {"title": "include archived", "queryExpression": "archived:yes"}}], "trace": "https://example.com/trace/1"},
     "minimal": {"done": false, "matchCount": 0, "durationMs": 0, "skipped": []}
   },
-  "skipped-reasons": ["document-match-limit", "shard-match-limit", "display", "repository-limit", "shard-timeout", "repository-cloning", "repository-missing", "backend-missing", "repository-fork", "excluded-archive"],
+  "skipped-reasons": ["document-match-limit", "shard-match-limit", "display", "repository-limit", "shard-timeout", "repository-cloning", "repository-missing", "backend-missing", "repository-fork", "excluded-archive", "unindexed-branches"],
   "client-skipped-reasons": ["error"],
   "severities": ["info", "warn"],
   "filters": {

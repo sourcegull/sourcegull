@@ -149,7 +149,7 @@ pub fn validate_context_query(query: &str) -> Result<(), Vec<String>> {
                     "rev" => Some(p.value.as_str()),
                     _ => None,
                 };
-                if revs.is_some_and(|revs| revs.split(':').any(is_rev_glob)) {
+                if revs.is_some_and(|revs| revs.split(':').any(crate::rev_globs::is_rev_glob)) {
                     errors.push(format!(
                         "unsupported rev glob in search context query: {:?}",
                         p.value
@@ -217,11 +217,6 @@ pub fn check_context_fields(
 
 fn predicate_name(value: &str) -> Option<&str> {
     value.split_once('(').map(|(name, _)| name)
-}
-
-/// `*refs/heads/*` and `*!refs/heads/old` select refs by glob.
-fn is_rev_glob(rev: &str) -> bool {
-    rev.starts_with('*')
 }
 
 /// The repositories a search may cover after `context:`.

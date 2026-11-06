@@ -460,3 +460,30 @@ fn always_index_patterns_combine_and_are_validated() {
         "/search.index.alwaysIndex/gitlab.com~1a~1x/1"
     );
 }
+
+#[test]
+fn recent_branches() {
+    let c = validate(r#"{"search.index.recentBranches": {"maxAge": "10d", "max": 5}}"#)
+        .unwrap()
+        .config;
+    let recent = c.search_index_recent_branches.unwrap();
+    assert_eq!(recent.max, 5);
+    assert_eq!(recent.max_age.to_string(), "10d");
+
+    let c = validate(r#"{"search.index.recentBranches": {}}"#)
+        .unwrap()
+        .config;
+    let recent = c.search_index_recent_branches.unwrap();
+    assert_eq!(
+        (recent.max, recent.max_age.to_string().as_str()),
+        (20, "30d")
+    );
+
+    assert!(SiteConfig::default().search_index_recent_branches.is_none());
+    for max in [0, 64] {
+        let issues = invalid(&format!(
+            r#"{{"search.index.recentBranches": {{"max": {max}}}}}"#
+        ));
+        assert_eq!(issues[0].pointer, "/search.index.recentBranches/max");
+    }
+}

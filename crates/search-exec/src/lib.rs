@@ -35,8 +35,8 @@ pub use commits::{
 };
 pub use compound::MergeReport;
 pub use indexed::{
-    CompiledQuery, CompoundOptions, IndexUpdate, RepoShards, ShardIndex, ShardMatch,
-    branches_to_index, search_shard, update_index,
+    CompiledQuery, CompoundOptions, IndexUpdate, RecentBranchRule, RepoShards, ShardIndex,
+    ShardMatch, branches_to_index, branches_to_index_with, search_shard, update_index,
 };
 pub use owners::{ContributorCheck, OwnerCheck, OwnerSearchExt, find_codeowners};
 pub use service::{AlwaysIndexFn, IndexControl, SearchNodeService};

@@ -189,7 +189,8 @@ impl TextSearchIndexNode {
         }
     }
 
-    /// The refs configured for indexing (the default branch plus `search.index.branches`),
+    /// The refs configured for indexing (the default branch plus `search.index.branches`) and
+    /// those the index holds, such as recent branches,
     /// whether each is indexed and whether the index is of its current commit.
     async fn refs(&self, ctx: &Context<'_>) -> Result<Vec<TextSearchIndexedRef>> {
         let h = RepoHandle::new(ctx, &self.repo)?;

@@ -108,8 +108,10 @@ nodes and queried by `crates/search-exec`. The rest of the system reaches it onl
 `SearchIndex` trait (`crates/search/src/index.rs`).
 
 **Shards.** A shard file holds one repository's indexed branches: by default the default branch,
-plus up to 63 more listed in `search.index.branches`. A file version shared by several branches
-is stored once, with a bitmask of the branches that contain it. A shard has these sections,
+plus those listed in `search.index.branches` and those selected by
+`search.index.recentBranches`, up to 64 in all. Recent branches are stored sorted by name, because
+a delta build needs the same branches in the same order; a branch added or dropped means a full
+build. A file version shared by several branches is stored once, with a bitmask of the branches that contain it. A shard has these sections,
 each with its own CRC-32:
 
 - the repository and its branches with their commits,

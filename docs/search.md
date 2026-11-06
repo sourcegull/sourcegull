@@ -5,8 +5,9 @@ repository you can read. Results stream in as they are found, with filter sugges
 in the sidebar and an aggregation view (counts by repository, path, author, …).
 
 The default branch of each repository is indexed, plus any branches listed in the site
-configuration's `search.index.branches`. Other revisions (branches, tags, commits) are searched
-directly from git, a bit more slowly, with the same results.
+configuration's `search.index.branches` and, with `search.index.recentBranches`, each
+repository's recently updated branches. Other revisions (branches, tags, commits) are searched
+directly from git, more slowly, with the same results.
 
 Binary files and files over 1 MiB are found by path but not by content. To search generated or
 other large files by content, list their paths in `search.index.alwaysIndex` (files up to
@@ -74,6 +75,7 @@ Filters narrow the search. Most filters can be negated with `-` (`-file:_test\.g
 | `repo:<regexp>` (`r:`) | Repositories whose name matches. `repo:^gitlab\.example\.com/acme/api$` for one repository. |
 | `repo:<regexp>@<rev>[:<rev>...]` | Search these revisions (branches, tags or commits) of the matched repositories. |
 | `rev:<rev>` (`revision:`) | Revisions to search, for every matched repository. |
+| `rev:*refs/heads/*` | Every indexed branch (see [Searching all branches](#searching-all-branches)). `*!refs/heads/old*` leaves branches out. |
 | `rev:at.time(<time>[, <ref>])` | The commit that was at the tip of a branch at a point in time, e.g. `rev:at.time(2026-01-01)`. |
 | `context:<name>` | A [search context](#search-contexts); `global` (all repositories) by default. |
 | `fork:yes\|no\|only` | Include forks (excluded by default). |
@@ -113,6 +115,32 @@ Archived repositories are indexed but left out of results unless a query asks fo
 
 Results from an archived repository carry an **archived** badge in the UI. In the APIs, see
 [APIs](#apis).
+
+### Searching all branches
+
+`rev:*refs/heads/*` (or `repo:acme/api@*refs/heads/*`) searches the matched repositories' branches
+**in the index**, and the results say that other branches were not searched. Searching every
+branch of many repositories through git takes minutes, so this form does not do it. A repository
+that has no index yet is searched on its default branch.
+
+To index the branches people work on, set `search.index.recentBranches` in the site configuration:
+
+```jsonc
+"search.index.recentBranches": { "maxAge": "30d", "max": 20 }
+```
+
+Each repository then also indexes up to `max` branches (1 to 63) with a commit newer than
+`maxAge`, newest first; both have these defaults when left out, and the feature is off until the
+key is set. Default branches and `search.index.branches` are always indexed and do not count
+towards `max`, and a shard holds at most 64 branches. A push can add a branch; branches that aged
+out leave at the next periodic pass. Adding or dropping a branch rebuilds the repository's shard.
+
+As a guide, indexes of three real repositories grew 1.4 to 2.1 times at 20 branches and 2.4 to
+3.1 times at 63, depending on how far the branches have diverged. Searches of the default branch
+alone do not slow down.
+
+To search branches outside the index, name them, or use a [search job](#search-jobs), which
+expands `*refs/heads/*` against all of a repository's branches.
 
 ### Files and content
 

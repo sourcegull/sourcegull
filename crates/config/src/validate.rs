@@ -215,6 +215,15 @@ pub fn validate_value(value: &Value) -> Result<ValidatedConfig, ConfigError> {
         ));
     }
 
+    if let Some(recent) = &config.search_index_recent_branches
+        && !(1..=63).contains(&recent.max)
+    {
+        return Err(ConfigError::Invalid(vec![ConfigIssue {
+            pointer: "/search.index.recentBranches/max".to_owned(),
+            message: "must be between 1 and 63".to_owned(),
+        }]));
+    }
+
     let bad_globs: Vec<ConfigIssue> = config
         .search_index_always_index
         .iter()

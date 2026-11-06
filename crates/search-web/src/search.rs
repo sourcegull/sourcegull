@@ -187,6 +187,19 @@ fn excluded_archive_skipped(count: usize) -> Skipped {
     }
 }
 
+/// The note that a ref glob (`rev:*refs/heads/*`) searched only indexed branches.
+fn unindexed_branches_skipped() -> Skipped {
+    Skipped {
+        reason: SkippedReason::UnindexedBranches,
+        title: "Only indexed branches searched".to_owned(),
+        message: "A ref glob searches the branches in the index, so other branches matching it \
+                  were not searched. Search them with a search job, or name them in the query."
+            .to_owned(),
+        severity: Severity::Info,
+        suggested: None,
+    }
+}
+
 /// The alert for a commit or diff search over more repositories than
 /// [`Limits::commit_diff_max_repos`] allows (`RepoLimitError`).
 fn repo_limit_alert(query: &str, diff: bool, max: usize, time_filtered: bool) -> Event {
@@ -1032,6 +1045,7 @@ pub async fn run(
     let mut searched = std::collections::HashSet::new();
     let mut predicate_cache = PredicateCache::default();
     let mut excluded_archived = std::collections::HashSet::new();
+    let mut rev_glob = false;
     let work = async {
         for unit in list {
             let remaining = limit.saturating_sub(progress.match_count as usize);
@@ -1048,6 +1062,11 @@ pub async fn run(
                 }
             };
             excluded_archived.extend(matcher.excluded_archived(&catalog));
+            rev_glob |= unit
+                .repos()
+                .revs
+                .iter()
+                .any(|r| sourcegull_search::rev_globs::is_rev_glob(r));
             // Validated when the query was prepared.
             let preds = match RepoPredicates::compile(matcher.deferred(), chrono::Utc::now()) {
                 Ok(p) => p,
@@ -1217,6 +1236,9 @@ pub async fn run(
             false
         }
     };
+    if rev_glob {
+        add_skipped(&mut progress, [unindexed_branches_skipped()]);
+    }
     if !excluded_archived.is_empty() {
         add_skipped(
             &mut progress,
