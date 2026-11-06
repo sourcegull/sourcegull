@@ -353,11 +353,12 @@ fn names_branch(rev: &str, default: &str) -> bool {
     rev == default || rev.strip_prefix("refs/heads/") == Some(default)
 }
 
-/// The short name of the branch `HEAD` of `repo` points at.
+/// The short name of the branch `HEAD` of `repo` points at. Reads the file rather than opening
+/// the repository, because a search can ask for every repository on the node.
 fn default_branch_name(store: &GitStore, repo: RepoId) -> Option<String> {
-    let git = store.repo(repo).ok()?;
-    let head = git.head_name().ok()??;
-    Some(head.shorten().to_string())
+    let head = std::fs::read_to_string(store.layout().repo_dir(repo).join("HEAD")).ok()?;
+    let name = head.trim().strip_prefix("ref:")?.trim();
+    name.strip_prefix("refs/heads/").map(str::to_owned)
 }
 
 /// Splits the requested branches into those `index` holds and those it does not. The default
