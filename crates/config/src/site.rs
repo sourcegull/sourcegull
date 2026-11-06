@@ -1075,7 +1075,8 @@ pub enum SecurityEventLogLocation {
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, JsonSchema)]
 #[serde(default, rename_all = "camelCase")]
 pub struct RecentBranches {
-    /// Index branches whose latest commit is at most this old, e.g. `"30d"`.
+    /// Index branches whose latest commit is at most this old, e.g. `"30d"`. For no age limit,
+    /// so that only `max` applies, use a long time such as `"36500d"`.
     pub max_age: ConfigDuration,
     /// Index at most this many of them per repository, newest first (1 to 63). Branches in
     /// `search.index.branches` do not count.

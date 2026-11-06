@@ -133,7 +133,8 @@ the site configuration:
 ```
 
 Each repository then also indexes up to `max` branches (1 to 63) with a commit newer than
-`maxAge`, newest first; both have these defaults when left out, and the feature is off until the
+`maxAge`, newest first (a long age such as `36500d` leaves only `max`); both have these defaults
+when left out, and the feature is off until the
 key is set. Default branches and `search.index.branches` are always indexed and do not count
 towards `max`, and a shard holds at most 64 branches. A push can add a branch; branches that aged
 out leave at the next periodic pass. Adding or dropping a branch rebuilds the repository's shard.
