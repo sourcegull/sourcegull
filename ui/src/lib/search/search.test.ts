@@ -18,7 +18,7 @@ import {
 	wordAt
 } from './query.ts';
 import { includeArchivedSetting } from './queries.ts';
-import { SSEParser, dispatch, matchCount, streamSearch, streamURL, type SearchMatch } from './stream.ts';
+import { SSEParser, dispatch, matchCount, shownBranches, streamSearch, streamURL, type SearchMatch } from './stream.ts';
 
 describe('archived filter', () => {
 	it('reads the checkbox state from the query', () => {
@@ -96,6 +96,15 @@ describe('query helpers', () => {
 		expect(wordAt('foo rep', 7)).toEqual({ kind: 'word', from: 4, prefix: 'rep' });
 		expect(wordAt('foo -repo:gi', 12)).toEqual({ kind: 'value', field: 'repo', from: 10, prefix: 'gi' });
 		expect(wordAt('(lang:', 6)).toEqual({ kind: 'value', field: 'lang', from: 6, prefix: '' });
+	});
+});
+
+describe('result branches', () => {
+	it('labels a result unless it is on the default branch alone', () => {
+		expect(shownBranches({})).toEqual([]);
+		expect(shownBranches({ branches: ['HEAD'] })).toEqual([]);
+		expect(shownBranches({ branches: ['dev'] })).toEqual(['dev']);
+		expect(shownBranches({ branches: ['HEAD', 'dev'] })).toEqual(['HEAD', 'dev']);
 	});
 });
 

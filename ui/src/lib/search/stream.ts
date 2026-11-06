@@ -30,7 +30,9 @@ interface FileMatchBase {
 	repository: string;
 	/** Omitted when false. */
 	archived?: boolean;
+	/** The file's commit on the first of `branches`. */
 	commit: string;
+	/** The searched revisions holding this version of the file. Omitted for the default branch alone. */
 	branches?: string[];
 	language?: string;
 }
@@ -292,6 +294,15 @@ export function matchKey(m: SearchMatch, index: number): string {
 		default:
 			return `${m.type[0]}:${m.repositoryID}:${m.commit}:${m.path}:${index}`;
 	}
+}
+
+/**
+ * The branches to show on a file result: none when it is on the default branch alone, where the
+ * result needs no label.
+ */
+export function shownBranches(m: { branches?: string[] }): string[] {
+	const branches = m.branches ?? [];
+	return branches.length === 1 && branches[0] === 'HEAD' ? [] : branches;
 }
 
 /** Number of result units in a match, as counted for "N results". */

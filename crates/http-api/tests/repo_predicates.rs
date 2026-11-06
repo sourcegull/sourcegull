@@ -416,9 +416,17 @@ async fn ref_globs_search_indexed_branches() {
         [("src/feature.rs".to_owned(), vec!["feature".to_owned()])]
     );
 
-    // A file on both branches is one match per branch.
+    // A file the same on both branches is one match listing them, the default branch first.
+    let main = env._srcs[0].git(&["symbolic-ref", "--short", "HEAD"]);
     let events = search(&env.router, &format!("{glob} TODO")).await;
-    assert_eq!(matched_branches(&events).len(), 2, "{events:?}");
+    assert_eq!(
+        matched_branches(&events),
+        [(
+            "src/new.rs".to_owned(),
+            vec![main.clone(), "feature".to_owned()]
+        )],
+        "{events:?}"
+    );
 
     // An exclude glob alone applies to all other branches.
     let q = format!("repo:^{ALPHA}$@*!refs/heads/feature GLOBTERM");
@@ -427,7 +435,6 @@ async fn ref_globs_search_indexed_branches() {
     assert_eq!(matched_branches(&search(&env.router, &q).await).len(), 1);
 
     // The default branch by name uses the index and needs no note.
-    let main = env._srcs[0].git(&["symbolic-ref", "--short", "HEAD"]);
     let events = search(
         &env.router,
         &format!("repo:^{ALPHA}$@{main} index:only TODO"),

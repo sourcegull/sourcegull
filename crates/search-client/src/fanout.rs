@@ -518,6 +518,40 @@ fn rev_of_branch<'a>(repo: &'a RepoRevs, branch: &'a str) -> &'a str {
     }
 }
 
+/// The `branches` of a match in `revs`, as [`rev_of_branch`] reports them. A match on the default
+/// branch alone has none; in a longer list the default branch is `HEAD`.
+fn branch_names(revs: &[&str]) -> Vec<String> {
+    match revs {
+        [""] => Vec::new(),
+        _ => revs
+            .iter()
+            .map(|rev| index_branch(rev).to_owned())
+            .collect(),
+    }
+}
+
+/// The match for a version of a file in the index: one result for all the requested revisions
+/// holding it, with links and `commit` at the first. `None` without any revision.
+fn indexed_match(
+    repo: &RepoRevs,
+    branches: &[pb::IndexedBranch],
+    path_search: bool,
+    file: pb::SearchFileMatch,
+) -> Option<Match> {
+    let commit = &branches.first()?.commit_oid;
+    let revs: Vec<&str> = branches
+        .iter()
+        .map(|b| rev_of_branch(repo, &b.name))
+        .collect();
+    Some(to_match(
+        repo,
+        commit,
+        branch_names(&revs),
+        path_search,
+        file,
+    ))
+}
+
 /// An indexed call, counted in [`Shared::pending`] until it sends its
 /// first files or ends.
 struct Call<'a> {
@@ -643,10 +677,7 @@ async fn search_indexed(
                 matches.extend(owner_matches(&file.owners).into_iter().map(|m| (score, m)));
                 continue;
             }
-            // One match per requested revision, as unindexed search returns.
-            for b in &f.branches {
-                let rev = rev_of_branch(repo, &b.name);
-                let m = to_match(repo, &b.commit_oid, rev, path_search, file.clone());
+            if let Some(m) = indexed_match(repo, &f.branches, path_search, file) {
                 matches.push((score, m));
             }
         }
@@ -809,7 +840,8 @@ async fn search_repo(shared: &Shared, repo: RepoRevs) -> Result<(), SkippedReaso
                             .map(|m| (score, m))
                             .collect::<Vec<_>>();
                     }
-                    vec![(score, to_match(&repo, &commit, &rev, path_search, f))]
+                    let branches = branch_names(&[rev.as_str()]);
+                    vec![(score, to_match(&repo, &commit, branches, path_search, f))]
                 })
                 .collect();
             if !shared.send_scored(matches).await {
@@ -1006,22 +1038,16 @@ fn range(r: pb::SearchRange) -> stream::Range {
 pub fn to_match(
     repo: &RepoRevs,
     commit: &str,
-    rev: &str,
+    branches: Vec<String>,
     path_search: bool,
     f: pb::SearchFileMatch,
 ) -> Match {
     let language = sourcegull_languages::detect(&f.path, None).map(|l| l.name.to_owned());
-    let branches = if rev.is_empty() {
-        Vec::new()
-    } else {
-        vec![rev.to_owned()]
-    };
     if !f.symbols.is_empty() {
         // `/repo[@rev]/-/blob/path#L<line>:<col>-<line>:<col>`, 1-based.
-        let file_url = if rev.is_empty() {
-            format!("/{}/-/blob/{}", repo.name, f.path)
-        } else {
-            format!("/{}@{rev}/-/blob/{}", repo.name, f.path)
+        let file_url = match branches.first().filter(|b| *b != DEFAULT_BRANCH) {
+            None => format!("/{}/-/blob/{}", repo.name, f.path),
+            Some(rev) => format!("/{}@{rev}/-/blob/{}", repo.name, f.path),
         };
         let symbols = f
             .symbols
@@ -1146,6 +1172,71 @@ mod tests {
     }
 
     #[test]
+    fn a_file_version_on_several_branches_is_one_match() {
+        let repo = |revs: &[&str]| RepoRevs {
+            id: 4,
+            name: "gitlab.com/a/b".into(),
+            revs: revs.iter().map(|r| (*r).to_owned()).collect(),
+            stars: 0,
+            archived: false,
+        };
+        let on = |names: &[&str]| -> Vec<pb::IndexedBranch> {
+            names
+                .iter()
+                .map(|n| pb::IndexedBranch {
+                    name: (*n).to_owned(),
+                    commit_oid: format!("oid-{n}"),
+                })
+                .collect()
+        };
+        let file = pb::SearchFileMatch {
+            path: "x.go".into(),
+            symbols: vec![pb::SearchSymbol {
+                name: "f".into(),
+                ..Default::default()
+            }],
+            ..Default::default()
+        };
+        let got = |repo: &RepoRevs, names: &[&str]| {
+            let Some(Match::Symbol {
+                commit,
+                branches,
+                symbols,
+                ..
+            }) = indexed_match(repo, &on(names), false, file.clone())
+            else {
+                panic!("one symbol match");
+            };
+            (commit, branches, symbols[0].url.clone())
+        };
+
+        // Named revisions come back as requested, with `commit` and links at the first.
+        let (commit, branches, url) = got(&repo(&["main", "dev"]), &["main", "dev"]);
+        assert_eq!(commit, "oid-main");
+        assert_eq!(branches, ["main", "dev"]);
+        assert!(
+            url.starts_with("/gitlab.com/a/b@main/-/blob/x.go#"),
+            "{url}"
+        );
+
+        // A ref glob reports the branches it selected.
+        let (_, branches, _) = got(&repo(&["*refs/heads/*"]), &["main", "dev"]);
+        assert_eq!(branches, ["main", "dev"]);
+
+        // The default branch asked for without a name.
+        let (_, branches, url) = got(&repo(&[]), &["HEAD"]);
+        assert!(branches.is_empty());
+        assert!(url.starts_with("/gitlab.com/a/b/-/blob/x.go#"), "{url}");
+        let (commit, branches, url) = got(&repo(&["", "dev"]), &["HEAD", "dev"]);
+        assert_eq!(commit, "oid-HEAD");
+        assert_eq!(branches, ["HEAD", "dev"]);
+        assert!(url.starts_with("/gitlab.com/a/b/-/blob/x.go#"), "{url}");
+
+        // No branch, no match.
+        assert!(indexed_match(&repo(&[]), &[], false, file.clone()).is_none());
+    }
+
+    #[test]
     fn converts_file_matches() {
         let repo = RepoRevs {
             id: 4,
@@ -1157,7 +1248,7 @@ mod tests {
         let m = to_match(
             &repo,
             "abc",
-            "dev",
+            vec!["dev".to_owned()],
             false,
             pb::SearchFileMatch {
                 path: "x.go".into(),
@@ -1207,7 +1298,7 @@ mod tests {
             to_match(
                 &repo,
                 "abc",
-                rev,
+                branch_names(&[rev]),
                 false,
                 pb::SearchFileMatch {
                     path: "srv/server.go".into(),
