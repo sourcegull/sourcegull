@@ -1637,12 +1637,25 @@ fn match_lines(m: &Match) -> usize {
     }
 }
 
-/// `repo path` with the branch when the result is not on the default branch.
+/// Other branches named on a result line, at most.
+const ALSO_ON_SHOWN: usize = 5;
+
+/// `repo path` with the branch when the result is not on the default branch, and the other
+/// branches holding the same version of the file.
 fn file_header(repo: &str, path: &str, branches: &[String], archived: bool) -> String {
     let tag = archived_tag(archived);
-    match branches.first().filter(|b| !b.is_empty() && *b != "HEAD") {
+    let header = match branches.first().filter(|b| !b.is_empty() && *b != "HEAD") {
         Some(b) => format!("{repo}@{b} {path}{tag}"),
         None => format!("{repo} {path}{tag}"),
+    };
+    let others = branches.get(1..).unwrap_or_default();
+    if others.is_empty() {
+        return header;
+    }
+    let shown = others[..others.len().min(ALSO_ON_SHOWN)].join(", ");
+    match others.len().saturating_sub(ALSO_ON_SHOWN) {
+        0 => format!("{header} (also on {shown})"),
+        more => format!("{header} (also on {shown} and {more} more)"),
     }
 }
 

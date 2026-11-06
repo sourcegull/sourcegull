@@ -43,7 +43,10 @@ pub enum Match {
         /// The repository is archived. Omitted when false.
         #[serde(skip_serializing_if = "is_false")]
         archived: bool,
+        /// Where the file is at the first of `branches`.
         commit: String,
+        /// The revisions searched that hold this version of the file; `HEAD` is the default
+        /// branch. Omitted for the default branch alone.
         #[serde(skip_serializing_if = "Vec::is_empty")]
         branches: Vec<String>,
         #[serde(skip_serializing_if = "Vec::is_empty")]
@@ -62,7 +65,10 @@ pub enum Match {
         /// The repository is archived. Omitted when false.
         #[serde(skip_serializing_if = "is_false")]
         archived: bool,
+        /// Where the file is at the first of `branches`.
         commit: String,
+        /// The revisions searched that hold this version of the file; `HEAD` is the default
+        /// branch. Omitted for the default branch alone.
         #[serde(skip_serializing_if = "Vec::is_empty")]
         branches: Vec<String>,
         #[serde(skip_serializing_if = "Option::is_none")]
@@ -78,7 +84,10 @@ pub enum Match {
         /// The repository is archived. Omitted when false.
         #[serde(skip_serializing_if = "is_false")]
         archived: bool,
+        /// Where the file is at the first of `branches`.
         commit: String,
+        /// The revisions searched that hold this version of the file; `HEAD` is the default
+        /// branch. Omitted for the default branch alone.
         #[serde(skip_serializing_if = "Vec::is_empty")]
         branches: Vec<String>,
         #[serde(skip_serializing_if = "Option::is_none")]

@@ -139,6 +139,11 @@ As a guide, indexes of three real repositories grew 1.4 to 2.1 times at 20 branc
 3.1 times at 63, depending on how far the branches have diverged. Searches of the default branch
 alone do not slow down.
 
+A file that is the same on several branches is one result, listing those branches. Its links go to
+the first one, the default branch when it is among them. So one file on 20 branches uses one of
+the search's results, not 20. Versions that differ are separate results. This applies to branches
+served from the index; a revision searched through git has a result of its own.
+
 To search branches outside the index, name them, or use a [search job](#search-jobs), which
 expands `*refs/heads/*` against all of a repository's branches.
 

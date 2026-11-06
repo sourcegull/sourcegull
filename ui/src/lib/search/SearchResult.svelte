@@ -5,7 +5,7 @@
 	import { repoPageURL, repoURL, shortRev } from '#lib/repo/url.ts';
 	import { commitLines, mergeChunks, segments, type LineView } from './highlight.ts';
 	import Icon from '#lib/components/Icon.svelte';
-	import { matchCount, type SearchMatch } from './stream.ts';
+	import { matchCount, shownBranches, type SearchMatch } from './stream.ts';
 
 	interface Props {
 		match: SearchMatch;
@@ -18,8 +18,11 @@
 	/** Chunk groups and commit lines shown before "Show more". */
 	const COLLAPSED_GROUPS = 3;
 	const COLLAPSED_LINES = 12;
+	/** Branches of a file result shown before "+N more". */
+	const COLLAPSED_BRANCHES = 3;
 
 	let showAll = $state(false);
+	let showAllBranches = $state(false);
 	const all = $derived(expanded || showAll);
 
 	function fileRev(m: { branches?: string[]; commit: string }): string | null {
@@ -33,6 +36,10 @@
 	): string {
 		const url = repoPageURL(m.repository, fileRev(m), 'blob', m.path);
 		return line ? `${url}#L${line}` : url;
+	}
+
+	function branchURL(m: { repository: string; path: string }, branch: string): string {
+		return repoPageURL(m.repository, branch === 'HEAD' ? null : branch, 'blob', m.path);
 	}
 
 	function dirAndName(path: string): [string, string] {
@@ -66,6 +73,8 @@
 	});
 	/** Matches in a file result, shown in the header ("3 matches"). */
 	const count = $derived(match.type === 'content' || match.type === 'symbol' ? matchCount(match) : 0);
+	const branches = $derived('branches' in match ? shownBranches(match) : []);
+	const hiddenBranches = $derived(showAllBranches ? 0 : Math.max(0, branches.length - COLLAPSED_BRANCHES));
 	const hiddenGroups = $derived(all ? 0 : Math.max(0, groups.length - COLLAPSED_GROUPS));
 	const hiddenLines = $derived(all || !commit ? 0 : Math.max(0, commit.lines.length - COLLAPSED_LINES));
 
@@ -144,7 +153,17 @@
 					<span class="dir">{dir}</span><span class="name">{name}</span>
 				{/if}
 			</a>
-			{#if fileRev(match)}<span class="badge mono">{fileRev(match)}</span>{/if}
+			{#each branches.slice(0, showAllBranches ? undefined : COLLAPSED_BRANCHES) as b (b)}
+				<a class="badge mono branch" href={branchURL(match, b)} title="This file on {b}">{b}</a>
+			{/each}
+			{#if hiddenBranches > 0}
+				<button
+					type="button"
+					class="badge branch-more"
+					aria-label="Show {hiddenBranches} more branches"
+					onclick={() => (showAllBranches = true)}>+{hiddenBranches} more</button
+				>
+			{/if}
 			<span class="spacer"></span>
 			{#if count > 0}
 				<span class="match-count"
@@ -279,6 +298,23 @@
 	}
 	.spacer {
 		flex: 1;
+	}
+	.branch {
+		color: inherit;
+	}
+	.branch:hover {
+		color: var(--color-link);
+		text-decoration: none;
+	}
+	.branch-more {
+		border: 0;
+		font: inherit;
+		font-size: var(--text-xs);
+		color: var(--color-text-muted);
+		cursor: pointer;
+	}
+	.branch-more:hover {
+		color: var(--color-text);
 	}
 	.meta {
 		font-size: var(--text-xs);

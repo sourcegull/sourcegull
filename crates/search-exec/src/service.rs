@@ -344,8 +344,8 @@ fn index_stats_to_pb(s: &IndexSearchStats) -> pb::SearchStats {
 struct SplitBranches {
     found: Vec<RepoBranches>,
     missing: Vec<pb::IndexedRepoBranches>,
-    /// For a repository whose default branch was requested by name: every name requested for it
-    /// (the index holds it as `HEAD`).
+    /// For a repository whose default branch was requested by name or selected by a ref glob:
+    /// every name to report it under (the index holds it as `HEAD`).
     head_names: HashMap<RepoId, Vec<String>>,
 }
 
@@ -416,6 +416,10 @@ fn split_indexed(
                 // `HEAD` already requested by name keeps that name alone.
                 let as_name = out.head_names.contains_key(&id) && name == DEFAULT_BRANCH;
                 if !as_name && !has.contains(&name) {
+                    // A glob selects the default branch by its name, and reports it so.
+                    if let (DEFAULT_BRANCH, Some(default)) = (name.as_str(), &default) {
+                        out.head_names.insert(id, vec![default.clone()]);
+                    }
                     has.push(name);
                 }
             }
@@ -455,16 +459,19 @@ fn held_branches_matching(
         .collect()
 }
 
-/// Reports `HEAD` in `branches` under the names the search asked for it by.
+/// Reports `HEAD` in `branches` under the names the search asked for it by, in its place.
 fn rename_head(branches: &mut Vec<sourcegull_search::index::Branch>, names: &[String]) {
     let Some(i) = branches.iter().position(|b| b.name == DEFAULT_BRANCH) else {
         return;
     };
-    let head = branches.remove(i);
-    branches.extend(names.iter().map(|name| sourcegull_search::index::Branch {
-        name: name.clone(),
-        commit: head.commit.clone(),
-    }));
+    let commit = branches[i].commit.clone();
+    branches.splice(
+        i..=i,
+        names.iter().map(|name| sourcegull_search::index::Branch {
+            name: name.clone(),
+            commit: commit.clone(),
+        }),
+    );
 }
 
 /// The contributor check of `repo` for an indexed match; `None` when the repository is not
@@ -1060,6 +1067,31 @@ mod tests {
     use sourcegull_search_client::spec_to_pb;
     use tokio_stream::StreamExt;
 
+    #[test]
+    fn rename_head_keeps_the_default_branch_first() {
+        let branch = |name: &str| sourcegull_search::index::Branch {
+            name: name.to_owned(),
+            commit: format!("oid-{name}"),
+        };
+        let mut branches = vec![branch(DEFAULT_BRANCH), branch("dev")];
+        rename_head(
+            &mut branches,
+            &["main".to_owned(), "refs/heads/main".to_owned()],
+        );
+        let got: Vec<(&str, &str)> = branches
+            .iter()
+            .map(|b| (b.name.as_str(), b.commit.as_str()))
+            .collect();
+        assert_eq!(
+            got,
+            [
+                ("main", "oid-HEAD"),
+                ("refs/heads/main", "oid-HEAD"),
+                ("dev", "oid-dev")
+            ]
+        );
+    }
+
     fn git(dir: &std::path::Path, args: &[&str]) {
         let out = std::process::Command::new("git")
             .args(["-c", "user.name=t", "-c", "user.email=t@t"])
@@ -1270,6 +1302,22 @@ mod tests {
                     .all(|b| b.commit_oid == head.trim())
             );
         }
+
+        // A ref glob reports the default branch by its name.
+        let mut by_glob = req.clone();
+        by_glob.repos[0].branches = vec!["*refs/heads/*".to_owned()];
+        let mut stream = svc
+            .search_indexed(Request::new(by_glob))
+            .await
+            .unwrap()
+            .into_inner();
+        let mut files = Vec::new();
+        while let Some(msg) = stream.next().await {
+            files.extend(msg.unwrap().files);
+        }
+        assert_eq!(files.len(), 1);
+        assert_eq!(files[0].branches.len(), 1);
+        assert_eq!(files[0].branches[0].name, default);
 
         // Matches from repositories outside the request are dropped.
         let svc = SearchNodeService::new(svc.store.clone()).with_index(Arc::new(Leaky(index)));
