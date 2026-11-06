@@ -40,6 +40,7 @@
 		appendFilter,
 		exactRepo,
 		includesArchived,
+		includesOtherBranches,
 		parsePatternType,
 		removeFilter,
 		searchQueryURL,
@@ -48,6 +49,7 @@
 		withArchivedDefault,
 		withContext,
 		withIncludeArchived,
+		withOtherBranches,
 		withPatternType,
 		type PatternType,
 		type QueryDiagnostic
@@ -256,6 +258,11 @@
 		submit();
 	}
 
+	function setOtherBranches(include: boolean): void {
+		text = withOtherBranches(text, include);
+		submit();
+	}
+
 	function changeFilters(remove: string[], add: string[]): void {
 		let q = text;
 		for (const r of remove) q = removeFilter(q, r);
@@ -319,8 +326,12 @@
 	const resultCount = $derived(results.reduce((n, m) => n + matchCount(m), 0));
 	const skipped = $derived(progress?.skipped ?? []);
 	const archivedNote = $derived(skipped.find((s) => s.reason === 'excluded-archive'));
-	const otherNotes = $derived(skipped.filter((s) => s.reason !== 'excluded-archive'));
+	const branchesNote = $derived(skipped.find((s) => s.reason === 'unindexed-branches'));
+	const otherNotes = $derived(
+		skipped.filter((s) => s.reason !== 'excluded-archive' && s.reason !== 'unindexed-branches')
+	);
 	const archivedChecked = $derived(includesArchived(text));
+	const branchesChecked = $derived(includesOtherBranches(text));
 
 	function seconds(ms: number): string {
 		return ms < 1000 ? `${ms} ms` : `${(ms / 1000).toFixed(2)} s`;
@@ -547,6 +558,19 @@
 					{#if running}<span class="spinner" aria-hidden="true"></span>{/if}
 				</span>
 				<span class="spacer"></span>
+				{#if branchesChecked !== null}
+					<label
+						class="checkbox archived-toggle"
+						title="Search the indexed branches too, not only the default branch (rev:*refs/heads/*)."
+					>
+						<input
+							type="checkbox"
+							checked={branchesChecked}
+							onchange={(e) => setOtherBranches(e.currentTarget.checked)}
+						/>
+						Include other branches
+					</label>
+				{/if}
 				{#if archivedChecked !== null}
 					<label class="checkbox archived-toggle" title="Search archived repositories too (archived:yes).">
 						<input
@@ -640,6 +664,18 @@
 					<Icon name="help" size={14} />
 					{archivedNote.title} ·
 					<button type="button" class="btn-link" onclick={() => setIncludeArchived(true)}>Include them</button>
+				</p>
+			{/if}
+
+			{#if branchesNote}
+				<p class="archived-note muted">
+					<Icon name="help" size={14} />
+					<span>
+						{branchesNote.title}. {branchesNote.message}
+						{#if user?.siteAdmin}
+							· <a href="/site-admin/configuration?section=search">Choose which branches are indexed</a>
+						{/if}
+					</span>
 				</p>
 			{/if}
 

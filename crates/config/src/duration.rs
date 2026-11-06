@@ -9,10 +9,10 @@ use schemars::schema::{InstanceType, Metadata, Schema, SchemaObject, StringValid
 use serde::{Deserialize, Deserializer, Serialize, Serializer};
 
 /// Regex used in the JSON Schema for duration strings.
-const DURATION_PATTERN: &str = r"^([0-9]+(ms|s|m|h|d|w))+$";
+const DURATION_PATTERN: &str = r"^(0|([0-9]+(ms|s|m|h|d|w))+)$";
 
 /// A duration written as a sequence of `<integer><unit>` parts, with units
-/// `ms`, `s`, `m`, `h`, `d` (24h) and `w` (7d). Example: `"1d12h"`.
+/// `ms`, `s`, `m`, `h`, `d` (24h) and `w` (7d), or `"0"`. Example: `"1d12h"`.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
 pub struct ConfigDuration(pub Duration);
 
@@ -38,6 +38,9 @@ impl std::str::FromStr for ConfigDuration {
 
     fn from_str(s: &str) -> Result<Self, Self::Err> {
         let err = || ParseDurationError(s.to_string());
+        if s == "0" {
+            return Ok(Self(Duration::ZERO));
+        }
         let bytes = s.as_bytes();
         if bytes.is_empty() {
             return Err(err());
@@ -151,6 +154,12 @@ mod tests {
             "250ms".parse::<ConfigDuration>().unwrap().to_string(),
             "250ms"
         );
+    }
+
+    #[test]
+    fn zero_needs_no_unit() {
+        let d: ConfigDuration = "0".parse().unwrap();
+        assert_eq!(d.get(), Duration::ZERO);
     }
 
     #[test]

@@ -56,7 +56,7 @@ const EXECUTORS = page('/site-admin/executors', 'Executors');
 const EXECUTOR_SECRETS = page('/site-admin/executor-secrets', 'Executor secrets');
 const OUTBOUND_WEBHOOKS = page('/site-admin/outbound-webhooks', 'Outbound webhooks');
 
-const CONNECTION_LINKS = [AUTH, REPO_PERMISSIONS, REPOS, REPOSITORIES, WEBHOOK_LOGS];
+const CONNECTION_LINKS = [AUTH, REPO_PERMISSIONS, REPOS, REPOSITORIES, SEARCH, WEBHOOK_LOGS];
 const CODE_INTEL_LINKS = [CODE_GRAPH, COVERAGE, INFERENCE, EXECUTORS, EXECUTOR_SECRETS, CODE_INTEL];
 
 /** Related links per site admin route (SvelteKit route id without the `(app)` group). */
@@ -96,7 +96,7 @@ const BY_SECTION: Partial<Record<ConfigSectionId, RelatedLink[]>> = {
 	auth: [USERS, ACCESS_REQUESTS, CONNECTED_APPS, CONNECTIONS],
 	permissions: [REPO_PERMISSIONS, USERS, ROLES, TEAMS],
 	repositories: [CONNECTIONS, REPOS, REPO_NODES],
-	search: [REPOS],
+	search: [REPOS, CONNECTIONS],
 	codeIntel: [CODE_GRAPH, COVERAGE, EXECUTORS, EXECUTOR_SECRETS],
 	batchChanges: [page('/site-admin/bulk-changes', 'Bulk changes')],
 	notifications: [OUTBOUND_WEBHOOKS],

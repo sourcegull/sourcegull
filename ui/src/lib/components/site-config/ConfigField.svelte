@@ -181,7 +181,7 @@
 		</span>
 		<!-- An item's fields are found through the list's key; repeating theirs is only noise. -->
 		{#if !inItem}<code class="field-key">{field.key}</code>{/if}
-		{#if isSet && !field.required}
+		{#if isSet && !field.required && !field.toggle}
 			<button
 				class="btn btn-link btn-sm reset"
 				type="button"
@@ -213,21 +213,34 @@
 		<legend class="visually-hidden">{field.title}</legend>
 		{@render header()}
 		{@render errors()}
-		<div class="children">
-			{#each field.children as child (child.key)}
-				<ConfigField
-					field={child}
-					{doc}
-					{saved}
-					{issues}
+		{#if field.toggle}
+			<label class="checkbox toggle">
+				<input
+					type="checkbox"
+					checked={isSet}
 					{disabled}
-					{onchange}
-					inheritedDefault={fallback && typeof fallback === 'object'
-						? (fallback as Record<string, unknown>)[child.key]
-						: undefined}
+					onchange={(e) => set(e.currentTarget.checked ? {} : undefined)}
 				/>
-			{/each}
-		</div>
+				On
+			</label>
+		{/if}
+		{#if isSet || !field.toggle}
+			<div class="children">
+				{#each field.children as child (child.key)}
+					<ConfigField
+						field={child}
+						{doc}
+						{saved}
+						{issues}
+						{disabled}
+						{onchange}
+						inheritedDefault={fallback && typeof fallback === 'object'
+							? (fallback as Record<string, unknown>)[child.key]
+							: undefined}
+					/>
+				{/each}
+			</div>
+		{/if}
 	</fieldset>
 {:else if field.kind === 'objectList' && field.itemFields}
 	{@const name = itemName(field)}
@@ -482,6 +495,10 @@
 {/if}
 
 <style>
+	.toggle {
+		margin-top: var(--space-2);
+		font-size: var(--text-sm);
+	}
 	.config-field {
 		display: flex;
 		flex-direction: column;

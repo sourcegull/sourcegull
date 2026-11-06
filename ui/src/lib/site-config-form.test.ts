@@ -224,3 +224,23 @@ describe('lists of objects', () => {
 		expect(requiredIssues([list], {})).toEqual([]);
 	});
 });
+
+describe('schema titles and on/off objects', () => {
+	const schema: JsonSchema = {
+		properties: {
+			'search.index.recentBranches': {
+				title: 'Index recently updated branches',
+				anyOf: [{ type: 'object', properties: { max: { type: 'integer' } } }, { type: 'null' }]
+			},
+			'search.other': { type: 'object', properties: { max: { type: 'integer' } } }
+		}
+	};
+
+	it('uses the schema title and marks listed objects', () => {
+		const [recent, other] = sectionFields(schema, ['search.index.recentBranches', 'search.other']);
+		expect(recent?.title).toBe('Index recently updated branches');
+		expect(recent?.toggle).toBe(true);
+		expect(other?.title).toBe('Search other');
+		expect(other?.toggle).toBe(false);
+	});
+});

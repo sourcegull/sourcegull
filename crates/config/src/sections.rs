@@ -90,12 +90,12 @@ pub const SITE_CONFIG_SECTIONS: &[ConfigSection] = &[
     ConfigSection {
         id: "search",
         title: "Search & indexing",
-        description: "Search timeouts, indexed branches and files, and search job retention.",
+        description: "Which branches and files are indexed, search timeouts and search job retention.",
         keys: &[
-            "search.limits",
-            "search.index.branches",
             "search.index.recentBranches",
+            "search.index.branches",
             "search.index.alwaysIndex",
+            "search.limits",
             "searchJobs.retention",
         ],
     },

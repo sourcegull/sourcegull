@@ -110,19 +110,19 @@
   // "repoNodes.pinnedRepos": { "gitlab.com/acme/big": "http://sourcegull-repo-2.sourcegull-repo:3178" },
 
   // ── Search & indexing ──
-  "search.limits": {
-    "defaultTimeoutSeconds": 20,
-    "maxTimeoutSeconds": 60,
-  },
+  // Also index recently updated branches, so "rev:*refs/heads/*" searches them from the index:
+  // "search.index.recentBranches": { "maxAge": "30d", "max": 20 },
 
   // Branches to index besides the default branch, per repository:
   // "search.index.branches": { "gitlab.com/acme/api": ["release"] },
 
-  // Also index recently updated branches, so "rev:*refs/heads/*" searches them from the index:
-  // "search.index.recentBranches": { "maxAge": "30d", "max": 20 },
-
   // Files indexed with content above 1 MiB (up to 16 MiB); "*" applies to every repository:
   // "search.index.alwaysIndex": { "*": ["**/schema.graphql"], "gitlab.com/acme/api": ["gen/**"] },
+
+  "search.limits": {
+    "defaultTimeoutSeconds": 20,
+    "maxTimeoutSeconds": 60,
+  },
 
   // ── Code intelligence & executors ──
   // The shared secret executors authenticate with (at least 20 characters), needed for

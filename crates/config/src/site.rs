@@ -202,14 +202,16 @@ pub struct SiteConfig {
     /// Branches to index besides the default branch, per repository name, e.g.
     /// `{"gitlab.com/acme/api": ["release", "dev"]}`. Branches the index does not
     /// hold are searched unindexed. At most 63 per repository.
+    #[schemars(title = "Specific branches per repository")]
     #[serde(
         rename = "search.index.branches",
         skip_serializing_if = "BTreeMap::is_empty"
     )]
     pub search_index_branches: BTreeMap<String, Vec<String>>,
 
-    /// Also index each repository's recently updated branches, so that a search over all
-    /// branches (`rev:*refs/heads/*`) answers from the index. Off when unset.
+    /// Also index each repository's recently updated branches, so that "Include other
+    /// branches" on the results page (`rev:*refs/heads/*`) finds them. Off when unset.
+    #[schemars(title = "Index recently updated branches")]
     #[serde(
         rename = "search.index.recentBranches",
         skip_serializing_if = "Option::is_none"
@@ -221,6 +223,7 @@ pub struct SiteConfig {
     /// `{"*": ["**/schema.graphql"], "gitlab.com/acme/api": ["gen/**/*.ts"]}`. Patterns
     /// match the whole path: `*` stays within a directory, `**` spans any number of them.
     /// Unindexed search follows the same rule.
+    #[schemars(title = "Large files to index")]
     #[serde(
         rename = "search.index.alwaysIndex",
         skip_serializing_if = "BTreeMap::is_empty"
@@ -1072,11 +1075,23 @@ pub enum SecurityEventLogLocation {
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, JsonSchema)]
 #[serde(default, rename_all = "camelCase")]
 pub struct RecentBranches {
-    /// Index branches whose latest commit is at most this old, e.g. `"30d"`.
+    /// Index branches whose latest commit is at most this old, e.g. `"30d"`. Set `"0"` for no
+    /// age limit, so that only `max` applies.
     pub max_age: ConfigDuration,
     /// Index at most this many of them per repository, newest first (1 to 63). Branches in
     /// `search.index.branches` do not count.
     pub max: u32,
+}
+
+impl RecentBranches {
+    /// The oldest commit time (seconds since the epoch) a branch may have at time `now`. A
+    /// `max_age` of zero is no limit.
+    pub fn since(&self, now: i64) -> i64 {
+        if self.max_age.get().is_zero() {
+            return i64::MIN;
+        }
+        now.saturating_sub(i64::try_from(self.max_age.get().as_secs()).unwrap_or(i64::MAX))
+    }
 }
 
 impl Default for RecentBranches {

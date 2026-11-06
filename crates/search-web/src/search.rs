@@ -192,9 +192,7 @@ fn unindexed_branches_skipped() -> Skipped {
     Skipped {
         reason: SkippedReason::UnindexedBranches,
         title: "Only indexed branches searched".to_owned(),
-        message: "A ref glob searches the branches in the index, so other branches matching it \
-                  were not searched. Search them with a search job, or name them in the query."
-            .to_owned(),
+        message: "To search others, use a search job or name them in the query.".to_owned(),
         severity: Severity::Info,
         suggested: None,
     }

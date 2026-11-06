@@ -479,6 +479,14 @@ fn recent_branches() {
         (20, "30d")
     );
 
+    // An age limit counts back from now; "0" is no limit.
+    assert_eq!(recent.since(1_000_000), 1_000_000 - 30 * 86_400);
+    let c = validate(r#"{"search.index.recentBranches": {"maxAge": "0"}}"#)
+        .unwrap()
+        .config;
+    let recent = c.search_index_recent_branches.unwrap();
+    assert_eq!(recent.since(1_000_000), i64::MIN);
+
     assert!(SiteConfig::default().search_index_recent_branches.is_none());
     for max in [0, 64] {
         let issues = invalid(&format!(

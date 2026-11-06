@@ -211,6 +211,10 @@
 			{/if}
 
 			<h3>Branches</h3>
+			<p class="muted small">
+				Other branches are indexed by the
+				<a href="/site-admin/configuration?section=search">Search &amp; indexing settings</a>.
+			</p>
 			<div class="table-scroll">
 				<table class="table table-bordered table-sm">
 					<thead>
