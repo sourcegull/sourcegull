@@ -208,6 +208,14 @@ pub struct SiteConfig {
     )]
     pub search_index_branches: BTreeMap<String, Vec<String>>,
 
+    /// Also index each repository's recently updated branches, so that a search over all
+    /// branches (`rev:*refs/heads/*`) answers from the index. Off when unset.
+    #[serde(
+        rename = "search.index.recentBranches",
+        skip_serializing_if = "Option::is_none"
+    )]
+    pub search_index_recent_branches: Option<RecentBranches>,
+
     /// Path patterns whose files are indexed with content even above the 1 MiB size
     /// limit, up to 16 MiB, per repository name; `"*"` applies to every repository, e.g.
     /// `{"*": ["**/schema.graphql"], "gitlab.com/acme/api": ["gen/**/*.ts"]}`. Patterns
@@ -538,6 +546,7 @@ impl Default for SiteConfig {
             outbound_request_log_limit: 0,
             search_limits: SearchLimits::default(),
             search_index_branches: BTreeMap::new(),
+            search_index_recent_branches: None,
             search_index_always_index: BTreeMap::new(),
             repo_list_update_interval: 1,
             disable_auto_git_updates: false,
@@ -1057,6 +1066,26 @@ pub enum SecurityEventLogLocation {
     Logs,
     /// Both.
     All,
+}
+
+/// Which branches `search.index.recentBranches` indexes.
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, JsonSchema)]
+#[serde(default, rename_all = "camelCase")]
+pub struct RecentBranches {
+    /// Index branches whose latest commit is at most this old, e.g. `"30d"`.
+    pub max_age: ConfigDuration,
+    /// Index at most this many of them per repository, newest first (1 to 63). Branches in
+    /// `search.index.branches` do not count.
+    pub max: u32,
+}
+
+impl Default for RecentBranches {
+    fn default() -> Self {
+        Self {
+            max_age: "30d".parse().expect("valid duration"),
+            max: 20,
+        }
+    }
 }
 
 /// Search limits and timeouts.

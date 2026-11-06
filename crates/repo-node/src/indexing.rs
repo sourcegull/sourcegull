@@ -10,7 +10,10 @@
 //! periodically queues every repo on disk (a cheap check when nothing moved) and drops shards
 //! of repos no longer on disk.
 //!
-//! Each build indexes the default branch as `HEAD` plus the repo's `search.index.branches`, and is
+//! Each build indexes the default branch as `HEAD` plus the repo's `search.index.branches` and,
+//! with `search.index.recentBranches`, its recently updated branches. A push can add a recent
+//! branch but only a reconcile pass drops one, so age alone does not rebuild a shard on a push. A
+//! build is
 //! skipped when the index already holds those branches at those commits, the repo's static ranks
 //! at the generation `ranking_path_ranks` has, and the content of large files as
 //! `search.index.alwaysIndex` asks (a changed rule rebuilds the shard at the next reconcile pass). A new generation (found by the reconcile pass)
@@ -25,7 +28,8 @@ use anyhow::Context as _;
 use sourcegull_db::{IndexedBranchRow, IndexedState};
 use sourcegull_search_exec::index::{BuildRequest, SearchIndex};
 use sourcegull_search_exec::{
-    IndexControl, IndexUpdate, MergeReport, ShardIndex, branches_to_index, update_index,
+    IndexControl, IndexUpdate, MergeReport, RecentBranchRule, ShardIndex, branches_to_index_with,
+    update_index,
 };
 use sourcegull_types::RepoId;
 use tokio::sync::Notify;
@@ -51,6 +55,8 @@ pub(crate) struct IndexQueue {
 struct QueueState {
     due: HashMap<RepoId, Instant>,
     forced: HashSet<RepoId>,
+    /// Repos queued by a reconcile pass, which drops branches that are no longer recent.
+    reconciled: HashSet<RepoId>,
     /// Repos being indexed now, with the time the update started.
     running: HashMap<RepoId, Instant>,
     /// Start times of builds within the last window (older ones are pruned).
@@ -143,9 +149,20 @@ impl IndexQueue {
         self.push(repo, Duration::ZERO);
     }
 
+    /// Queues `repo` from a reconcile pass, due now.
+    pub(crate) fn push_reconcile(&self, repo: RepoId) {
+        self.lock().reconciled.insert(repo);
+        self.push(repo, Duration::ZERO);
+    }
+
     /// Whether `repo` is queued.
     pub(crate) fn contains(&self, repo: RepoId) -> bool {
         self.lock().due.contains_key(&repo)
+    }
+
+    /// Whether a reconcile pass queued `repo` since the last call.
+    fn take_reconciled(&self, repo: RepoId) -> bool {
+        self.lock().reconciled.remove(&repo)
     }
 
     /// Takes the repos that are due (oldest first, each with whether a full rebuild was asked
@@ -217,6 +234,16 @@ impl RepoNode {
     /// ranks changed (in full when `force` is set, as a site admin's reindex asks), drops it
     /// when the repo is gone from disk, deleted or blocked.
     pub async fn index_repo(&self, id: RepoId, force: bool) -> anyhow::Result<IndexUpdate> {
+        self.index_repo_with(id, force, force).await
+    }
+
+    /// [`Self::index_repo`]; `drop_old` also drops recent branches that no longer qualify.
+    async fn index_repo_with(
+        &self,
+        id: RepoId,
+        force: bool,
+        drop_old: bool,
+    ) -> anyhow::Result<IndexUpdate> {
         let inner = &*self.inner;
         let index = inner
             .index
@@ -234,7 +261,7 @@ impl RepoNode {
                 IndexUpdate::Unchanged
             });
         };
-        let (extra, ranked, always_index) = {
+        let (extra, recent, ranked, always_index) = {
             let site = inner.site.load();
             let extra = site
                 .value
@@ -244,6 +271,7 @@ impl RepoNode {
                 .unwrap_or_default();
             (
                 extra,
+                site.value.search_index_recent_branches.clone(),
                 site.value.codeintel_ranking_enabled,
                 site.value.always_index(&repo.name),
             )
@@ -257,8 +285,29 @@ impl RepoNode {
         let started = Instant::now();
         let branches = {
             let store = store.clone();
+            let index = index.clone();
             tokio::task::spawn_blocking(move || -> anyhow::Result<_> {
-                Ok(branches_to_index(&store.repo(id)?, &extra)?)
+                let rule = recent.map(|r| RecentBranchRule {
+                    since: chrono::Utc::now()
+                        .timestamp()
+                        .saturating_sub(i64::try_from(r.max_age.0.as_secs()).unwrap_or(i64::MAX)),
+                    max: r.max as usize,
+                    keep: if drop_old {
+                        Vec::new()
+                    } else {
+                        index
+                            .branches(id)
+                            .unwrap_or_default()
+                            .into_iter()
+                            .map(|b| b.name)
+                            .collect()
+                    },
+                });
+                Ok(branches_to_index_with(
+                    &store.repo(id)?,
+                    &extra,
+                    rule.as_ref(),
+                )?)
             })
             .await??
         };
@@ -344,7 +393,7 @@ impl RepoNode {
             }
         }
         for id in &on_disk {
-            inner.index_queue.push(*id, Duration::ZERO);
+            inner.index_queue.push_reconcile(*id);
         }
         Ok(on_disk.len())
     }
@@ -463,7 +512,8 @@ impl RepoNode {
             metrics::gauge!(metric_names::INDEX_QUEUE_LENGTH).set(inner.index_queue.len() as f64);
             for (id, force) in ready {
                 inner.index_queue.start(id);
-                let run = self.index_repo(id, force);
+                let drop_old = inner.index_queue.take_reconciled(id) || force;
+                let run = self.index_repo_with(id, force, drop_old);
                 let result = tokio::select! {
                     () = cancel.cancelled() => return,
                     r = run => r,
@@ -639,5 +689,12 @@ mod tests {
         assert!(!q.contains(RepoId(3)));
         q.push(RepoId(3), Duration::ZERO);
         assert_eq!(q.take_due(), (vec![(RepoId(3), false)], None));
+        assert!(!q.take_reconciled(RepoId(3)));
+
+        // A reconcile pass marks the repo once.
+        q.push_reconcile(RepoId(4));
+        assert_eq!(q.take_due().0, [(RepoId(4), false)]);
+        assert!(q.take_reconciled(RepoId(4)));
+        assert!(!q.take_reconciled(RepoId(4)));
     }
 }

@@ -58,6 +58,10 @@ async fn setup() -> Option<Env> {
     let t1 = commit_time(&alpha);
     alpha.commit("two", &[("src/new.rs", "// TODO later\n")]);
     let t2 = commit_time(&alpha);
+    let main = alpha.git(&["symbolic-ref", "--short", "HEAD"]);
+    alpha.git(&["checkout", "-q", "-b", "feature"]);
+    alpha.commit("three", &[("src/feature.rs", "// GLOBTERM\n")]);
+    alpha.git(&["checkout", "-q", &main]);
     let beta = SourceRepo::new();
     beta.commit("one", &[("README.md", "hello TODO\n")]);
     let secret = SourceRepo::new();
@@ -358,5 +362,80 @@ async fn predicate_alerts() {
             .unwrap()
             .contains("repo:has.path()"),
         "{a}"
+    );
+}
+
+/// `(path, branches)` of each match of a search, sorted.
+fn matched_branches(events: &[(String, Value)]) -> Vec<(String, Vec<String>)> {
+    let mut out: Vec<(String, Vec<String>)> = events
+        .iter()
+        .filter(|(e, _)| e == "matches")
+        .flat_map(|(_, d)| d.as_array().cloned().unwrap_or_default())
+        .map(|m| {
+            let branches = m["branches"]
+                .as_array()
+                .map(|b| {
+                    b.iter()
+                        .filter_map(|v| v.as_str().map(str::to_owned))
+                        .collect()
+                })
+                .unwrap_or_default();
+            (m["path"].as_str().unwrap_or_default().to_owned(), branches)
+        })
+        .collect();
+    out.sort();
+    out
+}
+
+fn noted_unindexed_branches(events: &[(String, Value)]) -> bool {
+    let (_, progress) = events.iter().rev().find(|(e, _)| e == "progress").unwrap();
+    progress["skipped"]
+        .as_array()
+        .is_some_and(|s| s.iter().any(|n| n["reason"] == "unindexed-branches"))
+}
+
+#[tokio::test(flavor = "multi_thread", worker_threads = 2)]
+async fn ref_globs_search_indexed_branches() {
+    let Some(env) = setup().await else { return };
+    let glob = format!("repo:^{ALPHA}$@*refs/heads/*");
+
+    // No shard yet: the default branch stands in, and the note says so.
+    let events = search(&env.router, &format!("{glob} TODO")).await;
+    assert!(!events.iter().any(|(e, _)| e == "alert" || e == "error"));
+    assert!(noted_unindexed_branches(&events));
+    assert_eq!(matched_branches(&events).len(), 1, "{events:?}");
+    let events = search(&env.router, &format!("{glob} GLOBTERM")).await;
+    assert!(matched_branches(&events).is_empty());
+
+    // Indexed: a branch only the glob names is searched and reported under its name.
+    env.node.index_repo(env.ids[ALPHA], ALPHA, &["feature"]);
+    let events = search(&env.router, &format!("{glob} GLOBTERM")).await;
+    assert!(noted_unindexed_branches(&events));
+    assert_eq!(
+        matched_branches(&events),
+        [("src/feature.rs".to_owned(), vec!["feature".to_owned()])]
+    );
+
+    // A file on both branches is one match per branch.
+    let events = search(&env.router, &format!("{glob} TODO")).await;
+    assert_eq!(matched_branches(&events).len(), 2, "{events:?}");
+
+    // An exclude glob alone applies to all other branches.
+    let q = format!("repo:^{ALPHA}$@*!refs/heads/feature GLOBTERM");
+    assert!(matched_branches(&search(&env.router, &q).await).is_empty());
+    let q = format!("repo:^{ALPHA}$@*!refs/heads/feature TODO");
+    assert_eq!(matched_branches(&search(&env.router, &q).await).len(), 1);
+
+    // The default branch by name uses the index and needs no note.
+    let main = env._srcs[0].git(&["symbolic-ref", "--short", "HEAD"]);
+    let events = search(
+        &env.router,
+        &format!("repo:^{ALPHA}$@{main} index:only TODO"),
+    )
+    .await;
+    assert!(!noted_unindexed_branches(&events));
+    assert_eq!(
+        matched_branches(&events),
+        [("src/new.rs".to_owned(), vec![main])]
     );
 }

@@ -8497,7 +8497,8 @@ type RepositoryTextSearchIndex {
 	"""
 	status: RepositoryTextSearchIndexStatus
 	"""
-	The refs configured for indexing (the default branch plus `search.index.branches`),
+	The refs configured for indexing (the default branch plus `search.index.branches`) and
+	those the index holds, such as recent branches,
 	whether each is indexed and whether the index is of its current commit.
 	"""
 	refs: [RepositoryTextSearchIndexedRef!]!

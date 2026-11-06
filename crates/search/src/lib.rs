@@ -25,6 +25,7 @@ mod pattern;
 mod plan;
 pub mod ranking;
 mod repos;
+pub mod rev_globs;
 mod select;
 pub mod stream;
 

@@ -18,8 +18,9 @@ use sourcegull_search::index::{
 };
 use sourcegull_search::{FileFilter, Job, Limits, Matcher, PatternInfo, plan_query};
 use sourcegull_search_exec::{
-    ChunkMatch, CompiledQuery, IndexUpdate, PathFilter, PatternSpec, ShardIndex, UnindexedOptions,
-    chunk_matches, search_commit, search_shard, update_index,
+    ChunkMatch, CompiledQuery, IndexUpdate, PathFilter, PatternSpec, RecentBranchRule, ShardIndex,
+    UnindexedOptions, branches_to_index_with, chunk_matches, search_commit, search_shard,
+    update_index,
 };
 use sourcegull_types::{AlwaysIndex, RepoId};
 
@@ -1500,4 +1501,99 @@ fn canceled_unindexed_search_stops_within_a_batch() {
         stats.files_searched
     );
     assert_eq!(emitted, stats.files_searched);
+}
+
+/// A repository whose branches `new-a`, `new-b` and `old` have the given commit times.
+fn branches_by_age() -> tempfile::TempDir {
+    let tmp = tempfile::tempdir().unwrap();
+    let dir = tmp.path();
+    git(dir, &["init", "-q"]);
+    std::fs::write(dir.join("a.txt"), "a\n").unwrap();
+    git(dir, &["add", "."]);
+    let commit = |date: &str, msg: &str| {
+        let out = Command::new("git")
+            .args(["-c", "user.name=t", "-c", "user.email=t@t"])
+            .args(["commit", "-q", "--allow-empty", "-m", msg])
+            .env("GIT_COMMITTER_DATE", date)
+            .env("GIT_AUTHOR_DATE", date)
+            .current_dir(dir)
+            .output()
+            .unwrap();
+        assert!(out.status.success());
+    };
+    commit("1500001000 +0000", "init");
+    for (branch, date) in [
+        ("old", "1500002000 +0000"),
+        ("new-b", "1500005000 +0000"),
+        ("new-a", "1500004000 +0000"),
+    ] {
+        git(dir, &["checkout", "-q", "-b", branch, "main"]);
+        commit(date, branch);
+    }
+    git(dir, &["checkout", "-q", "main"]);
+    tmp
+}
+
+fn selected(dir: &Path, extra: &[&str], since: i64, max: usize, keep: &[&str]) -> Vec<String> {
+    let repo = gix::open(dir).unwrap();
+    let extra: Vec<String> = extra.iter().map(|b| (*b).to_owned()).collect();
+    let rule = RecentBranchRule {
+        since,
+        max,
+        keep: keep.iter().map(|b| (*b).to_owned()).collect(),
+    };
+    branches_to_index_with(&repo, &extra, Some(&rule))
+        .unwrap()
+        .into_iter()
+        .map(|b| b.name)
+        .collect()
+}
+
+#[test]
+fn recent_branches_are_selected_by_age_and_sorted_by_name() {
+    let tmp = branches_by_age();
+    let dir = tmp.path();
+    // The default branch is `HEAD` only, and the order is by name whatever the commit times.
+    assert_eq!(
+        selected(dir, &[], 1_500_003_000, 20, &[]),
+        ["HEAD", "new-a", "new-b"]
+    );
+    // `max` takes the newest.
+    assert_eq!(selected(dir, &[], 0, 1, &[]), ["HEAD", "new-b"]);
+    // Named branches stay, in their place, and do not count towards `max`.
+    assert_eq!(
+        selected(dir, &["old"], 1_500_003_000, 1, &[]),
+        ["HEAD", "old", "new-b"]
+    );
+    // A kept branch stays although it is too old, until nothing keeps it.
+    assert_eq!(
+        selected(dir, &[], 1_500_003_000, 20, &["old", "HEAD"]),
+        ["HEAD", "new-a", "new-b", "old"]
+    );
+    assert_eq!(
+        selected(dir, &[], 1_500_003_000, 20, &["gone"]),
+        ["HEAD", "new-a", "new-b"]
+    );
+}
+
+#[test]
+fn a_moved_recent_branch_keeps_the_order_a_delta_needs() {
+    let tmp = branches_by_age();
+    let dir = tmp.path();
+    let before = selected(dir, &[], 0, 20, &[]);
+    // `new-a` becomes the newest.
+    git(dir, &["checkout", "-q", "new-a"]);
+    git(
+        dir,
+        &[
+            "commit",
+            "-q",
+            "--allow-empty",
+            "--date=1500009000 +0000",
+            "-m",
+            "more",
+        ],
+    );
+    git(dir, &["checkout", "-q", "main"]);
+    assert_eq!(selected(dir, &[], 0, 20, &[]), before);
 }

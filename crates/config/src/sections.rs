@@ -94,6 +94,7 @@ pub const SITE_CONFIG_SECTIONS: &[ConfigSection] = &[
         keys: &[
             "search.limits",
             "search.index.branches",
+            "search.index.recentBranches",
             "search.index.alwaysIndex",
             "searchJobs.retention",
         ],

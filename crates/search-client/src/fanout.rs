@@ -30,6 +30,7 @@ use sourcegull_rpc::tonic::Status;
 use sourcegull_rpc::{ErrorKind, RepoClients};
 use sourcegull_search::index::DEFAULT_BRANCH;
 use sourcegull_search::ranking;
+use sourcegull_search::rev_globs::is_rev_glob;
 use sourcegull_search::stream::{
     self, ChunkMatch, Event, Match, Progress, Severity, Skipped, SkippedReason,
 };
@@ -507,6 +508,16 @@ pub(crate) fn index_branch(rev: &str) -> &str {
     if rev.is_empty() { DEFAULT_BRANCH } else { rev }
 }
 
+/// The revision to report a match in index branch `branch` under: the one requested, or for a
+/// branch a ref glob selected its name (the default branch has none).
+fn rev_of_branch<'a>(repo: &'a RepoRevs, branch: &'a str) -> &'a str {
+    match repo.revs.iter().find(|v| index_branch(v) == branch) {
+        Some(rev) => rev,
+        None if branch != DEFAULT_BRANCH && repo.revs.iter().any(|v| is_rev_glob(v)) => branch,
+        None => "",
+    }
+}
+
 /// An indexed call, counted in [`Shared::pending`] until it sends its
 /// first files or ends.
 struct Call<'a> {
@@ -634,11 +645,7 @@ async fn search_indexed(
             }
             // One match per requested revision, as unindexed search returns.
             for b in &f.branches {
-                let rev = repo
-                    .revs
-                    .iter()
-                    .find(|v| index_branch(v) == b.name)
-                    .map_or("", String::as_str);
+                let rev = rev_of_branch(repo, &b.name);
                 let m = to_match(repo, &b.commit_oid, rev, path_search, file.clone());
                 matches.push((score, m));
             }
@@ -663,6 +670,9 @@ async fn search_repo(shared: &Shared, repo: RepoRevs) -> Result<(), SkippedReaso
     // only: file search has nothing to leave out.
     let (excluded, mut revs): (Vec<String>, Vec<String>) =
         repo.revs.iter().cloned().partition(|r| r.starts_with('^'));
+    // Ref globs select among indexed branches. Without an index for this repository, its
+    // default branch stands in for them.
+    revs.retain(|r| !is_rev_glob(r));
     if revs.is_empty() {
         revs.push(String::new());
     }

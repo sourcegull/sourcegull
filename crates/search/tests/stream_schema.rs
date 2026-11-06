@@ -356,6 +356,7 @@ fn progress_events_have_the_reference_shape() {
         SkippedReason::BackendMissing,
         SkippedReason::ExcludedFork,
         SkippedReason::ExcludedArchive,
+        SkippedReason::UnindexedBranches,
         SkippedReason::DisplayLimit,
         SkippedReason::Error,
     ];
