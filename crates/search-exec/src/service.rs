@@ -11,7 +11,8 @@ use sourcegull_rpc::repo::v1 as pb;
 use sourcegull_rpc::repo::v1::search_service_server::{SearchService, SearchServiceServer};
 use sourcegull_search::Matcher;
 use sourcegull_search::index::{
-    Cancel, CancelOnDrop, IndexQuery, IndexSearchStats, IndexedFile, RepoBranches, SearchIndex,
+    Cancel, CancelOnDrop, DEFAULT_BRANCH, IndexQuery, IndexSearchStats, IndexedFile, RepoBranches,
+    SearchIndex,
 };
 use sourcegull_search_client::{
     OwnerSearch, commit_filters_from_pb, path_filter_from_pb, spec_from_pb,
@@ -337,37 +338,90 @@ fn index_stats_to_pb(s: &IndexSearchStats) -> pb::SearchStats {
     }
 }
 
-/// Splits the requested branches into those `index` holds and those it
-/// does not.
+/// The requested branches of a search, split by [`split_indexed`].
+#[derive(Default)]
+struct SplitBranches {
+    found: Vec<RepoBranches>,
+    missing: Vec<pb::IndexedRepoBranches>,
+    /// For a repository whose default branch was requested by name: every name requested for it
+    /// (the index holds it as `HEAD`).
+    head_names: HashMap<RepoId, Vec<String>>,
+}
+
+/// Whether `rev` names the branch `default` (short or full ref name).
+fn names_branch(rev: &str, default: &str) -> bool {
+    rev == default || rev.strip_prefix("refs/heads/") == Some(default)
+}
+
+/// The short name of the branch `HEAD` of `repo` points at. Reads the file rather than opening
+/// the repository, because a search can ask for every repository on the node.
+fn default_branch_name(store: &GitStore, repo: RepoId) -> Option<String> {
+    let head = std::fs::read_to_string(store.layout().repo_dir(repo).join("HEAD")).ok()?;
+    let name = head.trim().strip_prefix("ref:")?.trim();
+    name.strip_prefix("refs/heads/").map(str::to_owned)
+}
+
+/// Splits the requested branches into those `index` holds and those it does not. The default
+/// branch counts as held under its own name as well as `HEAD`.
 fn split_indexed(
     index: &dyn SearchIndex,
+    store: &GitStore,
     repos: Vec<pb::IndexedRepoBranches>,
-) -> Result<(Vec<RepoBranches>, Vec<pb::IndexedRepoBranches>), Status> {
-    let (mut found, mut missing) = (Vec::new(), Vec::new());
+) -> Result<SplitBranches, Status> {
+    let mut out = SplitBranches::default();
     for rb in repos {
         let repo = rb
             .repo
             .filter(|r| r.id > 0)
             .ok_or_else(|| Status::invalid_argument("a valid repo is required"))?;
-        let held = index.branches(RepoId(repo.id)).unwrap_or_default();
-        let (has, lacks): (Vec<String>, Vec<String>) = rb
+        let id = RepoId(repo.id);
+        let held = index.branches(id).unwrap_or_default();
+        let (mut has, mut lacks): (Vec<String>, Vec<String>) = rb
             .branches
             .into_iter()
             .partition(|b| held.iter().any(|h| &h.name == b));
+        if !lacks.is_empty() && held.iter().any(|h| h.name == DEFAULT_BRANCH) {
+            if let Some(default) = default_branch_name(store, id) {
+                let (named, rest): (Vec<String>, Vec<String>) =
+                    lacks.into_iter().partition(|b| names_branch(b, &default));
+                lacks = rest;
+                if !named.is_empty() {
+                    let mut names = named;
+                    if has.iter().any(|b| b == DEFAULT_BRANCH) {
+                        names.push(DEFAULT_BRANCH.to_owned());
+                    } else {
+                        has.push(DEFAULT_BRANCH.to_owned());
+                    }
+                    out.head_names.insert(id, names);
+                }
+            }
+        }
         if !has.is_empty() {
-            found.push(RepoBranches {
-                repo: RepoId(repo.id),
+            out.found.push(RepoBranches {
+                repo: id,
                 branches: has,
             });
         }
         if !lacks.is_empty() {
-            missing.push(pb::IndexedRepoBranches {
+            out.missing.push(pb::IndexedRepoBranches {
                 repo: Some(repo),
                 branches: lacks,
             });
         }
     }
-    Ok((found, missing))
+    Ok(out)
+}
+
+/// Reports `HEAD` in `branches` under the names the search asked for it by.
+fn rename_head(branches: &mut Vec<sourcegull_search::index::Branch>, names: &[String]) {
+    let Some(i) = branches.iter().position(|b| b.name == DEFAULT_BRANCH) else {
+        return;
+    };
+    let head = branches.remove(i);
+    branches.extend(names.iter().map(|name| sourcegull_search::index::Branch {
+        name: name.clone(),
+        commit: head.commit.clone(),
+    }));
 }
 
 /// The contributor check of `repo` for an indexed match; `None` when the repository is not
@@ -575,7 +629,11 @@ impl SearchService for SearchNodeService {
             .ok_or_else(|| Status::unimplemented("this node has no search index"))?;
         let cancel = call_cancel(&req);
         let req = req.into_inner();
-        let (repos, missing) = split_indexed(&*index, req.repos)?;
+        let SplitBranches {
+            found: repos,
+            missing,
+            head_names,
+        } = split_indexed(&*index, &self.store, req.repos)?;
         let owners = req
             .owners
             .map(OwnerSearch::from_pb)
@@ -636,6 +694,9 @@ impl SearchService for SearchNodeService {
                 if !requested.contains(&f.repo) {
                     foreign += 1;
                     return ControlFlow::Continue(());
+                }
+                if let Some(names) = head_names.get(&f.repo) {
+                    rename_head(&mut f.branches, names);
                 }
                 if repos_only {
                     f.branches
@@ -1112,6 +1173,60 @@ mod tests {
         assert_eq!(files[0].branches[0].name, "HEAD");
         assert_eq!(files[0].branches[0].commit_oid, head.trim());
         assert_eq!(files[0].file.as_ref().unwrap().path, "a.txt");
+
+        // The default branch requested by name is served by the index, under that name; both
+        // spellings of the ref and `HEAD` itself get their own entry.
+        let default = String::from_utf8(
+            std::process::Command::new("git")
+                .args(["symbolic-ref", "--short", "HEAD"])
+                .current_dir(&work)
+                .output()
+                .unwrap()
+                .stdout,
+        )
+        .unwrap();
+        let default = default.trim().to_owned();
+        let full = format!("refs/heads/{default}");
+        for (asked, want_missing) in [
+            (vec![default.clone(), "dev".to_owned()], vec!["dev"]),
+            (vec![full.clone()], vec![]),
+            (vec!["HEAD".to_owned(), default.clone()], vec![]),
+        ] {
+            let mut by_name = req.clone();
+            by_name.repos[0].branches = asked.clone();
+            let mut stream = svc
+                .search_indexed(Request::new(by_name))
+                .await
+                .unwrap()
+                .into_inner();
+            let first = stream.next().await.unwrap().unwrap();
+            let missing: Vec<&str> = first
+                .missing
+                .iter()
+                .flat_map(|m| m.branches.iter().map(String::as_str))
+                .collect();
+            assert_eq!(missing, want_missing);
+            let mut files = Vec::new();
+            while let Some(msg) = stream.next().await {
+                files.extend(msg.unwrap().files);
+            }
+            assert_eq!(files.len(), 1, "{asked:?}");
+            let mut got: Vec<&str> = files[0].branches.iter().map(|b| b.name.as_str()).collect();
+            got.sort_unstable();
+            let mut want: Vec<&str> = asked
+                .iter()
+                .map(String::as_str)
+                .filter(|b| *b != "dev")
+                .collect();
+            want.sort_unstable();
+            assert_eq!(got, want);
+            assert!(
+                files[0]
+                    .branches
+                    .iter()
+                    .all(|b| b.commit_oid == head.trim())
+            );
+        }
 
         // Matches from repositories outside the request are dropped.
         let svc = SearchNodeService::new(svc.store.clone()).with_index(Arc::new(Leaky(index)));
