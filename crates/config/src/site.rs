@@ -1075,12 +1075,23 @@ pub enum SecurityEventLogLocation {
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, JsonSchema)]
 #[serde(default, rename_all = "camelCase")]
 pub struct RecentBranches {
-    /// Index branches whose latest commit is at most this old, e.g. `"30d"`. For no age limit,
-    /// so that only `max` applies, use a long time such as `"36500d"`.
+    /// Index branches whose latest commit is at most this old, e.g. `"30d"`. Set `"0"` for no
+    /// age limit, so that only `max` applies.
     pub max_age: ConfigDuration,
     /// Index at most this many of them per repository, newest first (1 to 63). Branches in
     /// `search.index.branches` do not count.
     pub max: u32,
+}
+
+impl RecentBranches {
+    /// The oldest commit time (seconds since the epoch) a branch may have at time `now`. A
+    /// `max_age` of zero is no limit.
+    pub fn since(&self, now: i64) -> i64 {
+        if self.max_age.get().is_zero() {
+            return i64::MIN;
+        }
+        now.saturating_sub(i64::try_from(self.max_age.get().as_secs()).unwrap_or(i64::MAX))
+    }
 }
 
 impl Default for RecentBranches {

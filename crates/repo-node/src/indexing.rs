@@ -288,9 +288,7 @@ impl RepoNode {
             let index = index.clone();
             tokio::task::spawn_blocking(move || -> anyhow::Result<_> {
                 let rule = recent.map(|r| RecentBranchRule {
-                    since: chrono::Utc::now()
-                        .timestamp()
-                        .saturating_sub(i64::try_from(r.max_age.0.as_secs()).unwrap_or(i64::MAX)),
+                    since: r.since(chrono::Utc::now().timestamp()),
                     max: r.max as usize,
                     keep: if drop_old {
                         Vec::new()
