@@ -1,0 +1,23 @@
+{
+  "$schema": "https://static.modelcontextprotocol.io/schemas/2025-12-11/server.schema.json",
+  "name": "io.github.sourcegull/sourcegull",
+  "title": "Sourcegull",
+  "description": "Code search and navigation across your GitLab, GitHub and Gitea repositories, self-hosted.",
+  "version": "0.8.0",
+  "repository": {
+    "url": "https://github.com/sourcegull/sourcegull",
+    "source": "github"
+  },
+  "remotes": [
+    {
+      "type": "streamable-http",
+      "url": "https://{sourcegull_host}/.api/mcp",
+      "variables": {
+        "sourcegull_host": {
+          "description": "Host name of your Sourcegull instance, e.g. sourcegull.example.com",
+          "isRequired": true
+        }
+      }
+    }
+  ]
+}

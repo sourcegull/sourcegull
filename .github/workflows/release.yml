@@ -2,8 +2,11 @@
 # smoke test and the Gitea browser check against the runtime image, then pushes
 # ghcr.io/<owner>/sourcegull and ghcr.io/<owner>/gull with an SBOM and provenance and the chart to
 # oci://ghcr.io/<owner>/charts (when its version is new), signs them by digest (keyless) and
-# creates the GitHub release with the Compose bundle (sourcegull-compose.tar.gz) attached. (The
-# Dockerfile also cross-compiles linux/arm64, which is not published.)
+# creates the GitHub release with the Compose bundle (sourcegull-compose.tar.gz) attached. It also
+# pushes the Artifact Hub repository metadata next to the chart (when
+# deploy/helm/artifacthub-repo.yml exists) and, for a release that is not a pre-release, publishes
+# server.json to the MCP Registry. (The Dockerfile also cross-compiles linux/arm64, which is not
+# published.)
 #
 # Started by hand on main (Actions → Release → Run workflow): the self-hosted runner accepts
 # only this repository's workflows from main, so neither tags nor other branches can run it.
@@ -254,6 +257,21 @@ jobs:
           echo "pushed=true" >>"$GITHUB_OUTPUT"
           echo "digest=$digest" >>"$GITHUB_OUTPUT"
 
+      # Artifact Hub reads the repository metadata (verified publisher) from the `artifacthub.io`
+      # tag next to the chart.
+      - uses: oras-project/setup-oras@v2
+        if: env.PUSH == 'true' && hashFiles('deploy/helm/artifacthub-repo.yml') != ''
+      - name: Push Artifact Hub metadata
+        if: env.PUSH == 'true' && hashFiles('deploy/helm/artifacthub-repo.yml') != ''
+        env:
+          TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        working-directory: deploy/helm
+        run: |
+          printf '%s' "$TOKEN" | oras login ghcr.io -u "$GITHUB_ACTOR" --password-stdin
+          oras push "$CHARTS/sourcegull:artifacthub.io" \
+            --config /dev/null:application/vnd.cncf.artifacthub.config.v1+yaml \
+            artifacthub-repo.yml:application/vnd.cncf.artifacthub.repository-metadata.layer.v1.yaml
+
       # The Compose files a host needs (no Dockerfile or development files), as a release asset.
       - name: Compose bundle
         if: env.PUSH == 'true'
@@ -328,3 +346,14 @@ jobs:
           append_body: true
           generate_release_notes: true
           files: ${{ runner.temp }}/sourcegull-compose.tar.gz
+
+      # The MCP Registry entry (server.json, at the release version), signed in with this run's
+      # OIDC token, which the registry accepts for the io.github.<owner>/ namespace. A version can
+      # be published only once, so pre-releases are left out.
+      - name: Publish to the MCP Registry
+        if: env.PUSH == 'true' && steps.version.outputs.prerelease == 'false'
+        run: |
+          curl -fsSL https://github.com/modelcontextprotocol/registry/releases/download/v1.8.8/mcp-publisher_linux_amd64.tar.gz |
+            tar -xz -C "$RUNNER_TEMP" mcp-publisher
+          "$RUNNER_TEMP/mcp-publisher" login github-oidc
+          "$RUNNER_TEMP/mcp-publisher" publish
