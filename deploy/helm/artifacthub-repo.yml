@@ -1,0 +1,3 @@
+# Artifact Hub repository metadata, pushed by the release workflow as the chart's `artifacthub.io`
+# tag (oci://ghcr.io/sourcegull/charts/sourcegull). The ID makes the repository a verified publisher.
+repositoryID: 9566d5b5-f201-4bd9-a3ae-1656828d3a20
