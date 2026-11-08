@@ -4,8 +4,9 @@
 #
 # - the workspace version (Cargo.toml, the workspace crates in Cargo.lock), the UI package,
 #   `ARG VERSION` in the Dockerfile, `SOURCEGULL_VERSION` in the Compose files, `.env.example` and
-#   the upgrade guide, and the default image version named in docs/install.md;
-# - the chart's `appVersion`, and its `version` with a patch bump unless the chart version has
+#   the upgrade guide, the default image version named in docs/install.md, and the MCP Registry
+#   entry (server.json);
+# - the chart's `appVersion` and the sourcegull image in its Artifact Hub annotation, and its `version` with a patch bump unless the chart version has
 #   changed since the previous release already (a row for it goes into the chart README's table);
 # - for a release that is not a pre-release: `crates/db/schema/<version>.json` (a copy of
 #   current.json) and `release!("<version>", <newest migration>)` in `RELEASES`
@@ -93,11 +94,14 @@ replace deploy/docker/upgrade.md \
   "s#/download/v$o/#/download/v$new/#; s#SOURCEGULL_VERSION=$o/#SOURCEGULL_VERSION=$new/#" \
   "/download/v$new/"
 replace docs/install.md "s/appVersion\` \(\`$o\`\)/appVersion\` (\`$new\`)/" "appVersion\` \(\`$new\`\)"
+replace server.json "s/^  \"version\": \"$o\",\$/  \"version\": \"$new\",/" "^  \"version\": \"$new\",\$"
 
 # Chart: appVersion, and a patch bump of the chart version unless it changed since the previous
 # release (the newest v* tag reachable from HEAD).
 chart=deploy/helm/sourcegull/Chart.yaml
 replace "$chart" "s/^appVersion: .*/appVersion: \"$new\"/" "^appVersion: \"$new\"\$"
+replace "$chart" "s#image: ghcr\.io/sourcegull/sourcegull:$o\$#image: ghcr.io/sourcegull/sourcegull:$new#" \
+  "image: ghcr\.io/sourcegull/sourcegull:$new\$"
 chart_version=$(sed -n 's/^version: //p' "$chart")
 previous_tag=$(git describe --tags --abbrev=0 --match 'v[0-9]*' HEAD 2>/dev/null || true)
 released_chart=

@@ -288,7 +288,8 @@ self-hosted runner (labels `self-hosted`, `linux`):
 2. sets the version with `scripts/release-version.sh` and commits it as "Release X.Y.Z" on top
    of `main`: the workspace version (`Cargo.toml`, `Cargo.lock`), the UI package, `ARG VERSION`
    in the Dockerfile, `SOURCEGULL_VERSION` in the Compose files, `.env.example` and the upgrade
-   guide, the chart's `appVersion` and a patch bump of its `version` (unless the chart version
+   guide, the MCP Registry entry (`server.json`), the chart's `appVersion`, the image in its
+   Artifact Hub annotation and a patch bump of its `version` (unless the chart version
    changed since the previous release already) with a row in the chart README, and, for a
    release that is not a pre-release, `crates/db/schema/X.Y.Z.json` and its entry in `RELEASES`
    (`crates/db/src/upgrade.rs`) for `migrate upgrade`;
@@ -298,9 +299,14 @@ self-hosted runner (labels `self-hosted`, `linux`):
    image (`SOURCEGULL_E2E_IMAGE=<image> CHECKS=gitea scripts/dev e2e`);
 4. pushes `ghcr.io/sourcegull/sourcegull` and `ghcr.io/sourcegull/gull`, pushes the Helm chart to
    `oci://ghcr.io/sourcegull/charts` when its `version` is not published yet, and signs them;
+   pushes `deploy/helm/artifacthub-repo.yml`, when it exists, as the chart's `artifacthub.io`
+   tag (Artifact Hub's repository metadata);
 5. pushes the release commit to `main` together with the `vX.Y.Z` tag, and creates the GitHub
    release with the Compose bundle (`sourcegull-compose.tar.gz`, the files of `deploy/docker/` a
-   host needs) attached.
+   host needs) attached;
+6. for a release that is not a pre-release, publishes `server.json` to the
+   [MCP Registry](https://registry.modelcontextprotocol.io) as `io.github.sourcegull/sourcegull`,
+   signed in with the run's GitHub OIDC token.
 
 Nothing is published when `main` moved after the run started; run it again then. With
 **publish** unchecked it runs steps 1 to 3 and pushes nothing. `scripts/release-version.sh

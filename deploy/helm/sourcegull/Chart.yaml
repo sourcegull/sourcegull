@@ -2,13 +2,34 @@ apiVersion: v2
 name: sourcegull
 description: Sourcegull, a self-hosted code intelligence platform (code search, navigation, bulk changes).
 type: application
-version: 0.2.8
+version: 0.2.9
 appVersion: "0.8.0"
 kubeVersion: ">=1.27.0-0"
 keywords:
   - code-search
   - code-intelligence
   - gitlab
+  - github
+  - gitea
+  - mcp
+  - self-hosted
 home: https://github.com/sourcegull/sourcegull
+icon: https://raw.githubusercontent.com/sourcegull/sourcegull/main/ui/static/logo.png
 sources:
   - https://github.com/sourcegull/sourcegull
+# Package metadata for Artifact Hub. scripts/release-version.sh sets the sourcegull image to the
+# release version; the postgres image is the default `postgresql.image` in values.yaml.
+annotations:
+  artifacthub.io/license: Apache-2.0
+  artifacthub.io/links: |
+    - name: Documentation
+      url: https://github.com/sourcegull/sourcegull/tree/main/docs
+    - name: support
+      url: https://github.com/sourcegull/sourcegull/issues
+  artifacthub.io/images: |
+    - name: sourcegull
+      image: ghcr.io/sourcegull/sourcegull:0.8.0
+      platforms:
+        - linux/amd64
+    - name: postgres
+      image: docker.io/library/postgres:18.6-bookworm
