@@ -28,8 +28,8 @@ cd sourcegull-compose
 
 # 1. Take the new release's Compose files (extracted over the old ones; the bundle holds no
 #    .env, secrets/ or files of yours in config/), and point the stack at the new version.
-curl -fsSL https://github.com/sourcegull/sourcegull/releases/download/v0.8.2/sourcegull-compose.tar.gz | tar -xz -C ..
-sed -i 's/^SOURCEGULL_VERSION=.*/SOURCEGULL_VERSION=0.8.2/' .env
+curl -fsSL https://github.com/sourcegull/sourcegull/releases/download/v0.8.3/sourcegull-compose.tar.gz | tar -xz -C ..
+sed -i 's/^SOURCEGULL_VERSION=.*/SOURCEGULL_VERSION=0.8.3/' .env
 
 # 2. Pull the new images.
 docker compose pull
@@ -62,7 +62,7 @@ shipped (drift), applies each version's migrations in order and checks the resul
 ```sh
 cd sourcegull-compose
 docker compose stop sourcegull          # compose.production.yaml: stop web worker repo-0
-sed -i 's/^SOURCEGULL_VERSION=.*/SOURCEGULL_VERSION=0.8.2/' .env
+sed -i 's/^SOURCEGULL_VERSION=.*/SOURCEGULL_VERSION=0.8.3/' .env
 docker compose pull
 # compose.production.yaml: `run --rm migrate migrate …` in place of `run --rm --no-deps sourcegull migrate …`
 docker compose run --rm --no-deps sourcegull migrate versions                    # where the database is
