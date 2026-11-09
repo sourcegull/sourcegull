@@ -6,11 +6,13 @@
 #   docker buildx build -f deploy/docker/Dockerfile -t ghcr.io/sourcegull/sourcegull:dev .
 #
 # Stages:
-#   toolchain - the Rust toolchain, on the build platform
+#   toolchain - the Rust toolchain (Debian, glibc), on the build platform
+#   sysroot   - the target architecture's Alpine musl-dev and gcc (crt files, libgcc), fetched on
+#               the build platform with apk --arch: what the builder's C compiler links against
 #   wasm     - the query box parser (crates/query-wasm -> /out/query.wasm)
 #   ui       - builds the web UI (ui/ -> /ui/build) with Node.js, with query.wasm in static/
-#   builder  - builds static (musl) `sourcegull` and `gull` binaries for the target platform
-#              (cross-compiled when it differs from the build platform, so linux/arm64 builds on
+#   builder  - builds static (musl) `sourcegull` and `gull` binaries for the target platform,
+#              always as a cross build from the glibc toolchain (so linux/arm64 also builds on
 #              amd64 without emulation)
 #   cli      - `ghcr.io/sourcegull/gull`: Alpine with git, ca-certificates and `gull` only, for
 #              CI jobs (`--target cli`; deploy/gitlab-ci)
@@ -19,6 +21,8 @@
 # Base images: Alpine rather than Debian slim because image scanners report several hundred
 # CVEs in Debian's base packages that Debian does not fix in a stable release; the Alpine images
 # carry next to none. The binaries are static, so the runtime image only needs the tools above.
+# The compiler itself runs on glibc: rustc and LLVM on musl spend much of a release build
+# contending for musl's malloc (the final thin-LTO step takes about twice as long).
 #
 # UI: the `sourcegull-web-assets` crate embeds the built UI into the binary. The `ui` stage
 # builds it and the builder points the crate at the result through SOURCEGULL_UI_BUILD_DIR, so a
@@ -39,7 +43,7 @@ ARG NODE_VERSION=22
 ############################
 # toolchain
 ############################
-FROM --platform=$BUILDPLATFORM rust:${RUST_VERSION}-alpine${ALPINE_VERSION} AS toolchain
+FROM --platform=$BUILDPLATFORM rust:${RUST_VERSION}-${DEBIAN_SUITE} AS toolchain
 # The repository's rust-toolchain.toml asks for "stable"; pin to the image's own toolchain so the
 # build never downloads another one (RUST_VERSION is set by the rust base image).
 ENV RUSTUP_TOOLCHAIN=${RUST_VERSION} \
@@ -73,6 +77,21 @@ COPY --from=wasm /out/query.wasm static/query.wasm
 RUN rm -rf build && npm run build && test -f build/index.html
 
 ############################
+# sysroot
+############################
+FROM --platform=$BUILDPLATFORM alpine:${ALPINE_VERSION} AS sysroot
+ARG TARGETARCH
+RUN set -eu; \
+    case "$TARGETARCH" in \
+      amd64) arch=x86_64 ;; \
+      arm64) arch=aarch64 ;; \
+      *) echo "unsupported TARGETARCH: $TARGETARCH" >&2; exit 1 ;; \
+    esac; \
+    apk add --no-cache --no-scripts --arch "$arch" --root /sysroot --initdb \
+      --keys-dir "/usr/share/apk/keys/$arch" --repositories-file /etc/apk/repositories \
+      musl-dev gcc
+
+############################
 # builder
 ############################
 FROM toolchain AS builder
@@ -84,35 +103,28 @@ ARG CARGO_BUILD_JOBS
 # which need far less memory than the defaults (fat, 1) at link time.
 ARG CARGO_PROFILE_RELEASE_LTO
 ARG CARGO_PROFILE_RELEASE_CODEGEN_UNITS
-# The Rust (musl) target of TARGETARCH, and a C compiler and linker per architecture
-# (<arch>-target-cc): clang with that architecture's Alpine packages (musl-dev, and gcc for the crt
-# files and libgcc) as its sysroot, which is / for the build platform's own architecture and
-# /sysroot (fetched with apk --arch) for the other one when cross-compiling.
-RUN apk add --no-cache clang lld llvm
+# The Rust (musl) target of TARGETARCH, and its C compiler and linker (target-cc): clang with the
+# sysroot stage's files. Build scripts and proc macros are built for the glibc host as usual.
+RUN apt-get update \
+ && apt-get install -y --no-install-recommends clang lld llvm \
+ && rm -rf /var/lib/apt/lists/*
+COPY --from=sysroot /sysroot /sysroot
 RUN set -eu; \
     case "$TARGETARCH" in \
-      amd64) target=x86_64-unknown-linux-musl; target_arch=x86_64 ;; \
-      arm64) target=aarch64-unknown-linux-musl; target_arch=aarch64 ;; \
+      amd64) target=x86_64-unknown-linux-musl; arch=x86_64 ;; \
+      arm64) target=aarch64-unknown-linux-musl; arch=aarch64 ;; \
       *) echo "unsupported TARGETARCH: $TARGETARCH" >&2; exit 1 ;; \
     esac; \
     echo "$target" > /rust-target; \
-    if [ "$(apk --print-arch)" != "$target_arch" ]; then \
-      apk add --no-cache --no-scripts --arch "$target_arch" --root /sysroot --initdb \
-        --keys-dir "/usr/share/apk/keys/$target_arch" --repositories-file /etc/apk/repositories \
-        musl-dev gcc; \
-      rustup target add "$target"; \
-    fi; \
-    for arch in x86_64 aarch64; do \
-      sysroot=/sysroot; [ "$(apk --print-arch)" = "$arch" ] && sysroot=/; \
-      printf '#!/bin/sh\nexec clang --target=%s-alpine-linux-musl --sysroot=%s -fuse-ld=lld "$@"\n' \
-        "$arch" "$sysroot" > "/usr/local/bin/$arch-target-cc"; \
-      chmod 0755 "/usr/local/bin/$arch-target-cc"; \
-    done
-ENV CARGO_TARGET_X86_64_UNKNOWN_LINUX_MUSL_LINKER=x86_64-target-cc \
-    CC_x86_64_unknown_linux_musl=x86_64-target-cc \
+    rustup target add "$target"; \
+    printf '#!/bin/sh\nexec clang --target=%s-alpine-linux-musl --sysroot=/sysroot -fuse-ld=lld "$@"\n' \
+      "$arch" > /usr/local/bin/target-cc; \
+    chmod 0755 /usr/local/bin/target-cc
+ENV CARGO_TARGET_X86_64_UNKNOWN_LINUX_MUSL_LINKER=target-cc \
+    CC_x86_64_unknown_linux_musl=target-cc \
     AR_x86_64_unknown_linux_musl=llvm-ar \
-    CARGO_TARGET_AARCH64_UNKNOWN_LINUX_MUSL_LINKER=aarch64-target-cc \
-    CC_aarch64_unknown_linux_musl=aarch64-target-cc \
+    CARGO_TARGET_AARCH64_UNKNOWN_LINUX_MUSL_LINKER=target-cc \
+    CC_aarch64_unknown_linux_musl=target-cc \
     AR_aarch64_unknown_linux_musl=llvm-ar
 COPY . .
 COPY --from=ui /ui/build /ui-build
@@ -121,7 +133,7 @@ ENV SOURCEGULL_UI_BUILD_DIR=/ui-build
 # and proc macros they share under target/release/).
 RUN --mount=type=cache,id=sourcegull-cargo-registry,target=/usr/local/cargo/registry,sharing=locked \
     --mount=type=cache,id=sourcegull-cargo-git,target=/usr/local/cargo/git,sharing=locked \
-    --mount=type=cache,id=sourcegull-target-musl-${RUST_VERSION},target=/src/target,sharing=locked \
+    --mount=type=cache,id=sourcegull-musl-target-${RUST_VERSION},target=/src/target,sharing=locked \
     target=$(cat /rust-target) \
  && cargo build --release --locked --target "$target" -p sourcegull --bin sourcegull -p sourcegull-cli --bin gull \
  && install -D -m 0755 "target/$target/release/sourcegull" /out/sourcegull \
