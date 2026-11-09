@@ -98,8 +98,8 @@ pub async fn run_task(
         .run()
         .await;
     if task == JanitorTask::Maintenance && result.is_ok() {
-        // The `pack-refs` maintenance task needs git 2.42; the runtime image
-        // (Debian bookworm) has 2.39, so pack refs with the plain command.
+        // The `pack-refs` maintenance task needs git 2.42; older gits (Debian
+        // bookworm's 2.39, in the dev container) lack it, so pack refs with the plain command.
         GitCommand::new(git_bin, "pack-refs")
             .repo(repo_dir)
             .args(["--all", "--prune"])

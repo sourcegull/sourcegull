@@ -35,7 +35,7 @@ trap cleanup EXIT
 docker network create "$NET" >/dev/null
 docker run -d --name "$PG" --network "$NET" \
   -e POSTGRES_USER=sourcegull -e POSTGRES_PASSWORD=sourcegull -e POSTGRES_DB=sourcegull \
-  postgres:18-bookworm >/dev/null
+  postgres:18-alpine >/dev/null
 until docker exec "$PG" pg_isready -U sourcegull -d sourcegull -h 127.0.0.1 >/dev/null 2>&1; do sleep 1; done
 
 DB=postgres://sourcegull:sourcegull@$PG:5432/sourcegull?sslmode=disable

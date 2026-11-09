@@ -137,9 +137,19 @@ docker compose up -d
 
 ## Upgrading PostgreSQL
 
-The `postgres` service follows one major version (`postgres:18-bookworm`); `docker compose pull`
+The `postgres` service follows one major version (`postgres:18-alpine`); `docker compose pull`
 brings only its minor updates. A new major version cannot start on the old one's data directory,
 so a major upgrade is a dump and restore.
+
+Compose files from Sourcegull 0.8.1 and earlier use `postgres:18-bookworm`. Switching to
+`postgres:18-alpine` (the same PostgreSQL on Alpine, which image scanners report far fewer CVEs
+in) needs no dump: it starts on the existing data directory. The two C libraries lowercase 69 rare
+characters differently (circled letters such as Ⓐ and some recent Unicode additions), so rebuild
+the indexes on `lower(...)` once after the switch:
+
+```sh
+docker compose exec postgres psql -U sourcegull -d sourcegull -c 'REINDEX DATABASE sourcegull'
+```
 
 ```sh
 cd sourcegull-compose

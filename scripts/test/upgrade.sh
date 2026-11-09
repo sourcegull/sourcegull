@@ -64,7 +64,7 @@ NAMESPACE=sourcegull-upgrade
 KIND_VERSION=v0.29.0
 # bash, curl, kubectl and helm: runs smoke.sh and drives the kind cluster.
 TOOLS_IMAGE=quay.io/helmpack/chart-testing:v3.12.0
-AUX_IMAGES=(postgres:18.6-bookworm busybox:1.37 curlimages/curl:8.11.1)
+AUX_IMAGES=(postgres:18.6-alpine busybox:1.37 curlimages/curl:8.11.1)
 
 log() { echo "== $*"; }
 fail() { echo "FAIL: $*" >&2; exit 1; }
@@ -184,7 +184,7 @@ cmd_contract() {
   local name=$PROJECT-contract prev
   prev=$(prev_ref)
   docker rm -f "$name" >/dev/null 2>&1 || true
-  docker run -d --name "$name" -e POSTGRES_HOST_AUTH_METHOD=trust postgres:18-bookworm >/dev/null
+  docker run -d --name "$name" -e POSTGRES_HOST_AUTH_METHOD=trust postgres:18-alpine >/dev/null
   # shellcheck disable=SC2064
   trap "docker rm -f $name >/dev/null 2>&1" RETURN
   local start=$SECONDS

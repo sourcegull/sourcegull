@@ -41,7 +41,7 @@ CLUSTER=sourcegull-ct
 IMAGE=${SOURCEGULL_CT_IMAGE:-sourcegull/sourcegull:ct}
 CHART=deploy/helm/sourcegull
 # Images the chart's pods use besides Sourcegull; loaded into the node to avoid registry rate limits.
-AUX_IMAGES=(postgres:18.6-bookworm busybox:1.37 curlimages/curl:8.11.1)
+AUX_IMAGES=(postgres:18.6-alpine busybox:1.37 curlimages/curl:8.11.1)
 
 mkdir -p .ct
 
