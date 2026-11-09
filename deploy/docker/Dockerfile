@@ -133,7 +133,7 @@ RUN --mount=type=cache,id=sourcegull-cargo-registry,target=/usr/local/cargo/regi
 FROM alpine:${ALPINE_VERSION} AS cli
 # git lets `gull code-intel upload` infer the repository and commit outside GitLab CI.
 RUN apk upgrade --no-cache && apk add --no-cache ca-certificates git
-ARG VERSION=0.8.1
+ARG VERSION=0.8.2
 LABEL org.opencontainers.image.title="sourcegull-cli" \
       org.opencontainers.image.description="The gull command-line client" \
       org.opencontainers.image.licenses="Apache-2.0" \
@@ -164,7 +164,7 @@ RUN addgroup -S -g 10001 sourcegull \
 COPY --from=builder /out/sourcegull /usr/local/bin/sourcegull
 COPY --from=builder /out/gull /usr/local/bin/gull
 
-ARG VERSION=0.8.1
+ARG VERSION=0.8.2
 ARG REVISION=unknown
 LABEL org.opencontainers.image.title="sourcegull" \
       org.opencontainers.image.description="Self-hosted code intelligence platform" \
