@@ -306,7 +306,14 @@ self-hosted runner (labels `self-hosted`, `linux`):
    host needs) attached;
 6. for a release that is not a pre-release, publishes `server.json` to the
    [MCP Registry](https://registry.modelcontextprotocol.io) as `io.github.sourcegull/sourcegull`,
-   signed in with the run's GitHub OIDC token.
+   signed in with the run's GitHub OIDC token;
+7. for a release that is not a pre-release, rebuilds the documentation pages of the project site
+   ([sourcegull.org/docs](https://sourcegull.org/docs/), repository `sourcegull/website`) from the
+   new tag with that repository's `tools/build-docs.sh` and pushes them to its `main`, which
+   GitHub Pages serves. It signs in with the site repository's deploy key, stored as the secret
+   `WEBSITE_DEPLOY_KEY`; without the secret the step is skipped. A docs fix between releases
+   reaches the site with `tools/build-docs.sh main` (or a tag) run in a checkout of
+   `sourcegull/website`, then a push.
 
 Nothing is published when `main` moved after the run started; run it again then. With
 **publish** unchecked it runs steps 1 to 3 and pushes nothing. `scripts/release-version.sh
