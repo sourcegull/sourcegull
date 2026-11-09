@@ -54,7 +54,7 @@ EOF
 schema() {
   local db=$1 dir=$2 f
   "${PSQL[@]}" -qc "DROP DATABASE IF EXISTS $db" >/dev/null 2>&1
-  "${PSQL[@]}" -qc "CREATE DATABASE $db" >/dev/null
+  "${PSQL[@]}" -qc "CREATE DATABASE $db TEMPLATE template0" >/dev/null
   for f in $(find "$dir" -name '*.up.sql' | sort); do
     "${PSQL[@]}" -q -v ON_ERROR_STOP=1 -d "$db" <"$f" >/dev/null || fail "migration $(basename "$f") failed"
   done

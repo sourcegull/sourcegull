@@ -16,5 +16,5 @@ fi
 if ! "${AS[@]}" "$PGBIN/pg_ctl" -D "$DATA" status >/dev/null 2>&1; then
   "${AS[@]}" "$PGBIN/pg_ctl" -D "$DATA" -o "-p $PORT -k $DATA -c listen_addresses=127.0.0.1" -l "$DATA/log" -w start >/dev/null
 fi
-"$PGBIN/createdb" -h 127.0.0.1 -p "$PORT" -U sourcegull sourcegull 2>/dev/null || true
+"$PGBIN/createdb" -T template0 -h 127.0.0.1 -p "$PORT" -U sourcegull sourcegull 2>/dev/null || true
 echo "postgres://sourcegull@127.0.0.1:$PORT/sourcegull"

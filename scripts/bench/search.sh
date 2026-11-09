@@ -52,7 +52,7 @@ elif [ -n "${SOURCEGULL_PGDATA:-}" ]; then
 else
   PG_SERVER=$(scripts/dev-postgres.sh); PG_SERVER=${PG_SERVER%/*}
 fi
-psql "$PG_SERVER/postgres" -qc "CREATE DATABASE $DB"
+psql "$PG_SERVER/postgres" -qc "CREATE DATABASE $DB TEMPLATE template0"
 SERVER=
 cleanup() {
   if [ -n "$SERVER" ]; then kill "$SERVER" 2>/dev/null || true; wait "$SERVER" 2>/dev/null || true; fi
