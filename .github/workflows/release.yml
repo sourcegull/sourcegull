@@ -5,7 +5,7 @@
 # creates the GitHub release with the Compose bundle (sourcegull-compose.tar.gz) attached. It also
 # pushes the Artifact Hub repository metadata next to the chart (when
 # deploy/helm/artifacthub-repo.yml exists) and, for a release that is not a pre-release, publishes
-# server.json to the MCP Registry. (The Dockerfile also cross-compiles linux/arm64, which is not
+# server.json to the MCP Registry and rebuilds the documentation on the project site. (The Dockerfile also cross-compiles linux/arm64, which is not
 # published.)
 #
 # Started by hand on main (Actions → Release → Run workflow): the self-hosted runner accepts
@@ -357,3 +357,38 @@ jobs:
             tar -xz -C "$RUNNER_TEMP" mcp-publisher
           "$RUNNER_TEMP/mcp-publisher" login github-oidc
           "$RUNNER_TEMP/mcp-publisher" publish
+
+      # The project site (<owner>/website, served at sourcegull.org) shows the documentation of the
+      # latest release: its tools/build-docs.sh renders docs/ from this tag, and the result is
+      # pushed to the site's main with the site repository's deploy key (secret
+      # WEBSITE_DEPLOY_KEY, write access to that repository only). Skipped when the secret is not
+      # set. GitHub Pages publishes the push within a minute or two.
+      - name: Update the documentation on the project site
+        if: env.PUSH == 'true' && steps.version.outputs.prerelease == 'false'
+        env:
+          VERSION: ${{ steps.version.outputs.version }}
+          WEBSITE_DEPLOY_KEY: ${{ secrets.WEBSITE_DEPLOY_KEY }}
+          SITE_REPO: ${{ github.repository_owner }}/website
+        run: |
+          if [ -z "$WEBSITE_DEPLOY_KEY" ]; then
+            echo "::notice::WEBSITE_DEPLOY_KEY is not set; the site's docs were not updated"
+            exit 0
+          fi
+          key="$RUNNER_TEMP/website-deploy-key"
+          trap 'rm -f "$key"' EXIT
+          (umask 077; printf '%s\n' "$WEBSITE_DEPLOY_KEY" >"$key")
+          export GIT_SSH_COMMAND="ssh -i $key -o IdentitiesOnly=yes -o StrictHostKeyChecking=accept-new"
+          site="$RUNNER_TEMP/website"
+          rm -rf "$site"
+          git clone --depth 1 "git@github.com:$SITE_REPO.git" "$site"
+          "$site/tools/build-docs.sh" "v$VERSION"
+          cd "$site"
+          git add -A docs
+          if git diff --cached --quiet; then
+            echo "The site's docs are already those of v$VERSION"
+            exit 0
+          fi
+          git -c user.name="github-actions[bot]" \
+            -c user.email="41898282+github-actions[bot]@users.noreply.github.com" \
+            commit -q -m "Docs for v$VERSION"
+          git push origin HEAD:main
