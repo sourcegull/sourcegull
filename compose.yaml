@@ -51,7 +51,9 @@ x-dev-env: &dev-env
 
 services:
   postgres:
-    image: postgres:18-alpine
+    # Debian build, as the data volumes of existing dev environments were created with it: on the
+    # Alpine build, CREATE DATABASE (tests, e2e) fails on a cluster initialised by the Debian one.
+    image: postgres:18-bookworm
     restart: unless-stopped
     environment:
       POSTGRES_USER: sourcegull
