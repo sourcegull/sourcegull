@@ -151,6 +151,10 @@ the indexes on `lower(...)` once after the switch:
 docker compose exec postgres psql -U sourcegull -d sourcegull -c 'REINDEX DATABASE sourcegull'
 ```
 
+After the switch, a database you create by hand on that cluster needs `TEMPLATE template0`
+(`CREATE DATABASE x TEMPLATE template0`, `createdb -T template0 x`): the Alpine build names the
+cluster's collation differently and refuses to copy `template1`. Sourcegull creates no databases.
+
 ```sh
 cd sourcegull-compose
 docker compose stop sourcegull          # compose.production.yaml: stop web worker repo-0

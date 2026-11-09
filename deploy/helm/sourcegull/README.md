@@ -220,6 +220,7 @@ PostgreSQL version; it starts on the existing data directory as it is. The two C
 lowercase 69 rare characters differently (circled letters such as Ⓐ and some recent Unicode
 additions), so after the upgrade rebuild the indexes on `lower(...)` once:
 `kubectl exec -n <namespace> statefulset/<release>-postgresql -- psql -U sourcegull -d sourcegull -c 'REINDEX DATABASE sourcegull'`.
+A database created by hand on that cluster afterwards needs `TEMPLATE template0`.
 
 ## Testing the chart
 

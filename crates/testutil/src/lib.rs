@@ -49,7 +49,10 @@ impl TestDb {
         let admin = PgConnectOptions::from_str(&base).expect("valid SOURCEGULL_TEST_DATABASE_URL");
         let name = format!("sourcegull_test_{}", uuid::Uuid::new_v4().simple());
         let mut conn = admin.connect().await.expect("connect to test postgres");
-        sqlx::query(&format!("CREATE DATABASE {name}"))
+        // From template0: on a cluster initialised by another C library's build of PostgreSQL
+        // (Debian's, then run on Alpine's), copying template1 is refused because the two name
+        // the cluster's collation differently.
+        sqlx::query(&format!("CREATE DATABASE {name} TEMPLATE template0"))
             .execute(&mut conn)
             .await
             .expect("create test database");

@@ -46,7 +46,7 @@ elif [ "${SKIP_BUILD:-}" = "" ]; then
 fi
 # PIDs repeat between container runs, hence the random part.
 DB="sourcegull_e2e_$$_$RANDOM"
-psql "$PG" -qc "CREATE DATABASE $DB"
+psql "$PG" -qc "CREATE DATABASE $DB TEMPLATE template0"
 SERVER=
 cleanup() {
   if [ -n "$SERVER" ]; then

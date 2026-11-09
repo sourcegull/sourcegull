@@ -85,7 +85,7 @@ sourcegull_up() {
   say "fresh Sourcegull ($SOURCEGULL, database $DB) and executor ($EXECUTOR) from $IMAGE"
   docker rm -f "$SOURCEGULL" "$EXECUTOR" >/dev/null 2>&1 || true
   docker volume rm "$SOURCEGULL-data" >/dev/null 2>&1 || true
-  psql_dev -c "DROP DATABASE IF EXISTS $DB WITH (FORCE)" -c "CREATE DATABASE $DB"
+  psql_dev -c "DROP DATABASE IF EXISTS $DB WITH (FORCE)" -c "CREATE DATABASE $DB TEMPLATE template0"
   # Repo nodes clone and push to GitLab's URLs (http://gitlab.localhost:8929/...), which git
   # (libcurl) would send to the loopback address: pin the name to GitLab's address.
   local gitlab_ip

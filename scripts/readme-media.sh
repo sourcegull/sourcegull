@@ -22,7 +22,7 @@ BIN=${SOURCEGULL_MEDIA_BIN:?the sourcegull binary to run}
 PG=${SOURCEGULL_E2E_DATABASE_URL%%\?*}
 
 DB="sourcegull_media_$$_$RANDOM"
-psql "$PG" -qc "CREATE DATABASE $DB"
+psql "$PG" -qc "CREATE DATABASE $DB TEMPLATE template0"
 SERVER=
 cleanup() {
   if [ -n "$SERVER" ]; then
