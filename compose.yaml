@@ -51,7 +51,7 @@ x-dev-env: &dev-env
 
 services:
   postgres:
-    image: postgres:18-bookworm
+    image: postgres:18-alpine
     restart: unless-stopped
     environment:
       POSTGRES_USER: sourcegull

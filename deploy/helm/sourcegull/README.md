@@ -213,6 +213,13 @@ use that only on throwaway installs.
 | 0.2.7 | Sourcegull 0.7.0 |
 | 0.2.8 | Sourcegull 0.8.0 |
 | 0.2.9 | Artifact Hub metadata: icon, links, licence, images |
+| 0.2.10 | Bundled PostgreSQL image `postgres:18.6-alpine` (was `-bookworm`); see the note below |
+
+Chart 0.2.10 changes the bundled database's image from the Debian to the Alpine build of the same
+PostgreSQL version; it starts on the existing data directory as it is. The two C libraries
+lowercase 69 rare characters differently (circled letters such as Ⓐ and some recent Unicode
+additions), so after the upgrade rebuild the indexes on `lower(...)` once:
+`kubectl exec -n <namespace> statefulset/<release>-postgresql -- psql -U sourcegull -d sourcegull -c 'REINDEX DATABASE sourcegull'`.
 
 ## Testing the chart
 
