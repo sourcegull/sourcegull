@@ -197,6 +197,58 @@ pub struct OAuthGrant {
 const GRANT_COLUMNS: &str = "g.id, g.user_id, c.client_id, c.client_name, c.client_uri, \
      c.redirect_uris, g.resource, g.scopes, g.created_at, g.last_used_at";
 
+/// Sort order for [`OAuthStore::list_grants_page`].
+#[derive(Debug, Clone, Copy, Default, PartialEq, Eq)]
+pub enum OAuthGrantOrder {
+    /// By when the user approved the app.
+    #[default]
+    CreatedAt,
+    /// By the user's username (case-insensitive), then newest first.
+    Username,
+    /// By the app's name (its client ID when it has none), then newest first.
+    App,
+    /// By last use; never-used grants count as the oldest.
+    LastUsedAt,
+}
+
+/// Filters for [`OAuthStore::list_grants_page`] and [`OAuthStore::count_grants`]: live grants of
+/// users who are not deactivated.
+#[derive(Debug, Clone)]
+pub struct ListOAuthGrantsOptions {
+    /// Case-insensitive substring of the username, the app's name or its client ID.
+    pub query: Option<String>,
+    pub order: OAuthGrantOrder,
+    pub descending: bool,
+    pub limit: i64,
+    pub offset: i64,
+}
+
+impl Default for ListOAuthGrantsOptions {
+    fn default() -> Self {
+        Self {
+            query: None,
+            order: OAuthGrantOrder::CreatedAt,
+            descending: true,
+            limit: 100,
+            offset: 0,
+        }
+    }
+}
+
+/// The `FROM` and `WHERE` of [`OAuthStore::list_grants_page`] and [`OAuthStore::count_grants`]:
+/// $1 is the username, app name or client ID pattern.
+const GRANTS_FROM: &str = "oauth_grants g JOIN oauth_clients c ON c.id = g.client_id
+    JOIN users u ON u.id = g.user_id
+    WHERE g.revoked_at IS NULL AND u.deleted_at IS NULL
+      AND ($1::text IS NULL OR u.username ILIKE $1 OR c.client_name ILIKE $1
+           OR c.client_id ILIKE $1)";
+
+fn grants_pattern(opts: &ListOAuthGrantsOptions) -> Option<String> {
+    opts.query
+        .as_deref()
+        .map(|q| format!("%{}%", super::users::escape_like(q)))
+}
+
 /// The outcome of [`OAuthStore::rotate_refresh_token`].
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum RefreshOutcome {
@@ -640,6 +692,43 @@ impl OAuthStore {
         .bind(user)
         .fetch_all(&self.pool)
         .await?)
+    }
+
+    /// One page of every user's live grants, filtered and sorted by `opts`.
+    pub async fn list_grants_page(&self, opts: &ListOAuthGrantsOptions) -> Result<Vec<OAuthGrant>> {
+        let dir = if opts.descending { "DESC" } else { "ASC" };
+        let order = match opts.order {
+            OAuthGrantOrder::CreatedAt => format!("g.created_at {dir}, g.id {dir}"),
+            OAuthGrantOrder::Username => {
+                format!("lower(u.username) {dir}, g.created_at DESC, g.id DESC")
+            }
+            OAuthGrantOrder::App => format!(
+                "lower(coalesce(nullif(c.client_name, ''), c.client_id)) {dir}, \
+                 g.created_at DESC, g.id DESC"
+            ),
+            OAuthGrantOrder::LastUsedAt => format!(
+                "g.last_used_at {dir} NULLS {}, g.id {dir}",
+                if opts.descending { "LAST" } else { "FIRST" }
+            ),
+        };
+        Ok(sqlx::query_as(&format!(
+            "SELECT {GRANT_COLUMNS} FROM {GRANTS_FROM} ORDER BY {order} LIMIT $2 OFFSET $3"
+        ))
+        .bind(grants_pattern(opts))
+        .bind(opts.limit)
+        .bind(opts.offset)
+        .fetch_all(&self.pool)
+        .await?)
+    }
+
+    /// Number of grants [`Self::list_grants_page`] lists for `opts`, over all pages.
+    pub async fn count_grants(&self, opts: &ListOAuthGrantsOptions) -> Result<i64> {
+        Ok(
+            sqlx::query_scalar(&format!("SELECT count(*) FROM {GRANTS_FROM}"))
+                .bind(grants_pattern(opts))
+                .fetch_one(&self.pool)
+                .await?,
+        )
     }
 
     /// Revokes a live grant. Fails with [`DbError::NotFound`] if nothing matched.

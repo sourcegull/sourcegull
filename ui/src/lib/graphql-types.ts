@@ -13,6 +13,26 @@ export type AccessRequestStatus =
   | 'APPROVED'
   | 'REJECTED';
 
+/** Sort order of `accessTokens`. */
+export type AccessTokenOrderBy =
+  /** By when the token was created. */
+  | 'CREATED_AT'
+  /** By the username of the user the token acts as. */
+  | 'USERNAME'
+  /** By last use; tokens never used count as the oldest. */
+  | 'LAST_USED_AT'
+  /** By expiry; tokens that never expire count as the latest. */
+  | 'EXPIRES_AT';
+
+/** Which tokens `accessTokens` lists. */
+export type AccessTokenState =
+  /** Every token, expired ones included. */
+  | 'ALL'
+  /** Tokens past their expiry. */
+  | 'EXPIRED'
+  /** Unexpired tokens not used in the last 90 days (counted from creation if never used). */
+  | 'UNUSED';
+
 /** Input of `addExternalService`. */
 export type AddExternalServiceInput = {
   /** The code host kind. */
@@ -579,6 +599,17 @@ export type NotebooksOrderBy =
   | 'NOTEBOOK_UPDATED_AT'
   | 'NOTEBOOK_CREATED_AT'
   | 'NOTEBOOK_STAR_COUNT';
+
+/** Sort order of `connectedApps`. */
+export type OAuthGrantOrderBy =
+  /** By when the user allowed the app. */
+  | 'CREATED_AT'
+  /** By the user's username. */
+  | 'USERNAME'
+  /** By the app's name. */
+  | 'APP'
+  /** By last use; apps never used count as the oldest. */
+  | 'LAST_USED_AT';
 
 /** A recipient's answer to an invitation. */
 export type OrganizationInvitationResponseType =
@@ -2807,10 +2838,16 @@ export type UpdateNotebookMutation = { updateNotebook: { id: string, title: stri
       | { __typename: 'SymbolBlock', id: string, symbolInput: { repositoryName: string, filePath: string, revision: string | null, lineContext: number, symbolName: string, symbolContainerName: string, symbolKind: SymbolKind } }
     > } };
 
-export type AllOAuthGrantsQueryVariables = Exact<{ [key: string]: never; }>;
+export type ConnectedAppsQueryVariables = Exact<{
+  first?: number | null | undefined;
+  after?: string | null | undefined;
+  query?: string | null | undefined;
+  orderBy?: OAuthGrantOrderBy | null | undefined;
+  descending?: boolean | null | undefined;
+}>;
 
 
-export type AllOAuthGrantsQuery = { oauthGrants: Array<{ id: string, clientID: string, clientName: string, clientURI: string | null, redirectHosts: Array<string>, scopes: Array<string>, createdAt: string, lastUsedAt: string | null, user: { id: string, username: string } }> };
+export type ConnectedAppsQuery = { connectedApps: { totalCount: number, nodes: Array<{ id: string, clientID: string, clientName: string, clientURI: string | null, redirectHosts: Array<string>, scopes: Array<string>, createdAt: string, lastUsedAt: string | null, user: { id: string, username: string } }>, pageInfo: { hasNextPage: boolean, endCursor: string | null } } };
 
 export type CurrentUserOAuthGrantsQueryVariables = Exact<{ [key: string]: never; }>;
 
@@ -3373,6 +3410,18 @@ export type SetUserIsSiteAdminMutationVariables = Exact<{
 
 
 export type SetUserIsSiteAdminMutation = { setUserIsSiteAdmin: { alwaysNil: string | null } };
+
+export type SiteAccessTokensQueryVariables = Exact<{
+  first?: number | null | undefined;
+  after?: string | null | undefined;
+  query?: string | null | undefined;
+  state?: AccessTokenState | null | undefined;
+  orderBy?: AccessTokenOrderBy | null | undefined;
+  descending?: boolean | null | undefined;
+}>;
+
+
+export type SiteAccessTokensQuery = { accessTokens: { totalCount: number, nodes: Array<{ id: string, prefix: string, note: string, scopes: Array<string>, createdAt: string, lastUsedAt: string | null, expiresAt: string | null, subject: { id: string, username: string }, creator: { id: string, username: string } }>, pageInfo: { hasNextPage: boolean, endCursor: string | null } }, accessTokenCounts: { total: number, expired: number, unused: number } };
 
 export type SiteConfigurationQueryVariables = Exact<{ [key: string]: never; }>;
 

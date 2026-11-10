@@ -26,7 +26,9 @@ import type {
 	UpdateSiteConfigurationMutation,
 	UserExecutorSecretsQuery,
 	UsersQuery,
-	UsersQueryVariables
+	UsersQueryVariables,
+	SiteAccessTokensQuery,
+	SiteAccessTokensQueryVariables
 } from '#lib/graphql-types.ts';
 
 // ---- Site configuration ----------------------------------------------------------------------
@@ -211,6 +213,55 @@ export interface CreateAccessTokenVariables {
 	scopes: string[];
 	note: string;
 }
+
+export const SITE_ACCESS_TOKENS = `query SiteAccessTokens(
+	$first: Int
+	$after: String
+	$query: String
+	$state: AccessTokenState
+	$orderBy: AccessTokenOrderBy
+	$descending: Boolean
+) {
+	accessTokens(
+		first: $first
+		after: $after
+		query: $query
+		state: $state
+		orderBy: $orderBy
+		descending: $descending
+	) {
+		nodes {
+			id
+			prefix
+			note
+			scopes
+			createdAt
+			lastUsedAt
+			expiresAt
+			subject {
+				id
+				username
+			}
+			creator {
+				id
+				username
+			}
+		}
+		totalCount
+		pageInfo {
+			hasNextPage
+			endCursor
+		}
+	}
+	accessTokenCounts {
+		total
+		expired
+		unused
+	}
+}`;
+
+export type SiteAccessTokensResult = SiteAccessTokensQuery;
+export type SiteAccessTokensVariables = SiteAccessTokensQueryVariables;
 
 export const DELETE_ACCESS_TOKEN = `mutation DeleteAccessToken($byID: ID!) {
 	deleteAccessToken(byID: $byID) {

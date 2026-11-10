@@ -39,6 +39,7 @@ export const SITE_ADMIN_NAV: AdminNavSection[] = [
 			{ href: '/site-admin/teams', title: 'Teams' },
 			{ href: '/site-admin/roles', title: 'Roles' },
 			{ href: '/site-admin/access-requests', title: 'Access requests' },
+			{ href: '/site-admin/access-tokens', title: 'Access tokens' },
 			{ href: '/site-admin/connected-apps', title: 'Connected apps' }
 		]
 	},

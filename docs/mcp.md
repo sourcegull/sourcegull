@@ -95,7 +95,8 @@ Redirect URIs must be loopback (`http://127.0.0.1:<any port>/…`, `http://local
 Tokens are opaque (`sko_…` and `skr_…`), stored hashed, and work only at `/.api/mcp`: GraphQL and
 the other APIs reject them. **User settings → Connected apps** lists the apps a user allowed,
 with when they were last used, and revokes them; **Site admin → Connected apps** lists every
-user's. Grants, refreshes, reuse of a rotated refresh token or a used code, and revocations are
+user's, 50 at a time, filtered by username or app and sorted by any column (GraphQL
+`connectedApps`). Grants, refreshes, reuse of a rotated refresh token or a used code, and revocations are
 [audit events](permissions.md#audit-events), and deactivating a user through SCIM revokes their
 grants.
 

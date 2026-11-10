@@ -4,7 +4,11 @@
  */
 
 import { REQUESTED_WITH_HEADER, REQUESTED_WITH_VALUE } from './graphql.ts';
-import type { AllOAuthGrantsQuery, CurrentUserOAuthGrantsQuery } from '#lib/graphql-types.ts';
+import type {
+	ConnectedAppsQuery,
+	ConnectedAppsQueryVariables,
+	CurrentUserOAuthGrantsQuery
+} from '#lib/graphql-types.ts';
 
 /** An authorization request waiting for the user's answer. */
 export interface AuthorizationRequest {
@@ -146,13 +150,27 @@ export const CURRENT_USER_OAUTH_GRANTS = `query CurrentUserOAuthGrants {
 
 export type CurrentUserOAuthGrantsResult = CurrentUserOAuthGrantsQuery;
 
-export const ALL_OAUTH_GRANTS = `query AllOAuthGrants {
-	oauthGrants {
-		${GRANT_FIELDS}
+export const CONNECTED_APPS = `query ConnectedApps(
+	$first: Int
+	$after: String
+	$query: String
+	$orderBy: OAuthGrantOrderBy
+	$descending: Boolean
+) {
+	connectedApps(first: $first, after: $after, query: $query, orderBy: $orderBy, descending: $descending) {
+		nodes {
+			${GRANT_FIELDS}
+		}
+		totalCount
+		pageInfo {
+			hasNextPage
+			endCursor
+		}
 	}
 }`;
 
-export type AllOAuthGrantsResult = AllOAuthGrantsQuery;
+export type ConnectedAppsResult = ConnectedAppsQuery;
+export type ConnectedAppsVariables = ConnectedAppsQueryVariables;
 
 export const REVOKE_OAUTH_GRANT = `mutation RevokeOAuthGrant($id: ID!) {
 	revokeOAuthGrant(id: $id) {

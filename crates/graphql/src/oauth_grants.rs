@@ -1,16 +1,20 @@
 //! Connected apps: the OAuth grants users gave MCP clients. `User.oauthGrants` lists a user's,
-//! `oauthGrants` every user's (site admins), and `revokeOAuthGrant` ends one.
+//! `connectedApps` pages through every user's (site admins), and `revokeOAuthGrant` ends one.
 //!
 //! Authorization is enforced by [`Authenticator`](sourcegull_authn::Authenticator): users see and
 //! revoke their own grants, site admins anyone's.
 
-use async_graphql::{Context, ID, Object, Result};
+use async_graphql::{Context, Enum, ID, Object, Result, SimpleObject};
 use chrono::{DateTime, Utc};
-use sourcegull_db::OAuthGrant;
+use sourcegull_db::{ListOAuthGrantsOptions, OAuthGrant, OAuthGrantOrder};
 use sourcegull_services::relay::{marshal_id, unmarshal_int_id};
 
 use crate::EmptyResponse;
-use crate::context::{auth_error, codes, error, require_viewer, services};
+use crate::context::{
+    auth_error, codes, db_error, error, page_size, require_site_admin, require_viewer, services,
+    to_int,
+};
+use crate::pagination::{PageInfo, decode_cursor};
 use crate::users::{UserNode, load_user};
 
 /// Node kind of OAuth grant IDs.
@@ -82,6 +86,32 @@ impl OAuthGrantNode {
     }
 }
 
+/// Sort order of `connectedApps`.
+#[derive(Enum, Copy, Clone, Debug, PartialEq, Eq, Default)]
+#[graphql(name = "OAuthGrantOrderBy")]
+pub enum OAuthGrantOrderBy {
+    /// By when the user allowed the app.
+    #[default]
+    CreatedAt,
+    /// By the user's username.
+    Username,
+    /// By the app's name.
+    App,
+    /// By last use; apps never used count as the oldest.
+    LastUsedAt,
+}
+
+/// A page of connected apps.
+#[derive(SimpleObject)]
+#[graphql(name = "OAuthGrantConnection")]
+pub struct OAuthGrantConnection {
+    /// The connected apps on this page.
+    pub nodes: Vec<OAuthGrantNode>,
+    /// All connected apps matching the query.
+    pub total_count: i32,
+    pub page_info: PageInfo,
+}
+
 /// Every user's connected apps.
 #[derive(Default)]
 pub struct OAuthGrantsQuery;
@@ -89,6 +119,7 @@ pub struct OAuthGrantsQuery;
 #[Object]
 impl OAuthGrantsQuery {
     /// The connected apps of every user, newest first (site admins only).
+    #[graphql(deprecation = "Use `connectedApps`, which pages.")]
     async fn oauth_grants(&self, ctx: &Context<'_>) -> Result<Vec<OAuthGrantNode>> {
         let actor = require_viewer(ctx)?;
         let grants = services(ctx)?
@@ -97,6 +128,50 @@ impl OAuthGrantsQuery {
             .await
             .map_err(auth_error)?;
         Ok(grants.into_iter().map(OAuthGrantNode).collect())
+    }
+
+    /// A page of every user's connected apps (site admins only). `query` matches a substring of
+    /// the username, the app's name or its client ID.
+    async fn connected_apps(
+        &self,
+        ctx: &Context<'_>,
+        first: Option<i32>,
+        after: Option<String>,
+        query: Option<String>,
+        #[graphql(desc = "Default: `CREATED_AT`.")] order_by: Option<OAuthGrantOrderBy>,
+        #[graphql(desc = "Default: true (newest first).")] descending: Option<bool>,
+    ) -> Result<OAuthGrantConnection> {
+        require_site_admin(ctx)?;
+        // Explicit nulls mean the defaults.
+        let order_by = order_by.unwrap_or_default();
+        let descending = descending.unwrap_or(true);
+        let db = &services(ctx)?.db;
+        let limit = page_size(first, 50, 1000);
+        let offset = decode_cursor(after.as_deref())?;
+        let opts = ListOAuthGrantsOptions {
+            query: query.filter(|q| !q.trim().is_empty()),
+            order: match order_by {
+                OAuthGrantOrderBy::CreatedAt => OAuthGrantOrder::CreatedAt,
+                OAuthGrantOrderBy::Username => OAuthGrantOrder::Username,
+                OAuthGrantOrderBy::App => OAuthGrantOrder::App,
+                OAuthGrantOrderBy::LastUsedAt => OAuthGrantOrder::LastUsedAt,
+            },
+            descending,
+            limit: limit + 1,
+            offset,
+        };
+        let grants = db.oauth().list_grants_page(&opts).await.map_err(db_error)?;
+        let total = db.oauth().count_grants(&opts).await.map_err(db_error)?;
+        let page_info = PageInfo::new(offset, limit, grants.len());
+        Ok(OAuthGrantConnection {
+            nodes: grants
+                .into_iter()
+                .take(usize::try_from(limit).unwrap_or(0))
+                .map(OAuthGrantNode)
+                .collect(),
+            total_count: to_int(total),
+            page_info,
+        })
     }
 }
 
