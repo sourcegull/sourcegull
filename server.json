@@ -3,7 +3,7 @@
   "name": "io.github.sourcegull/sourcegull",
   "title": "Sourcegull",
   "description": "Code search and navigation across your GitLab, GitHub and Gitea repositories, self-hosted.",
-  "version": "0.8.3",
+  "version": "0.9.0",
   "repository": {
     "url": "https://github.com/sourcegull/sourcegull",
     "source": "github"

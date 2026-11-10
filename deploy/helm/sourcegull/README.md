@@ -215,6 +215,7 @@ use that only on throwaway installs.
 | 0.2.9 | Artifact Hub metadata: icon, links, licence, images |
 | 0.2.10 | Bundled PostgreSQL image `postgres:18.6-alpine` (was `-bookworm`); see the note below |
 | 0.2.11 | Sourcegull 0.8.3 |
+| 0.2.12 | Sourcegull 0.9.0 |
 
 Chart 0.2.10 changes the bundled database's image from the Debian to the Alpine build of the same
 PostgreSQL version; it starts on the existing data directory as it is. The two C libraries
