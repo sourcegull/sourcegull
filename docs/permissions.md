@@ -348,6 +348,13 @@ curl -H "Authorization: token <access token>" https://sourcegull.example.com/.ap
   their maximum lifetime (`maxTokenExpiresInDays`, default 365).
 - Tokens are stored hashed; a token is shown once, when it is created.
 
+**Site admin → Access tokens** lists every user's tokens, 50 at a time, with their prefix
+(`skp_` and the first 8 characters, enough to tell tokens apart), note, scopes and dates; it
+sorts by user, created, last used or expiry, filters by username or note, and revokes tokens.
+The counts at the top are for the whole site; **expired** and **unused 90+ days** (unexpired
+tokens not used in 90 days, or never used since they were created that long ago) narrow the list
+to those tokens. The GraphQL fields are `accessTokens` and `accessTokenCounts`.
+
 MCP clients can also sign in through the browser instead of using a pasted token; the tokens
 they get work only at the MCP endpoint and are listed under **User settings → Connected apps**
 ([OAuth sign-in](mcp.md#oauth-sign-in)).

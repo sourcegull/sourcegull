@@ -44,6 +44,7 @@ const ROLES = page('/site-admin/roles', 'Roles');
 const ORGS = page('/site-admin/organizations', 'Organizations');
 const TEAMS = page('/site-admin/teams', 'Teams');
 const CONNECTED_APPS = page('/site-admin/connected-apps', 'Connected apps');
+const ACCESS_TOKENS = page('/site-admin/access-tokens', 'Access tokens');
 const CONNECTIONS = page('/site-admin/external-services', 'Code host connections');
 const REPOS = page('/site-admin/repositories', 'Repositories');
 const REPO_NODES = page('/site-admin/repo-nodes', 'Repo nodes');
@@ -61,12 +62,13 @@ const CODE_INTEL_LINKS = [CODE_GRAPH, COVERAGE, INFERENCE, EXECUTORS, EXECUTOR_S
 
 /** Related links per site admin route (SvelteKit route id without the `(app)` group). */
 export const BY_ROUTE: Record<string, RelatedLink[]> = {
-	'/site-admin/users': [AUTH, ACCESS_REQUESTS, ROLES, ORGS, TEAMS],
+	'/site-admin/users': [AUTH, ACCESS_REQUESTS, ACCESS_TOKENS, ROLES, ORGS, TEAMS],
 	'/site-admin/access-requests': [AUTH, USERS],
 	'/site-admin/roles': [USERS, PERMISSIONS],
 	'/site-admin/organizations': [USERS, TEAMS],
 	'/site-admin/teams': [USERS, ORGS, PERMISSIONS],
-	'/site-admin/connected-apps': [AUTH, page('/connect-agent', 'Connect an agent')],
+	'/site-admin/connected-apps': [AUTH, ACCESS_TOKENS, page('/connect-agent', 'Connect an agent')],
+	'/site-admin/access-tokens': [AUTH, USERS, CONNECTED_APPS],
 	'/site-admin/external-services': CONNECTION_LINKS,
 	'/site-admin/external-services/new': CONNECTION_LINKS,
 	'/site-admin/external-services/[id]': CONNECTION_LINKS,
@@ -93,7 +95,7 @@ export const BY_ROUTE: Record<string, RelatedLink[]> = {
 
 /** Pages controlled by each configuration section, shown with the section. */
 const BY_SECTION: Partial<Record<ConfigSectionId, RelatedLink[]>> = {
-	auth: [USERS, ACCESS_REQUESTS, CONNECTED_APPS, CONNECTIONS],
+	auth: [USERS, ACCESS_REQUESTS, ACCESS_TOKENS, CONNECTED_APPS, CONNECTIONS],
 	permissions: [REPO_PERMISSIONS, USERS, ROLES, TEAMS],
 	repositories: [CONNECTIONS, REPOS, REPO_NODES],
 	search: [REPOS, CONNECTIONS],

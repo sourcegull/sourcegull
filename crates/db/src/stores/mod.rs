@@ -41,7 +41,10 @@ mod users;
 pub use access_requests::{
     AccessRequest, AccessRequestStatus, AccessRequestStore, INVITE_TTL_HOURS,
 };
-pub use access_tokens::{AccessToken, AccessTokenStore, NewAccessToken, TokenRecord};
+pub use access_tokens::{
+    AccessToken, AccessTokenCounts, AccessTokenOrder, AccessTokenState, AccessTokenStore,
+    ListAccessTokensOptions, NewAccessToken, TokenRecord,
+};
 pub use accounts::{AccountStore, CreatedAccount, NewAccount};
 pub use admin_logs::{
     NewOutboundRequest, NewSlowRequest, OutboundRequestLogItem, OutboundRequestStore,
@@ -70,8 +73,9 @@ pub use feature_flags::{
 };
 pub use gitserver_repos::{FetchResult, FetchSchedule, GitserverRepoStore};
 pub use oauth::{
-    NewOAuthAuthorization, NewOAuthClient, NewOAuthToken, OAuthAccessRecord, OAuthAuthorization,
-    OAuthClient, OAuthClientKind, OAuthGrant, OAuthStore, RefreshOutcome,
+    ListOAuthGrantsOptions, NewOAuthAuthorization, NewOAuthClient, NewOAuthToken,
+    OAuthAccessRecord, OAuthAuthorization, OAuthClient, OAuthClientKind, OAuthGrant,
+    OAuthGrantOrder, OAuthStore, RefreshOutcome,
 };
 pub use oobmigrations::{
     MAX_MIGRATION_ERRORS, MigrationDescriptor, MinorVersion, OutOfBandMigration,

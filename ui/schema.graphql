@@ -43,6 +43,10 @@ type AccessToken {
 	"""
 	id: ID!
 	"""
+	The first characters of the token after `skp_`, to tell tokens apart (not secret).
+	"""
+	prefix: String!
+	"""
 	The user's note describing the token.
 	"""
 	note: String!
@@ -84,6 +88,65 @@ type AccessTokenConnection {
 	The number of tokens in total.
 	"""
 	totalCount: Int!
+	pageInfo: PageInfo!
+}
+
+"""
+Token totals for the whole site (tokens of deactivated users are not counted).
+"""
+type AccessTokenCounts {
+	"""
+	Every token, expired ones included.
+	"""
+	total: Int!
+	"""
+	Tokens past their expiry.
+	"""
+	expired: Int!
+	"""
+	Unexpired tokens not used in the last 90 days.
+	"""
+	unused: Int!
+}
+
+"""
+Sort order of `accessTokens`.
+"""
+enum AccessTokenOrderBy {
+	"""
+	By when the token was created.
+	"""
+	CREATED_AT
+	"""
+	By the username of the user the token acts as.
+	"""
+	USERNAME
+	"""
+	By last use; tokens never used count as the oldest.
+	"""
+	LAST_USED_AT
+	"""
+	By expiry; tokens that never expire count as the latest.
+	"""
+	EXPIRES_AT
+}
+
+"""
+Which tokens `accessTokens` lists.
+"""
+enum AccessTokenState {
+	"""
+	Every token, expired ones included.
+	"""
+	ALL
+	"""
+	Tokens past their expiry.
+	"""
+	EXPIRED
+	"""
+	Unexpired tokens not used in the last 90 days (counted from creation if never used).
+	"""
+	UNUSED
 }
 
 """
@@ -6207,6 +6270,43 @@ type OAuthGrant {
 	user: User!
 }
 
+"""
+A page of connected apps.
+"""
+type OAuthGrantConnection {
+	"""
+	The connected apps on this page.
+	"""
+	nodes: [OAuthGrant!]!
+	"""
+	All connected apps matching the query.
+	"""
+	totalCount: Int!
+	pageInfo: PageInfo!
+}
+
+"""
+Sort order of `connectedApps`.
+"""
+enum OAuthGrantOrderBy {
+	"""
+	By when the user allowed the app.
+	"""
+	CREATED_AT
+	"""
+	By the user's username.
+	"""
+	USERNAME
+	"""
+	By the app's name.
+	"""
+	APP
+	"""
+	By last use; apps never used count as the oldest.
+	"""
+	LAST_USED_AT
+}
+
 type Org implements SettingsSubject & Namespace & Node {
 	"""
 	The opaque node ID.
@@ -7520,7 +7620,43 @@ type QueryRoot {
 	"""
 	The connected apps of every user, newest first (site admins only).
 	"""
-	oauthGrants: [OAuthGrant!]!
+	oauthGrants: [OAuthGrant!]! @deprecated(reason: "Use `connectedApps`, which pages.")
+	"""
+	A page of every user's connected apps (site admins only). `query` matches a substring of
+	the username, the app's name or its client ID.
+	"""
+	connectedApps(		first: Int,		after: String,		query: String,
+		"""
+		Default: `CREATED_AT`.
+		"""
+		orderBy: OAuthGrantOrderBy,
+		"""
+		Default: true (newest first).
+		"""
+		descending: Boolean
+	): OAuthGrantConnection!
+	"""
+	A page of every user's access tokens (site admins only). `query` matches a substring of
+	the username of the user a token acts as, or of its note.
+	"""
+	accessTokens(		first: Int,		after: String,		query: String,
+		"""
+		Default: `ALL`.
+		"""
+		state: AccessTokenState,
+		"""
+		Default: `CREATED_AT`.
+		"""
+		orderBy: AccessTokenOrderBy,
+		"""
+		Default: true (newest first).
+		"""
+		descending: Boolean
+	): AccessTokenConnection!
+	"""
+	Numbers of every user's tokens: all, expired and unused (site admins only).
+	"""
+	accessTokenCounts: AccessTokenCounts!
 	"""
 	Contexts the viewer may read: `global` first, then the viewer's
 	default, starred ones, and the rest in `orderBy` order.

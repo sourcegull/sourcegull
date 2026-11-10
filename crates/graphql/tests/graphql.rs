@@ -691,6 +691,174 @@ async fn access_tokens_create_list_delete() {
 }
 
 #[tokio::test]
+async fn site_admins_page_through_every_users_tokens() {
+    let Some(env) = setup().await else { return };
+    let create = "mutation($user: ID!, $note: String!) {
+        createAccessToken(user: $user, scopes: [\"user:all\"], note: $note) { id } }";
+    let alice_id = marshal_id("User", env.alice.get());
+    let admin_id = marshal_id("User", env.admin.get());
+    for (who, user, note) in [
+        (env.alice, &alice_id, "ci"),
+        (env.alice, &alice_id, "laptop"),
+        (env.admin, &admin_id, "ops"),
+    ] {
+        env.ok(Some(who), create, json!({ "user": user, "note": note }))
+            .await;
+    }
+    // "laptop" has expired; "ops" was last used 100 days ago.
+    sourcegull_db::sqlx::query(
+        "UPDATE access_tokens SET expires_at = now() - interval '1 day' WHERE note = 'laptop'",
+    )
+    .execute(env.db.pool())
+    .await
+    .unwrap();
+    sourcegull_db::sqlx::query(
+        "UPDATE access_tokens SET created_at = now() - interval '200 days',
+             last_used_at = now() - interval '100 days' WHERE note = 'ops'",
+    )
+    .execute(env.db.pool())
+    .await
+    .unwrap();
+
+    let list = "query($first: Int, $after: String, $query: String, $state: AccessTokenState,
+            $orderBy: AccessTokenOrderBy, $descending: Boolean) {
+        accessTokens(first: $first, after: $after, query: $query, state: $state,
+            orderBy: $orderBy, descending: $descending) {
+            totalCount nodes { note prefix subject { username } } pageInfo { hasNextPage endCursor }
+        } }";
+    let notes = |d: &Value| -> Vec<String> {
+        d["accessTokens"]["nodes"]
+            .as_array()
+            .unwrap()
+            .iter()
+            .map(|n| n["note"].as_str().unwrap().to_owned())
+            .collect()
+    };
+    env.err(Some(env.alice), list, json!({}), "FORBIDDEN").await;
+    env.err(
+        Some(env.alice),
+        "{ accessTokenCounts { total } }",
+        json!({}),
+        "FORBIDDEN",
+    )
+    .await;
+
+    let all = env.ok(Some(env.admin), list, json!({})).await;
+    assert_eq!(all["accessTokens"]["totalCount"], 3);
+    assert_eq!(
+        notes(&all),
+        ["laptop", "ci", "ops"],
+        "newest first by default"
+    );
+    assert_eq!(
+        all["accessTokens"]["nodes"][0]["prefix"]
+            .as_str()
+            .unwrap()
+            .len(),
+        8
+    );
+    let alice = env
+        .ok(Some(env.admin), list, json!({ "query": "ALI" }))
+        .await;
+    assert_eq!(alice["accessTokens"]["totalCount"], 2);
+    let expired = env
+        .ok(Some(env.admin), list, json!({ "state": "EXPIRED" }))
+        .await;
+    assert_eq!(notes(&expired), ["laptop"]);
+    let unused = env
+        .ok(Some(env.admin), list, json!({ "state": "UNUSED" }))
+        .await;
+    assert_eq!(notes(&unused), ["ops"]);
+    let by_last_use = env
+        .ok(
+            Some(env.admin),
+            list,
+            json!({ "orderBy": "LAST_USED_AT", "descending": true }),
+        )
+        .await;
+    assert_eq!(notes(&by_last_use)[0], "ops", "never used counts as oldest");
+
+    let page = json!({ "first": 2, "orderBy": "USERNAME", "descending": false });
+    let first = env.ok(Some(env.admin), list, page.clone()).await;
+    assert_eq!(notes(&first), ["ops", "laptop"]);
+    assert_eq!(first["accessTokens"]["pageInfo"]["hasNextPage"], true);
+    let mut next = page;
+    next["after"] = first["accessTokens"]["pageInfo"]["endCursor"].clone();
+    let second = env.ok(Some(env.admin), list, next).await;
+    assert_eq!(notes(&second), ["ci"]);
+    assert_eq!(second["accessTokens"]["pageInfo"]["hasNextPage"], false);
+
+    let counts = env
+        .ok(
+            Some(env.admin),
+            "{ accessTokenCounts { total expired unused } }",
+            json!({}),
+        )
+        .await;
+    assert_eq!(
+        counts["accessTokenCounts"],
+        json!({ "total": 3, "expired": 1, "unused": 1 })
+    );
+}
+
+#[tokio::test]
+async fn site_admins_page_through_every_users_connected_apps() {
+    let Some(env) = setup().await else { return };
+    let pool = env.db.pool();
+    for (client, name, user) in [
+        ("https://a.example/client", "Alpha", env.alice),
+        ("https://b.example/client", "", env.alice),
+        ("https://c.example/client", "Gamma", env.admin),
+    ] {
+        sourcegull_db::sqlx::query(
+            "WITH c AS (INSERT INTO oauth_clients (client_id, kind, client_name, redirect_uris)
+                 VALUES ($1, 'metadata_document', $2, ARRAY['http://localhost/cb']) RETURNING id)
+             INSERT INTO oauth_grants (client_id, user_id, resource, scopes)
+             SELECT id, $3, 'https://sourcegull.test/.api/mcp', ARRAY['mcp'] FROM c",
+        )
+        .bind(client)
+        .bind(name)
+        .bind(user)
+        .execute(pool)
+        .await
+        .unwrap();
+    }
+    let list = "query($first: Int, $after: String, $query: String, $orderBy: OAuthGrantOrderBy,
+            $descending: Boolean) {
+        connectedApps(first: $first, after: $after, query: $query, orderBy: $orderBy,
+            descending: $descending) {
+            totalCount nodes { clientID user { username } } pageInfo { hasNextPage endCursor }
+        } }";
+    let clients = |d: &Value| -> Vec<String> {
+        d["connectedApps"]["nodes"]
+            .as_array()
+            .unwrap()
+            .iter()
+            .map(|n| n["clientID"].as_str().unwrap().to_owned())
+            .collect()
+    };
+    env.err(Some(env.alice), list, json!({}), "FORBIDDEN").await;
+    let all = env.ok(Some(env.admin), list, json!({})).await;
+    assert_eq!(all["connectedApps"]["totalCount"], 3);
+    let gamma = env
+        .ok(Some(env.admin), list, json!({ "query": "gamm" }))
+        .await;
+    assert_eq!(clients(&gamma), ["https://c.example/client"]);
+    let by_app = json!({ "first": 2, "orderBy": "APP", "descending": false });
+    let first = env.ok(Some(env.admin), list, by_app.clone()).await;
+    // A nameless app sorts by its client ID.
+    assert_eq!(
+        clients(&first),
+        ["https://a.example/client", "https://c.example/client"]
+    );
+    assert_eq!(first["connectedApps"]["pageInfo"]["hasNextPage"], true);
+    let mut next = by_app;
+    next["after"] = first["connectedApps"]["pageInfo"]["endCursor"].clone();
+    let second = env.ok(Some(env.admin), list, next).await;
+    assert_eq!(clients(&second), ["https://b.example/client"]);
+}
+
+#[tokio::test]
 async fn set_user_is_site_admin_guards_last_admin() {
     let Some(env) = setup().await else { return };
     let m = "mutation SetUserIsSiteAdmin($userID: ID!, $siteAdmin: Boolean!) {

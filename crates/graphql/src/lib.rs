@@ -106,6 +106,7 @@ pub struct QueryRoot<F: ObjectType>(
     feature_flags::FeatureFlagsQuery,
     temporary_settings::TemporarySettingsQuery,
     oauth_grants::OAuthGrantsQuery,
+    tokens::TokensQuery,
     F,
 );
 
