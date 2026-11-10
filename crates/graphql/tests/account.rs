@@ -503,6 +503,53 @@ async fn deactivate_and_reactivate_users() {
     let all = env.ok(env.admin, list, json!({"all": true})).await;
     assert_eq!(all["users"]["totalCount"], 2);
     assert!(all["users"]["nodes"][1]["deactivatedAt"].is_string());
+    let names = |data: &serde_json::Value| -> Vec<String> {
+        data["users"]["nodes"]
+            .as_array()
+            .unwrap()
+            .iter()
+            .map(|n| n["username"].as_str().unwrap().to_owned())
+            .collect()
+    };
+    let only_deactivated = env
+        .ok(
+            env.admin,
+            "{ users(deactivated: true) { totalCount nodes { username } } }",
+            json!({}),
+        )
+        .await;
+    assert_eq!(only_deactivated["users"]["totalCount"], 1);
+    assert_eq!(names(&only_deactivated), ["alice"]);
+    let admins = env
+        .ok(
+            env.admin,
+            "{ users(siteAdmin: true) { totalCount nodes { username } } }",
+            json!({}),
+        )
+        .await;
+    assert_eq!(names(&admins), ["admin"]);
+    let counts = env
+        .ok(
+            env.admin,
+            "{ userCounts { users siteAdmins deactivated } }",
+            json!({}),
+        )
+        .await;
+    assert_eq!(
+        counts["userCounts"],
+        json!({"users": 1, "siteAdmins": 1, "deactivated": 1})
+    );
+    let paged = "query($after: String) { users(first: 1, after: $after, includeDeactivated: true, \
+                 orderBy: USERNAME, descending: true) { totalCount nodes { username } \
+                 pageInfo { hasNextPage endCursor } } }";
+    let first = env.ok(env.admin, paged, json!({})).await;
+    assert_eq!(names(&first), ["alice"]);
+    assert_eq!(first["users"]["totalCount"], 2);
+    assert_eq!(first["users"]["pageInfo"]["hasNextPage"], true);
+    let after = first["users"]["pageInfo"]["endCursor"].clone();
+    let second = env.ok(env.admin, paged, json!({"after": after})).await;
+    assert_eq!(names(&second), ["admin"]);
+    assert_eq!(second["users"]["pageInfo"]["hasNextPage"], false);
 
     env.err(
         env.admin,

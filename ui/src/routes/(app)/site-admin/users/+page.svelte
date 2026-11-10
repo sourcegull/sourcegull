@@ -19,7 +19,7 @@
 		type UsersResult,
 		type UsersVariables
 	} from '#lib/queries.ts';
-	import type { CreateUserMutation, CreateUserMutationVariables } from '#lib/graphql-types.ts';
+	import type { CreateUserMutation, CreateUserMutationVariables, UserOrderBy } from '#lib/graphql-types.ts';
 	import {
 		CREATE_USER,
 		DEACTIVATE_USER,
@@ -35,9 +35,17 @@
 
 	let users = $state<UserNode[]>([]);
 	let totalCount = $state(0);
+	let counts = $state<UsersResult['userCounts'] | null>(null);
+	let order = $state<UserOrderBy>('USERNAME');
+	let descending = $state(false);
+	/** Cursors of the pages before the current one, and the current page's. */
+	let cursors = $state<(string | null)[]>([null]);
+	let nextCursor = $state<string | null>(null);
 	// `?query=` prefills the filter, for links to one user.
 	let query = $state(page.url.searchParams.get('query') ?? '');
 	let includeDeactivated = $state(false);
+	/** Which users the list shows: all of them, only site admins, or only deactivated users. */
+	let show = $state<'all' | 'admins' | 'deactivated'>('all');
 	let loading = $state(true);
 	let error = $state<string | null>(null);
 	let pending = $state<string | null>(null);
@@ -92,12 +100,25 @@
 		try {
 			const result = await graphql<UsersResult, UsersVariables>(USERS, {
 				first: PAGE_SIZE,
+				after: cursors[cursors.length - 1] ?? null,
 				query: query.trim() || null,
-				includeDeactivated
+				includeDeactivated,
+				deactivated: show === 'deactivated',
+				siteAdmin: show === 'admins' ? true : null,
+				orderBy: order,
+				descending
 			});
 			if (seq !== requestSeq) return;
 			users = result.users.nodes;
 			totalCount = result.users.totalCount;
+			counts = result.userCounts;
+			nextCursor = result.users.pageInfo.hasNextPage ? result.users.pageInfo.endCursor : null;
+			// The page emptied (users deactivated, or fewer matches): step back to one with users.
+			if (users.length === 0 && cursors.length > 1) {
+				cursors = cursors.slice(0, -1);
+				void load();
+				return;
+			}
 		} catch (err) {
 			if (seq === requestSeq) error = errorMessage(err);
 		} finally {
@@ -105,11 +126,59 @@
 		}
 	}
 
+	/** Reloads from the first page, after the filter or the order changed. */
+	function restart(): void {
+		cursors = [null];
+		void load();
+	}
+
 	let debounce: ReturnType<typeof setTimeout> | undefined;
 	function oninput(): void {
 		clearTimeout(debounce);
-		debounce = setTimeout(load, 200);
+		debounce = setTimeout(restart, 200);
 	}
+
+	function nextPage(): void {
+		if (!nextCursor) return;
+		cursors = [...cursors, nextCursor];
+		void load();
+	}
+
+	function previousPage(): void {
+		if (cursors.length < 2) return;
+		cursors = cursors.slice(0, -1);
+		void load();
+	}
+
+	/** Sorts by `o`, or flips the direction when already sorted by it. */
+	function sortBy(o: UserOrderBy): void {
+		if (order === o) {
+			descending = !descending;
+		} else {
+			order = o;
+			// Newest users and site admins first; names A to Z.
+			descending = o === 'CREATED_AT' || o === 'SITE_ADMIN';
+		}
+		restart();
+	}
+	const arrow = (o: UserOrderBy) => (order === o ? (descending ? ' ↓' : ' ↑') : '');
+	const ariaSort = (o: UserOrderBy) => (order === o ? (descending ? 'descending' : 'ascending') : 'none');
+
+	/** Shows only site admins or only deactivated users; a second click shows everyone again. */
+	function showOnly(which: 'admins' | 'deactivated'): void {
+		show = show === which ? 'all' : which;
+		restart();
+	}
+
+	/** Clears the filter text, the deactivated checkbox and the admin/deactivated filter. */
+	function showAll(): void {
+		clearTimeout(debounce);
+		query = '';
+		includeDeactivated = false;
+		show = 'all';
+		restart();
+	}
+	const fmt = (n: number) => n.toLocaleString('en-US');
 
 	async function toggleSiteAdmin(user: UserNode): Promise<void> {
 		const siteAdmin = !user.siteAdmin;
@@ -238,11 +307,46 @@
 	<div>
 		<h1>Users</h1>
 		<p class="page-description">
-			{totalCount} total. Promote site admins and assign roles; roles grant permissions on the
+			Promote site admins and assign roles; roles grant permissions on the
 			<a href="/site-admin/roles">roles</a> page.
 		</p>
 		<RelatedLinks />
 	</div>
+</div>
+
+<div class="tiles" role="group" aria-label="Show users">
+	<button
+		type="button"
+		class="tile"
+		class:active={show === 'all' && !query.trim() && !includeDeactivated}
+		title="Show all users and clear the filter"
+		onclick={showAll}
+	>
+		<span class="value">{counts ? fmt(counts.users) : '–'}</span><span class="tile-label">users</span>
+	</button>
+	<button
+		type="button"
+		class="tile"
+		class:active={show === 'admins'}
+		aria-pressed={show === 'admins'}
+		title="Show only site admins"
+		onclick={() => showOnly('admins')}
+	>
+		<span class="value admins">{counts ? fmt(counts.siteAdmins) : '–'}</span><span class="tile-label">site admins</span>
+	</button>
+	<button
+		type="button"
+		class="tile"
+		class:active={show === 'deactivated'}
+		aria-pressed={show === 'deactivated'}
+		title="Show only deactivated users"
+		disabled={!counts?.deactivated && show !== 'deactivated'}
+		onclick={() => showOnly('deactivated')}
+	>
+		<span class="value" class:warn={!!counts?.deactivated}>{counts ? fmt(counts.deactivated) : '–'}</span><span
+			class="tile-label">deactivated</span
+		>
+	</button>
 </div>
 
 <section class="card create-card">
@@ -290,21 +394,6 @@
 	</p>
 </section>
 
-<div class="field filter">
-	<label class="visually-hidden" for="user-filter">Filter users</label>
-	<input
-		id="user-filter"
-		class="input"
-		type="search"
-		placeholder="Filter by username or name…"
-		bind:value={query}
-		{oninput}
-	/>
-	<label class="checkbox"
-		><input type="checkbox" bind:checked={includeDeactivated} onchange={load} /> Show deactivated users</label
-	>
-</div>
-
 {#if siteAdminsExclusive}<ManagedNotice kind="siteAdmins" />{/if}
 
 {#if error}
@@ -341,14 +430,62 @@
 	</div>
 {/if}
 
+<div class="list-bar">
+	<label class="visually-hidden" for="user-filter">Filter users</label>
+	<input
+		id="user-filter"
+		class="input filter"
+		type="search"
+		placeholder="Filter by username or name…"
+		bind:value={query}
+		{oninput}
+	/>
+	{#if show !== 'deactivated'}
+		<label class="checkbox"
+			><input type="checkbox" bind:checked={includeDeactivated} onchange={restart} /> Show deactivated users</label
+		>
+	{/if}
+	<span class="shown">
+		{#if show !== 'all'}
+			<strong>Only {show === 'admins' ? 'site admins' : 'deactivated users'}</strong>
+			<button type="button" class="btn btn-link" onclick={showAll}>Show all users</button>
+		{/if}
+	</span>
+	<span class="pager">
+		<span class="muted">
+			{#if totalCount > 0}
+				{fmt((cursors.length - 1) * PAGE_SIZE + 1)}–{fmt((cursors.length - 1) * PAGE_SIZE + users.length)} of
+				{fmt(totalCount)}
+			{/if}
+		</span>
+		<button class="btn btn-sm" type="button" disabled={cursors.length < 2 || loading} onclick={previousPage}
+			>Previous</button
+		>
+		<button class="btn btn-sm" type="button" disabled={!nextCursor || loading} onclick={nextPage}>Next</button>
+	</span>
+</div>
+
 <div class="table-scroll">
 	<table class="table table-bordered" aria-busy={loading}>
 		<thead>
 			<tr>
-				<th scope="col">Username</th>
-				<th scope="col">Display name</th>
-				<th scope="col">Created</th>
-				<th scope="col">Role</th>
+				<th scope="col" aria-sort={ariaSort('USERNAME')}
+					><button type="button" class="link" onclick={() => sortBy('USERNAME')}>Username{arrow('USERNAME')}</button
+					></th
+				>
+				<th scope="col" aria-sort={ariaSort('DISPLAY_NAME')}
+					><button type="button" class="link" onclick={() => sortBy('DISPLAY_NAME')}
+						>Display name{arrow('DISPLAY_NAME')}</button
+					></th
+				>
+				<th scope="col" aria-sort={ariaSort('CREATED_AT')}
+					><button type="button" class="link" onclick={() => sortBy('CREATED_AT')}>Created{arrow('CREATED_AT')}</button
+					></th
+				>
+				<th scope="col" aria-sort={ariaSort('SITE_ADMIN')}
+					><button type="button" class="link" onclick={() => sortBy('SITE_ADMIN')}>Role{arrow('SITE_ADMIN')}</button
+					></th
+				>
 				<th scope="col"><span class="visually-hidden">Actions</span></th>
 			</tr>
 		</thead>
@@ -453,13 +590,84 @@
 	</table>
 </div>
 
-{#if totalCount > users.length}
-	<p class="muted">
-		Showing the first {users.length} of {totalCount}. Use the filter to narrow the list.
-	</p>
-{/if}
-
 <style>
+	.tiles {
+		display: grid;
+		grid-template-columns: repeat(auto-fit, minmax(8rem, 10rem));
+		gap: var(--space-2);
+		margin-bottom: var(--space-5);
+	}
+	.tile {
+		display: flex;
+		flex-direction: column;
+		align-items: flex-start;
+		padding: var(--space-2) var(--space-3);
+		border: 1px solid var(--color-border);
+		border-radius: var(--radius);
+		background: var(--color-surface);
+		color: var(--color-text);
+		font: inherit;
+		text-align: left;
+	}
+	.tile {
+		cursor: pointer;
+	}
+	.tile:hover:not(:disabled) {
+		background: var(--color-bg-hover);
+		border-color: var(--color-border-strong);
+	}
+	.tile.active {
+		border-color: var(--color-primary);
+		box-shadow: inset 0 0 0 1px var(--color-primary);
+	}
+	.tile:disabled {
+		cursor: default;
+	}
+	.tile .value {
+		font-size: var(--text-xl);
+		font-weight: var(--weight-semibold);
+		font-variant-numeric: tabular-nums;
+	}
+	.tile .value.admins {
+		color: var(--color-primary);
+	}
+	.tile .value.warn {
+		color: var(--color-warning);
+	}
+	.tile .tile-label {
+		color: var(--color-text-muted);
+	}
+	button.link {
+		background: none;
+		border: none;
+		padding: 0;
+		font: inherit;
+		text-transform: inherit;
+		letter-spacing: inherit;
+		color: inherit;
+		cursor: pointer;
+	}
+	button.link:hover {
+		color: var(--color-text);
+	}
+	.list-bar {
+		display: flex;
+		align-items: center;
+		flex-wrap: wrap;
+		gap: var(--space-2) var(--space-4);
+		margin-bottom: var(--space-3);
+	}
+	.list-bar .shown {
+		display: inline-flex;
+		align-items: center;
+		gap: var(--space-2);
+		margin-right: auto;
+	}
+	.pager {
+		display: inline-flex;
+		align-items: center;
+		gap: var(--space-2);
+	}
 	.create-card {
 		max-width: 48rem;
 		margin-bottom: var(--space-6);
@@ -476,8 +684,13 @@
 		margin-top: var(--space-2);
 		word-break: break-all;
 	}
-	.filter {
-		max-width: 24rem;
+	.list-bar .filter {
+		flex: 0 1 20rem;
+		width: auto;
+		min-width: 12rem;
+	}
+	.list-bar .checkbox {
+		margin-top: 0;
 	}
 	.checkbox {
 		display: inline-flex;

@@ -29,6 +29,22 @@ pub struct ProfileUpdate {
     pub avatar_url: Option<Option<String>>,
 }
 
+/// Sort order for [`UserStore::list`].
+#[derive(Debug, Clone, Copy, Default, PartialEq, Eq)]
+pub enum UserOrder {
+    /// By id, which is creation order.
+    #[default]
+    Id,
+    /// By username (case-insensitive).
+    Username,
+    /// By display name (case-insensitive), users without one last, then username.
+    DisplayName,
+    /// By creation time, then id.
+    CreatedAt,
+    /// By the site-admin flag (users before site admins when ascending), then username.
+    SiteAdmin,
+}
+
 /// Filters for [`UserStore::list`].
 #[derive(Debug, Clone)]
 pub struct ListUsersOptions {
@@ -36,8 +52,38 @@ pub struct ListUsersOptions {
     pub query: Option<String>,
     /// Include soft-deleted users.
     pub include_deleted: bool,
+    /// Only soft-deleted users (overrides `include_deleted`).
+    pub only_deleted: bool,
+    /// Only site admins (`Some(true)`) or only other users (`Some(false)`).
+    pub site_admin: Option<bool>,
+    pub order: UserOrder,
+    pub descending: bool,
     pub limit: i64,
     pub offset: i64,
+}
+
+/// The `WHERE` clause of [`UserStore::list`] and [`UserStore::count_listed`]: $1 include
+/// deleted, $2 name pattern, $3 only deleted, $4 site admin.
+const LIST_FILTER: &str = "($1 OR deleted_at IS NULL)
+    AND ($2::text IS NULL OR username ILIKE $2 OR display_name ILIKE $2)
+    AND (NOT $3 OR deleted_at IS NOT NULL)
+    AND ($4::boolean IS NULL OR site_admin = $4)";
+
+fn list_pattern(opts: &ListUsersOptions) -> Option<String> {
+    opts.query
+        .as_deref()
+        .map(|q| format!("%{}%", escape_like(q)))
+}
+
+/// User totals from [`UserStore::counts`].
+#[derive(Debug, Clone, Copy, Default, PartialEq, Eq)]
+pub struct UserCounts {
+    /// Live (not deactivated) users.
+    pub users: i64,
+    /// Live site admins.
+    pub site_admins: i64,
+    /// Deactivated (soft-deleted) users.
+    pub deactivated: i64,
 }
 
 impl Default for ListUsersOptions {
@@ -45,6 +91,10 @@ impl Default for ListUsersOptions {
         Self {
             query: None,
             include_deleted: false,
+            only_deleted: false,
+            site_admin: None,
+            order: UserOrder::Id,
+            descending: false,
             limit: 100,
             offset: 0,
         }
@@ -180,24 +230,44 @@ impl UserStore {
         .await?)
     }
 
-    /// Lists users ordered by id.
+    /// Lists users in `opts.order`.
     pub async fn list(&self, opts: &ListUsersOptions) -> Result<Vec<User>> {
-        let pattern = opts
-            .query
-            .as_deref()
-            .map(|q| format!("%{}%", escape_like(q)));
+        let dir = if opts.descending { "DESC" } else { "ASC" };
+        // Ties fall back to the username, then the id, so pages never overlap.
+        let order = match opts.order {
+            UserOrder::Id => format!("id {dir}"),
+            UserOrder::Username => format!("lower(username) {dir}, id {dir}"),
+            UserOrder::DisplayName => {
+                format!("lower(display_name) {dir} NULLS LAST, lower(username) {dir}, id {dir}")
+            }
+            UserOrder::CreatedAt => format!("created_at {dir}, id {dir}"),
+            UserOrder::SiteAdmin => format!("site_admin {dir}, lower(username), id"),
+        };
         Ok(sqlx::query_as(&format!(
-            "SELECT {USER_COLUMNS} FROM users
-             WHERE ($1 OR deleted_at IS NULL)
-               AND ($2::text IS NULL OR username ILIKE $2 OR display_name ILIKE $2)
-             ORDER BY id LIMIT $3 OFFSET $4"
+            "SELECT {USER_COLUMNS} FROM users WHERE {LIST_FILTER}
+             ORDER BY {order} LIMIT $5 OFFSET $6"
         ))
-        .bind(opts.include_deleted)
-        .bind(pattern)
+        .bind(opts.include_deleted || opts.only_deleted)
+        .bind(list_pattern(opts))
+        .bind(opts.only_deleted)
+        .bind(opts.site_admin)
         .bind(opts.limit)
         .bind(opts.offset)
         .fetch_all(&self.pool)
         .await?)
+    }
+
+    /// Number of users that [`Self::list`] lists for `opts`, over all pages.
+    pub async fn count_listed(&self, opts: &ListUsersOptions) -> Result<i64> {
+        Ok(
+            sqlx::query_scalar(&format!("SELECT count(*) FROM users WHERE {LIST_FILTER}"))
+                .bind(opts.include_deleted || opts.only_deleted)
+                .bind(list_pattern(opts))
+                .bind(opts.only_deleted)
+                .bind(opts.site_admin)
+                .fetch_one(&self.pool)
+                .await?,
+        )
     }
 
     /// Number of live users.
@@ -209,18 +279,21 @@ impl UserStore {
         )
     }
 
-    /// Number of users whose username or display name contains `query`
-    /// (case-insensitive), or of all users; live users only unless `include_deleted`.
-    pub async fn count_matching(&self, query: Option<&str>, include_deleted: bool) -> Result<i64> {
-        let pattern = query.map(|q| format!("%{}%", escape_like(q)));
-        Ok(sqlx::query_scalar(
-            "SELECT count(*) FROM users WHERE ($2 OR deleted_at IS NULL)
-               AND ($1::text IS NULL OR username ILIKE $1 OR display_name ILIKE $1)",
+    /// Live users, live site admins and deactivated users.
+    pub async fn counts(&self) -> Result<UserCounts> {
+        let (users, site_admins, deactivated): (i64, i64, i64) = sqlx::query_as(
+            "SELECT count(*) FILTER (WHERE deleted_at IS NULL),
+                    count(*) FILTER (WHERE site_admin AND deleted_at IS NULL),
+                    count(*) FILTER (WHERE deleted_at IS NOT NULL)
+             FROM users",
         )
-        .bind(pattern)
-        .bind(include_deleted)
         .fetch_one(&self.pool)
-        .await?)
+        .await?;
+        Ok(UserCounts {
+            users,
+            site_admins,
+            deactivated,
+        })
     }
 
     /// Number of live site admins.

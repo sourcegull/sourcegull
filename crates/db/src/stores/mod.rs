@@ -126,7 +126,10 @@ pub use sync_jobs::{SYNC_JOBS_TABLE, SyncJob, SyncJobRecord, SyncJobStore, SyncR
 pub use temporary_settings::TemporarySettingsStore;
 pub use token_checks::{StoredExpiry, TokenCheck, TokenCheckStore};
 pub use user_emails::UserEmailStore;
-pub use users::{ListUsersOptions, LockoutPolicy, LoginFailure, NewUser, ProfileUpdate, UserStore};
+pub use users::{
+    ListUsersOptions, LockoutPolicy, LoginFailure, NewUser, ProfileUpdate, UserCounts, UserOrder,
+    UserStore,
+};
 
 /// Names of the seeded system roles (`roles.name`).
 pub mod system_roles {

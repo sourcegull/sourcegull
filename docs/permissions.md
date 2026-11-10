@@ -387,6 +387,11 @@ and blocks sign-in; it frees the username. **Show deactivated users** lists them
 **Reactivate** action, which restores the account (access tokens stay revoked) unless another
 user has taken the username meanwhile. Site admins cannot deactivate themselves.
 
+The page lists users 50 at a time and sorts by any column. The counts at the top (users, site
+admins, deactivated users) are for the whole site; **site admins** and **deactivated** narrow the
+list to those users, and **users** clears every filter. The GraphQL fields are `users` (with
+`siteAdmin`, `deactivated`, `orderBy` and `descending`) and `userCounts`.
+
 The username, emails and active state of [SCIM](#scim-provisioning)-managed users change only
 through the identity provider.
 

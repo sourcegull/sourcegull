@@ -22,7 +22,7 @@ use crate::audit::{self, events};
 use crate::context::{
     codes, db_error, error, page_size, require_site_admin, services, to_int, validation,
 };
-use crate::pagination::{PageInfo, decode_cursor};
+use crate::pagination::{PageInfo, decode_cursor, encode_cursor};
 use crate::repos::{RepositoryConnection, RepositoryNode, parse_repository_id};
 use crate::users::{UserConnection, UserNode, parse_user_id};
 
@@ -239,6 +239,11 @@ pub(crate) async fn repository_authorized_users(
         .repo_users(repo, limit, offset)
         .await
         .map_err(db_error)?;
+    let has_next_page = offset + i64::try_from(ids.len()).unwrap_or(i64::MAX) < total;
+    let page_info = PageInfo {
+        has_next_page,
+        end_cursor: has_next_page.then(|| encode_cursor(offset + limit)),
+    };
     let mut nodes = Vec::with_capacity(ids.len());
     for id in ids {
         if let Some(u) = db.users().get_by_id(id).await.map_err(db_error)? {
@@ -248,6 +253,7 @@ pub(crate) async fn repository_authorized_users(
     Ok(UserConnection {
         nodes,
         total_count: to_int(total),
+        page_info,
     })
 }
 

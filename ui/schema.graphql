@@ -7299,9 +7299,15 @@ type QueryRoot {
 	user(username: String!): User
 	"""
 	Lists users, optionally filtered by a substring of the username or display name, with
-	deactivated users when `includeDeactivated` is set (site admins only).
+	deactivated users when `includeDeactivated` is set (site admins only). `deactivated`
+	lists only deactivated users; `siteAdmin` only site admins (true) or only other users
+	(false).
 	"""
-	users(first: Int, query: String, includeDeactivated: Boolean): UserConnection!
+	users(first: Int, after: String, query: String, includeDeactivated: Boolean, deactivated: Boolean! = false, siteAdmin: Boolean, orderBy: UserOrderBy! = CREATED_AT, descending: Boolean! = false): UserConnection!
+	"""
+	Numbers of users, site admins and deactivated users (site admins only).
+	"""
+	userCounts: UserCounts!
 	"""
 	Access requests, oldest first, optionally in one state (site admins only). `after` is
 	the ID of the last request of the previous page.
@@ -10293,6 +10299,25 @@ type UserConnection {
 	All users matching the query.
 	"""
 	totalCount: Int!
+	pageInfo: PageInfo!
+}
+
+"""
+User totals for the whole site.
+"""
+type UserCounts {
+	"""
+	Users who are not deactivated.
+	"""
+	users: Int!
+	"""
+	Site admins who are not deactivated.
+	"""
+	siteAdmins: Int!
+	"""
+	Deactivated users.
+	"""
+	deactivated: Int!
 }
 
 type UserEmail {
@@ -10308,6 +10333,28 @@ type UserEmail {
 	Whether it is the user's primary address.
 	"""
 	isPrimary: Boolean!
+}
+
+"""
+Sort order of `users`.
+"""
+enum UserOrderBy {
+	"""
+	By when the user was created.
+	"""
+	CREATED_AT
+	"""
+	By username.
+	"""
+	USERNAME
+	"""
+	By display name; users without one come last.
+	"""
+	DISPLAY_NAME
+	"""
+	By whether the user is a site admin (users first when ascending), then username.
+	"""
+	SITE_ADMIN
 }
 
 """

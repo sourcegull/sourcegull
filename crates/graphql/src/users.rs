@@ -5,12 +5,12 @@ use std::borrow::Cow;
 use async_graphql::parser::types::Field;
 use async_graphql::registry::Registry;
 use async_graphql::{
-    Context, ContextSelectionSet, ID, Interface, Object, OutputType, Positioned, Result,
+    Context, ContextSelectionSet, Enum, ID, Interface, Object, OutputType, Positioned, Result,
     ServerResult, SimpleObject, Value,
 };
 use chrono::{DateTime, Utc};
 use serde_json::json;
-use sourcegull_db::ListUsersOptions;
+use sourcegull_db::{ListUsersOptions, UserOrder};
 use sourcegull_services::relay::marshal_id;
 use sourcegull_types::{User, UserEmail, UserId};
 
@@ -23,6 +23,7 @@ use crate::context::{
 };
 use crate::oauth_grants::OAuthGrantNode;
 use crate::orgs::{OrgConnection, OrgNode};
+use crate::pagination::{PageInfo, decode_cursor};
 use crate::tokens::AccessTokenConnection;
 
 pub use sourcegull_graphql_core::ids::{USER_KIND, parse_user_id};
@@ -429,6 +430,32 @@ pub struct UserConnection {
     pub nodes: Vec<UserNode>,
     /// All users matching the query.
     pub total_count: i32,
+    pub page_info: PageInfo,
+}
+
+/// Sort order of `users`.
+#[derive(Enum, Copy, Clone, Debug, PartialEq, Eq, Default)]
+pub enum UserOrderBy {
+    /// By when the user was created.
+    #[default]
+    CreatedAt,
+    /// By username.
+    Username,
+    /// By display name; users without one come last.
+    DisplayName,
+    /// By whether the user is a site admin (users first when ascending), then username.
+    SiteAdmin,
+}
+
+/// User totals for the whole site.
+#[derive(SimpleObject)]
+pub struct UserCounts {
+    /// Users who are not deactivated.
+    pub users: i32,
+    /// Site admins who are not deactivated.
+    pub site_admins: i32,
+    /// Deactivated users.
+    pub deactivated: i32,
 }
 
 /// User queries.
@@ -464,36 +491,65 @@ impl UsersQuery {
     }
 
     /// Lists users, optionally filtered by a substring of the username or display name, with
-    /// deactivated users when `includeDeactivated` is set (site admins only).
+    /// deactivated users when `includeDeactivated` is set (site admins only). `deactivated`
+    /// lists only deactivated users; `siteAdmin` only site admins (true) or only other users
+    /// (false).
+    #[allow(clippy::too_many_arguments)]
     async fn users(
         &self,
         ctx: &Context<'_>,
         first: Option<i32>,
+        after: Option<String>,
         query: Option<String>,
         include_deactivated: Option<bool>,
+        #[graphql(default)] deactivated: bool,
+        site_admin: Option<bool>,
+        #[graphql(default)] order_by: UserOrderBy,
+        #[graphql(default)] descending: bool,
     ) -> Result<UserConnection> {
         require_site_admin(ctx)?;
         let db = &services(ctx)?.db;
         let include_deactivated = include_deactivated.unwrap_or(false);
         let query = query.filter(|q| !q.trim().is_empty());
-        let users = db
-            .users()
-            .list(&ListUsersOptions {
-                query: query.clone(),
-                include_deleted: include_deactivated,
-                limit: page_size(first, 50, 1000),
-                ..Default::default()
-            })
-            .await
-            .map_err(db_error)?;
-        let total = db
-            .users()
-            .count_matching(query.as_deref(), include_deactivated)
-            .await
-            .map_err(db_error)?;
+        let limit = page_size(first, 50, 1000);
+        let offset = decode_cursor(after.as_deref())?;
+        let opts = ListUsersOptions {
+            query,
+            include_deleted: include_deactivated,
+            only_deleted: deactivated,
+            site_admin,
+            order: match order_by {
+                UserOrderBy::CreatedAt => UserOrder::CreatedAt,
+                UserOrderBy::Username => UserOrder::Username,
+                UserOrderBy::DisplayName => UserOrder::DisplayName,
+                UserOrderBy::SiteAdmin => UserOrder::SiteAdmin,
+            },
+            descending,
+            limit: limit + 1,
+            offset,
+        };
+        let users = db.users().list(&opts).await.map_err(db_error)?;
+        let total = db.users().count_listed(&opts).await.map_err(db_error)?;
+        let page_info = PageInfo::new(offset, limit, users.len());
         Ok(UserConnection {
-            nodes: users.into_iter().map(UserNode).collect(),
+            nodes: users
+                .into_iter()
+                .take(usize::try_from(limit).unwrap_or(0))
+                .map(UserNode)
+                .collect(),
             total_count: to_int(total),
+            page_info,
+        })
+    }
+
+    /// Numbers of users, site admins and deactivated users (site admins only).
+    async fn user_counts(&self, ctx: &Context<'_>) -> Result<UserCounts> {
+        require_site_admin(ctx)?;
+        let c = services(ctx)?.db.users().counts().await.map_err(db_error)?;
+        Ok(UserCounts {
+            users: to_int(c.users),
+            site_admins: to_int(c.site_admins),
+            deactivated: to_int(c.deactivated),
         })
     }
 }
