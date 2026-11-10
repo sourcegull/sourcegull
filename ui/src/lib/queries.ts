@@ -25,7 +25,8 @@ import type {
 	SiteConfigurationQuery,
 	UpdateSiteConfigurationMutation,
 	UserExecutorSecretsQuery,
-	UsersQuery
+	UsersQuery,
+	UsersQueryVariables
 } from '#lib/graphql-types.ts';
 
 // ---- Site configuration ----------------------------------------------------------------------
@@ -66,8 +67,26 @@ export type OrganizeSiteConfigurationResult = OrganizeSiteConfigurationQuery;
 
 // ---- Users -----------------------------------------------------------------------------------
 
-export const USERS = `query Users($first: Int, $query: String, $includeDeactivated: Boolean) {
-	users(first: $first, query: $query, includeDeactivated: $includeDeactivated) {
+export const USERS = `query Users(
+	$first: Int
+	$after: String
+	$query: String
+	$includeDeactivated: Boolean
+	$deactivated: Boolean
+	$siteAdmin: Boolean
+	$orderBy: UserOrderBy
+	$descending: Boolean
+) {
+	users(
+		first: $first
+		after: $after
+		query: $query
+		includeDeactivated: $includeDeactivated
+		deactivated: $deactivated
+		siteAdmin: $siteAdmin
+		orderBy: $orderBy
+		descending: $descending
+	) {
 		nodes {
 			id
 			username
@@ -79,7 +98,9 @@ export const USERS = `query Users($first: Int, $query: String, $includeDeactivat
 			roles(first: 1000) { nodes { id name system } }
 		}
 		totalCount
+		pageInfo { hasNextPage endCursor }
 	}
+	userCounts { users siteAdmins deactivated }
 }`;
 
 export interface UserNode {
@@ -132,11 +153,7 @@ export const SET_ROLES = `mutation SetRoles($user: ID!, $roles: [ID!]!) {
 
 export type UsersResult = UsersQuery;
 
-export interface UsersVariables {
-	first?: number;
-	query?: string | null;
-	includeDeactivated?: boolean;
-}
+export type UsersVariables = UsersQueryVariables;
 
 export const SET_USER_IS_SITE_ADMIN = `mutation SetUserIsSiteAdmin($userID: ID!, $siteAdmin: Boolean!) {
 	setUserIsSiteAdmin(userID: $userID, siteAdmin: $siteAdmin) {

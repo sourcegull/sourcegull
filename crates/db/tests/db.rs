@@ -216,9 +216,18 @@ async fn user_store() {
     );
     assert!(users.get_by_username("nobody").await.unwrap().is_none());
     assert_eq!(users.count().await.unwrap(), 2);
-    assert_eq!(users.count_matching(None, false).await.unwrap(), 2);
-    assert_eq!(users.count_matching(Some("LIC"), false).await.unwrap(), 1);
-    assert_eq!(users.count_matching(Some("%"), false).await.unwrap(), 0);
+    let matching = |q: Option<&str>| ListUsersOptions {
+        query: q.map(Into::into),
+        ..Default::default()
+    };
+    assert_eq!(users.count_listed(&matching(None)).await.unwrap(), 2);
+    assert_eq!(users.count_listed(&matching(Some("LIC"))).await.unwrap(), 1);
+    assert_eq!(users.count_listed(&matching(Some("%"))).await.unwrap(), 0);
+    let admins = ListUsersOptions {
+        site_admin: Some(true),
+        ..Default::default()
+    };
+    assert_eq!(users.count_listed(&admins).await.unwrap(), 0);
     assert_eq!(users.count_site_admins().await.unwrap(), 0);
 
     let all = users.list(&ListUsersOptions::default()).await.unwrap();
@@ -245,6 +254,21 @@ async fn user_store() {
         ..Default::default()
     };
     assert_eq!(users.list(&page).await.unwrap()[0].id, bob);
+    let by_name_desc = ListUsersOptions {
+        order: sourcegull_db::UserOrder::Username,
+        descending: true,
+        ..Default::default()
+    };
+    assert_eq!(
+        users.list(&by_name_desc).await.unwrap()[0].id,
+        bob,
+        "bob sorts after alice"
+    );
+    let counts = users.counts().await.unwrap();
+    assert_eq!(
+        (counts.users, counts.site_admins, counts.deactivated),
+        (2, 0, 0)
+    );
 
     // Roles: USER on create, SITE_ADMINISTRATOR follows the flag.
     let roles = |id: UserId| {
@@ -366,6 +390,12 @@ async fn user_store() {
         ..Default::default()
     };
     assert_eq!(users.list(&with_deleted).await.unwrap().len(), 2);
+    let only_deleted = ListUsersOptions {
+        only_deleted: true,
+        ..Default::default()
+    };
+    assert_eq!(users.list(&only_deleted).await.unwrap().len(), 1);
+    assert_eq!(users.count_listed(&only_deleted).await.unwrap(), 1);
     let sessions: i64 = sqlx::query_scalar("SELECT count(*) FROM sessions")
         .fetch_one(db.pool())
         .await

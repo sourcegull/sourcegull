@@ -1022,6 +1022,17 @@ export type UsagesFilter = {
   repository?: RepositoryFilter | null | undefined;
 };
 
+/** Sort order of `users`. */
+export type UserOrderBy =
+  /** By when the user was created. */
+  | 'CREATED_AT'
+  /** By username. */
+  | 'USERNAME'
+  /** By display name; users without one come last. */
+  | 'DISPLAY_NAME'
+  /** By whether the user is a site admin (users first when ascending), then username. */
+  | 'SITE_ADMIN';
+
 export type CodeHostSignInsNeededQueryVariables = Exact<{ [key: string]: never; }>;
 
 
@@ -3398,12 +3409,17 @@ export type UserExecutorSecretsQuery = { currentUser: { id: string, executorSecr
 
 export type UsersQueryVariables = Exact<{
   first?: number | null | undefined;
+  after?: string | null | undefined;
   query?: string | null | undefined;
   includeDeactivated?: boolean | null | undefined;
+  deactivated?: boolean | null | undefined;
+  siteAdmin?: boolean | null | undefined;
+  orderBy?: UserOrderBy | null | undefined;
+  descending?: boolean | null | undefined;
 }>;
 
 
-export type UsersQuery = { users: { totalCount: number, nodes: Array<{ id: string, username: string, displayName: string | null, siteAdmin: boolean, scimControlled: boolean, createdAt: string, deactivatedAt: string | null, roles: { nodes: Array<{ id: string, name: string, system: boolean }> } }> } };
+export type UsersQuery = { users: { totalCount: number, nodes: Array<{ id: string, username: string, displayName: string | null, siteAdmin: boolean, scimControlled: boolean, createdAt: string, deactivatedAt: string | null, roles: { nodes: Array<{ id: string, name: string, system: boolean }> } }>, pageInfo: { hasNextPage: boolean, endCursor: string | null } }, userCounts: { users: number, siteAdmins: number, deactivated: number } };
 
 export type DeletePreciseIndexMutationVariables = Exact<{
   id: string | number;
