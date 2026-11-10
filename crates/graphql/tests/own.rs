@@ -555,3 +555,51 @@ async fn teams_api() {
         .await;
     assert!(d["team"].is_null());
 }
+
+#[tokio::test(flavor = "multi_thread", worker_threads = 2)]
+async fn team_members_page_and_filter() {
+    let Some(env) = setup().await else { return };
+    let d = env
+        .ok(
+            env.alice,
+            r#"mutation { createTeam(name: "paging") { id } }"#,
+            json!({}),
+        )
+        .await;
+    let team = d["createTeam"]["id"].clone();
+    env.ok(
+        env.alice,
+        r#"mutation($t: ID) { addTeamMembers(team: $t, members: [
+            { username: "admin" }, { username: "alice" }, { username: "bob" }]) { id } }"#,
+        json!({ "t": team }),
+    )
+    .await;
+    let list = r#"query($after: String, $search: String) { team(name: "paging") {
+        members(first: 2, after: $after, search: $search) {
+            totalCount pageInfo { hasNextPage endCursor }
+            nodes { ... on User { username } } } } }"#;
+    let names = |d: &Value| -> Vec<String> {
+        d["team"]["members"]["nodes"]
+            .as_array()
+            .unwrap()
+            .iter()
+            .map(|n| n["username"].as_str().unwrap().to_owned())
+            .collect()
+    };
+    // Any signed-in user reads a team's members, by username.
+    let first = env.ok(env.bob, list, json!({})).await;
+    assert_eq!(names(&first), ["admin", "alice"]);
+    assert_eq!(first["team"]["members"]["totalCount"], 3);
+    let info = &first["team"]["members"]["pageInfo"];
+    assert_eq!(info["hasNextPage"], true);
+    let second = env
+        .ok(env.bob, list, json!({ "after": info["endCursor"] }))
+        .await;
+    assert_eq!(names(&second), ["bob"]);
+    assert_eq!(second["team"]["members"]["pageInfo"]["hasNextPage"], false);
+
+    let found = env.ok(env.bob, list, json!({ "search": "AL" })).await;
+    assert_eq!(names(&found), ["alice"]);
+    assert_eq!(found["team"]["members"]["totalCount"], 1);
+    assert_eq!(found["team"]["members"]["pageInfo"]["hasNextPage"], false);
+}

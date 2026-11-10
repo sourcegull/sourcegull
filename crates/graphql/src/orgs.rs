@@ -18,7 +18,7 @@
 use async_graphql::{Context, Enum, ID, Object, Result, SimpleObject};
 use chrono::{DateTime, Utc};
 use serde_json::json;
-use sourcegull_db::{NewOrgInvitation, OrgInvitation};
+use sourcegull_db::{NewOrgInvitation, OrgInvitation, OrgOrder};
 use sourcegull_services::relay::{marshal_id, unmarshal_int_id};
 use sourcegull_types::{Org, OrgId, OrgInvitationId, OrgRole, SettingsSubject, UserId};
 
@@ -264,6 +264,17 @@ pub struct OrgConnection {
     pub nodes: Vec<OrgNode>,
     /// The number of organizations in total.
     pub total_count: i32,
+    pub page_info: PageInfo,
+}
+
+/// Sort order of `organizations`.
+#[derive(Enum, Copy, Clone, Debug, PartialEq, Eq, Default)]
+pub enum OrgOrderBy {
+    /// By name.
+    #[default]
+    Name,
+    /// By when the organization was created.
+    CreatedAt,
 }
 
 /// A page of users (an organization's members).
@@ -550,19 +561,36 @@ impl OrgsQuery {
         &self,
         ctx: &Context<'_>,
         first: Option<i32>,
+        after: Option<String>,
         query: Option<String>,
+        #[graphql(desc = "Default: `NAME`.")] order_by: Option<OrgOrderBy>,
+        #[graphql(desc = "Default: false (A to Z, oldest first).")] descending: Option<bool>,
     ) -> Result<OrgConnection> {
         require_site_admin(ctx)?;
+        // Explicit nulls mean the defaults.
+        let order = match order_by.unwrap_or_default() {
+            OrgOrderBy::Name => OrgOrder::Name,
+            OrgOrderBy::CreatedAt => OrgOrder::CreatedAt,
+        };
+        let descending = descending.unwrap_or(false);
         let orgs = services(ctx)?.db.orgs();
         let query = query.as_deref().map(str::trim);
+        let limit = page_size(first, 50, 1000);
+        let offset = decode_cursor(after.as_deref())?;
         let nodes = orgs
-            .list(query, page_size(first, 50, 1000), 0)
+            .list(query, order, descending, limit + 1, offset)
             .await
             .map_err(db_error)?;
         let total = orgs.count(query).await.map_err(db_error)?;
+        let page_info = PageInfo::new(offset, limit, nodes.len());
         Ok(OrgConnection {
-            nodes: nodes.into_iter().map(OrgNode).collect(),
+            nodes: nodes
+                .into_iter()
+                .take(usize::try_from(limit).unwrap_or(0))
+                .map(OrgNode)
+                .collect(),
             total_count: to_int(total),
+            page_info,
         })
     }
 

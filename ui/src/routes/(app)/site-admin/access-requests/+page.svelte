@@ -1,7 +1,10 @@
 <script lang="ts">
+	import Pager from '#lib/components/Pager.svelte';
 	import RelatedLinks from '#lib/components/RelatedLinks.svelte';
 	import { onMount } from 'svelte';
+	import { cursorPages, hasPreviousPage, pageAfter, pageLoaded, previousPage } from '#lib/cursor-pages.ts';
 	import { errorMessage, graphql } from '#lib/graphql.ts';
+	import type { AccessRequestsQueryVariables } from '#lib/graphql-types.ts';
 	import {
 		ACCESS_REQUESTS,
 		SET_ACCESS_REQUEST_STATUS,
@@ -11,28 +14,38 @@
 		type SetAccessRequestStatusVariables
 	} from '#lib/queries.ts';
 
-	const PAGE_SIZE = 100;
-
+	const pages = $state(cursorPages(50));
 	let requests = $state<AccessRequestNode[]>([]);
 	let totalCount = $state(0);
 	let loading = $state(true);
 	let error = $state<string | null>(null);
 	let pending = $state<string | null>(null);
 	let setupLink = $state<{ email: string; url: string } | null>(null);
+	let requestSeq = 0;
 
 	async function load(): Promise<void> {
+		const seq = ++requestSeq;
 		loading = true;
 		error = null;
 		try {
-			const result = await graphql<AccessRequestsResult, { first: number }>(ACCESS_REQUESTS, {
-				first: PAGE_SIZE
+			const result = await graphql<AccessRequestsResult, AccessRequestsQueryVariables>(ACCESS_REQUESTS, {
+				first: pages.size,
+				after: pageAfter(pages)
 			});
+			if (seq !== requestSeq) return;
 			requests = result.accessRequests.nodes;
 			totalCount = result.accessRequests.totalCount;
+			pageLoaded(pages, result.accessRequests.pageInfo);
+			// The page emptied (requests decided): step back to one with requests.
+			if (requests.length === 0 && hasPreviousPage(pages)) {
+				previousPage(pages);
+				void load();
+				return;
+			}
 		} catch (err) {
-			error = errorMessage(err);
+			if (seq === requestSeq) error = errorMessage(err);
 		} finally {
-			loading = false;
+			if (seq === requestSeq) loading = false;
 		}
 	}
 
@@ -86,6 +99,10 @@
 	</div>
 {/if}
 
+<div class="list-bar">
+	<Pager {pages} shown={requests.length} total={totalCount} {loading} onchange={load} />
+</div>
+
 <div class="table-scroll">
 	<table class="table table-bordered" aria-busy={loading}>
 		<thead>
@@ -129,6 +146,11 @@
 </div>
 
 <style>
+	.list-bar {
+		display: flex;
+		align-items: center;
+		margin-bottom: var(--space-3);
+	}
 	.setup-link {
 		display: block;
 		margin-top: var(--space-2);

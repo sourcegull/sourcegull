@@ -550,6 +550,17 @@ async fn deactivate_and_reactivate_users() {
     let second = env.ok(env.admin, paged, json!({"after": after})).await;
     assert_eq!(names(&second), ["admin"]);
     assert_eq!(second["users"]["pageInfo"]["hasNextPage"], false);
+    // Null variables mean the defaults: oldest first, deactivated users not only.
+    let defaults = "query($o: UserOrderBy, $d: Boolean, $x: Boolean) { users(orderBy: $o, \
+                    descending: $d, deactivated: $x, includeDeactivated: true) { nodes { username } } }";
+    let nulls = env
+        .ok(
+            env.admin,
+            defaults,
+            json!({"o": null, "d": null, "x": null}),
+        )
+        .await;
+    assert_eq!(names(&nulls), ["admin", "alice"]);
 
     env.err(
         env.admin,

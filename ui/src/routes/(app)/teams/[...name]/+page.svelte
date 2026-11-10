@@ -2,17 +2,21 @@
 	import { goto } from '$app/navigation';
 	import { page } from '$app/state';
 	import { untrack } from 'svelte';
+	import Pager from '#lib/components/Pager.svelte';
+	import { cursorPages, firstPage, hasPreviousPage, pageAfter, pageLoaded, previousPage } from '#lib/cursor-pages.ts';
 	import { errorMessage, graphql } from '#lib/graphql.ts';
 	import {
 		ADD_TEAM_MEMBERS,
 		DELETE_TEAM,
 		REMOVE_TEAM_MEMBERS,
 		TEAM,
+		TEAM_MEMBERS,
 		UPDATE_TEAM,
 		parseUsernames,
 		teamUrl,
 		type MemberNode,
 		type TeamDetail,
+		type TeamMembersResult,
 		type TeamResult,
 		type Vars
 	} from '#lib/orgs/queries.ts';
@@ -28,10 +32,19 @@
 	let displayName = $state('');
 	let parent = $state('');
 
+	// Members, a page at a time.
+	const memberPages = $state(cursorPages(50));
+	let members = $state<MemberNode[]>([]);
+	let memberTotal = $state(0);
+	let memberQuery = $state('');
+	let membersLoading = $state(true);
+	let memberSeq = 0;
+
 	async function load(): Promise<void> {
 		try {
 			team = (await graphql<TeamResult, Vars>(TEAM, { name })).team;
 			error = null;
+			if (team) await loadMembers();
 		} catch (err) {
 			error = errorMessage(err);
 		} finally {
@@ -39,9 +52,54 @@
 		}
 	}
 
+	async function loadMembers(): Promise<void> {
+		const seq = ++memberSeq;
+		membersLoading = true;
+		try {
+			const result = await graphql<TeamMembersResult, Vars>(TEAM_MEMBERS, {
+				name,
+				first: memberPages.size,
+				after: pageAfter(memberPages),
+				search: memberQuery.trim() || null
+			});
+			if (seq !== memberSeq || !result.team) return;
+			const conn = result.team.members;
+			members = conn.nodes;
+			memberTotal = conn.totalCount;
+			pageLoaded(memberPages, conn.pageInfo);
+			// The page emptied (members removed): step back to one with members.
+			if (members.length === 0 && hasPreviousPage(memberPages)) {
+				previousPage(memberPages);
+				void loadMembers();
+				return;
+			}
+		} catch (err) {
+			if (seq === memberSeq) error = errorMessage(err);
+		} finally {
+			if (seq === memberSeq) membersLoading = false;
+		}
+	}
+
+	function restartMembers(): void {
+		firstPage(memberPages);
+		void loadMembers();
+	}
+
+	let debounce: ReturnType<typeof setTimeout> | undefined;
+	function onMemberInput(): void {
+		clearTimeout(debounce);
+		debounce = setTimeout(restartMembers, 200);
+	}
+
 	$effect(() => {
 		void name;
-		untrack(() => void load());
+		untrack(() => {
+			clearTimeout(debounce);
+			memberQuery = '';
+			firstPage(memberPages);
+			void load();
+		});
+		return () => clearTimeout(debounce);
 	});
 
 	async function run(action: () => Promise<unknown>, done?: string): Promise<void> {
@@ -202,26 +260,56 @@
 					<button class="btn btn-primary" type="submit" disabled={busy || !newMembers.trim()}>Add members</button>
 				</form>
 			{/if}
-			{#if team.members.nodes.length === 0}
-				<p class="muted">No members.</p>
-			{:else}
-				<ul class="members">
-					{#each team.members.nodes as member (member.id)}
-						<li>
-							<strong>{member.username}</strong>
-							{#if member.displayName}<span class="muted">{member.displayName}</span>{/if}
-							{#if canEdit && !team.readonly}
-								<button class="btn btn-sm btn-link" type="button" disabled={busy} onclick={() => removeMember(member)}
-									>Remove</button
-								>
-							{/if}
-						</li>
-					{/each}
-				</ul>
-				{#if team.members.totalCount > team.members.nodes.length}
-					<p class="muted">Showing the first {team.members.nodes.length} members.</p>
-				{/if}
-			{/if}
+			<div class="list-bar">
+				<label class="visually-hidden" for="member-filter">Filter members</label>
+				<input
+					id="member-filter"
+					class="input filter"
+					type="search"
+					placeholder="Filter by username or display name…"
+					bind:value={memberQuery}
+					oninput={onMemberInput}
+				/>
+				<Pager
+					pages={memberPages}
+					shown={members.length}
+					total={memberTotal}
+					loading={membersLoading}
+					onchange={loadMembers}
+				/>
+			</div>
+			<div class="table-scroll">
+				<table class="table table-bordered" aria-busy={membersLoading}>
+					<thead>
+						<tr>
+							<th scope="col">Username</th>
+							<th scope="col">Display name</th>
+							{#if canEdit && !team.readonly}<th scope="col"><span class="visually-hidden">Actions</span></th>{/if}
+						</tr>
+					</thead>
+					<tbody>
+						{#each members as member (member.id)}
+							<tr>
+								<td><strong>{member.username}</strong></td>
+								<td>{member.displayName ?? ''}</td>
+								{#if canEdit && !team.readonly}
+									<td class="actions">
+										<button class="btn btn-sm" type="button" disabled={busy} onclick={() => removeMember(member)}
+											>Remove</button
+										>
+									</td>
+								{/if}
+							</tr>
+						{:else}
+							<tr>
+								<td colspan={canEdit && !team.readonly ? 3 : 2} class="empty-cell">
+									{#if membersLoading}Loading…{:else if memberQuery.trim()}No members match.{:else}No members.{/if}
+								</td>
+							</tr>
+						{/each}
+					</tbody>
+				</table>
+			</div>
 		</section>
 
 		<section>
@@ -269,7 +357,25 @@
 		margin-bottom: var(--space-3);
 	}
 	.add .input {
+		flex: 0 1 32rem;
+		width: auto;
 		min-width: 18rem;
+	}
+	.list-bar {
+		display: flex;
+		align-items: center;
+		flex-wrap: wrap;
+		gap: var(--space-2) var(--space-4);
+		margin-bottom: var(--space-3);
+	}
+	.list-bar .filter {
+		flex: 0 1 20rem;
+		width: auto;
+		min-width: 12rem;
+	}
+	.actions {
+		text-align: right;
+		white-space: nowrap;
 	}
 	.members {
 		list-style: none;

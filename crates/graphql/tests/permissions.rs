@@ -802,3 +802,157 @@ async fn permissions_sync_in_progress() {
     let bob = user(&env.db, "bob").await;
     assert_eq!(env.code(bob, admin_query, json!({})).await, "FORBIDDEN");
 }
+
+#[tokio::test]
+async fn sync_jobs_page_by_state_with_counts() {
+    let Some(env) = setup().await else { return };
+    // 5 failed, 2 errored, 1 queued, 1 completed jobs of alice, oldest first.
+    for (i, state) in [
+        "failed",
+        "failed",
+        "errored",
+        "failed",
+        "completed",
+        "failed",
+        "errored",
+        "failed",
+        "queued",
+    ]
+    .iter()
+    .enumerate()
+    {
+        sourcegull_db::sqlx::query(
+            "INSERT INTO permission_sync_jobs (state, user_id, reason, queued_at, failure_message)
+             VALUES ($1, $2, 'manual', now() - make_interval(mins => 100 - $3), $4)",
+        )
+        .bind(state)
+        .bind(env.alice.get())
+        .bind(i32::try_from(i).unwrap())
+        .bind(format!("job {i}"))
+        .execute(env.db.pool())
+        .await
+        .unwrap();
+    }
+    let list = "query($first: Int, $after: String, $state: PermissionsSyncJobState) {
+        permissionsSyncJobs(first: $first, after: $after, state: $state) {
+            totalCount nodes { state failureMessage } pageInfo { hasNextPage endCursor } }
+        permissionsSyncJobCounts { total queued processing errored failed completed canceled } }";
+    assert_eq!(env.code(env.alice, list, json!({})).await, "FORBIDDEN");
+    assert_eq!(
+        env.code(
+            env.alice,
+            "{ permissionsSyncJobCounts { total } }",
+            json!({})
+        )
+        .await,
+        "FORBIDDEN"
+    );
+    let messages = |d: &Value| -> Vec<String> {
+        d["permissionsSyncJobs"]["nodes"]
+            .as_array()
+            .unwrap()
+            .iter()
+            .map(|n| n["failureMessage"].as_str().unwrap().to_owned())
+            .collect()
+    };
+
+    let d = env.ok(env.admin, list, json!({})).await;
+    assert_eq!(
+        d["permissionsSyncJobCounts"],
+        json!({ "total": 9, "queued": 1, "processing": 0, "errored": 2, "failed": 5,
+                "completed": 1, "canceled": 0 })
+    );
+
+    // Every failed job, newest first, two at a time.
+    let mut vars = json!({ "first": 2, "state": "FAILED" });
+    let mut seen = Vec::new();
+    loop {
+        let d = env.ok(env.admin, list, vars.clone()).await;
+        assert_eq!(d["permissionsSyncJobs"]["totalCount"], 5);
+        seen.extend(messages(&d));
+        let info = &d["permissionsSyncJobs"]["pageInfo"];
+        if info["hasNextPage"] == false {
+            assert_eq!(info["endCursor"], Value::Null);
+            break;
+        }
+        vars["after"] = info["endCursor"].clone();
+    }
+    assert_eq!(seen, ["job 7", "job 5", "job 3", "job 1", "job 0"]);
+    // The counts do not depend on the filter.
+    let d = env.ok(env.admin, list, json!({ "state": "ERRORED" })).await;
+    assert_eq!(messages(&d), ["job 6", "job 2"]);
+    assert_eq!(d["permissionsSyncJobCounts"]["total"], 9);
+}
+
+#[tokio::test]
+async fn codeowners_filter_and_sort_see_only_readable_repositories() {
+    let Some(env) = setup().await else { return };
+    for name in [PUBLIC, PRIVATE] {
+        sourcegull_db::sqlx::query(
+            "INSERT INTO codeowners_files (repo_id, contents)
+             SELECT id, '* @admin' FROM repo WHERE name = $1",
+        )
+        .bind(name)
+        .execute(env.db.pool())
+        .await
+        .unwrap();
+    }
+    let list = "query($first: Int, $after: String, $query: String, $orderBy: CodeownersOrderBy,
+            $descending: Boolean) {
+        codeownersIngestedFiles(first: $first, after: $after, query: $query, orderBy: $orderBy,
+            descending: $descending) {
+            totalCount nodes { repository { name } } pageInfo { hasNextPage endCursor } } }";
+    let repos = |d: &Value| -> Vec<Option<String>> {
+        d["codeownersIngestedFiles"]["nodes"]
+            .as_array()
+            .unwrap()
+            .iter()
+            .map(|n| n["repository"]["name"].as_str().map(str::to_owned))
+            .collect()
+    };
+    assert_eq!(env.code(env.alice, list, json!({})).await, "FORBIDDEN");
+
+    // A site admin reads both, by name by default (explicit nulls are the defaults).
+    let d = env
+        .ok(
+            env.admin,
+            list,
+            json!({ "first": 1, "orderBy": null, "descending": null }),
+        )
+        .await;
+    assert_eq!(d["codeownersIngestedFiles"]["totalCount"], 2);
+    assert_eq!(repos(&d), [Some(PRIVATE.to_owned())]);
+    let after = d["codeownersIngestedFiles"]["pageInfo"]["endCursor"].clone();
+    let d = env
+        .ok(env.admin, list, json!({ "first": 1, "after": after }))
+        .await;
+    assert_eq!(repos(&d), [Some(PUBLIC.to_owned())]);
+    assert_eq!(
+        d["codeownersIngestedFiles"]["pageInfo"]["hasNextPage"],
+        false
+    );
+    let d = env.ok(env.admin, list, json!({ "query": "PRIV" })).await;
+    assert_eq!(repos(&d), [Some(PRIVATE.to_owned())]);
+
+    // When site admins are restricted too, the hidden repository's name neither matches nor
+    // sorts: its file is listed last, without a repository.
+    env.set_config(|c| c.authz_enforce_for_site_admins = true);
+    let d = env.ok(env.admin, list, json!({ "query": "priv" })).await;
+    assert_eq!(d["codeownersIngestedFiles"]["totalCount"], 0);
+    let d = env.ok(env.admin, list, json!({ "query": "acme" })).await;
+    assert_eq!(repos(&d), [Some(PUBLIC.to_owned())]);
+    for descending in [false, true] {
+        let d = env
+            .ok(env.admin, list, json!({ "descending": descending }))
+            .await;
+        assert_eq!(repos(&d), [Some(PUBLIC.to_owned()), None]);
+    }
+    let d = env
+        .ok(
+            env.admin,
+            list,
+            json!({ "orderBy": "UPDATED_AT", "descending": true }),
+        )
+        .await;
+    assert_eq!(d["codeownersIngestedFiles"]["totalCount"], 2);
+}

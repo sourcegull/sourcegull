@@ -1,6 +1,9 @@
 <script lang="ts">
+	import CountTile from '#lib/components/CountTile.svelte';
+	import Pager from '#lib/components/Pager.svelte';
 	import RelatedLinks from '#lib/components/RelatedLinks.svelte';
 	import { onMount } from 'svelte';
+	import { cursorPages, firstPage, hasPreviousPage, pageAfter, pageLoaded, previousPage } from '#lib/cursor-pages.ts';
 	import { errorMessage, graphql } from '#lib/graphql.ts';
 	import {
 		CANCEL_PERMISSIONS_SYNC_JOB,
@@ -20,7 +23,6 @@
 		type RepositoryAccessExplanationVariables
 	} from '#lib/queries.ts';
 
-	const PAGE_SIZE = 50;
 	const STATES: PermissionsSyncJobState[] = ['QUEUED', 'PROCESSING', 'ERRORED', 'FAILED', 'COMPLETED', 'CANCELED'];
 
 	// "Why can X see Y".
@@ -81,6 +83,8 @@
 				});
 				notice = `Permissions sync of ${subjects.repository.name} queued.`;
 			}
+			// The new job is the newest: show the first page.
+			firstPage(pages);
 			await loadJobs();
 		} catch (err) {
 			explainError = errorMessage(err);
@@ -88,8 +92,10 @@
 	}
 
 	// Sync jobs.
+	const pages = $state(cursorPages(50));
 	let jobs = $state<PermissionsSyncJobNode[]>([]);
 	let totalCount = $state(0);
+	let counts = $state<PermissionsSyncJobsResult['permissionsSyncJobCounts'] | null>(null);
 	let stateFilter = $state<PermissionsSyncJobState | ''>('');
 	let loading = $state(true);
 	let jobsError = $state<string | null>(null);
@@ -102,17 +108,37 @@
 		jobsError = null;
 		try {
 			const result = await graphql<PermissionsSyncJobsResult, PermissionsSyncJobsVariables>(PERMISSIONS_SYNC_JOBS, {
-				first: PAGE_SIZE,
+				first: pages.size,
+				after: pageAfter(pages),
 				state: stateFilter || null
 			});
 			if (seq !== requestSeq) return;
 			jobs = result.permissionsSyncJobs.nodes;
 			totalCount = result.permissionsSyncJobs.totalCount;
+			counts = result.permissionsSyncJobCounts;
+			pageLoaded(pages, result.permissionsSyncJobs.pageInfo);
+			// The page emptied (jobs pruned, or a job left the filtered state): step back.
+			if (jobs.length === 0 && hasPreviousPage(pages)) {
+				previousPage(pages);
+				void loadJobs();
+				return;
+			}
 		} catch (err) {
 			if (seq === requestSeq) jobsError = errorMessage(err);
 		} finally {
 			if (seq === requestSeq) loading = false;
 		}
+	}
+
+	function restartJobs(): void {
+		firstPage(pages);
+		void loadJobs();
+	}
+
+	/** Shows only jobs in `state`; a second click shows every job again. */
+	function showOnly(state: PermissionsSyncJobState | ''): void {
+		stateFilter = stateFilter === state ? '' : state;
+		restartJobs();
 	}
 
 	async function cancel(job: PermissionsSyncJobNode): Promise<void> {
@@ -221,20 +247,72 @@
 <section aria-labelledby="jobs-heading">
 	<div class="section-header">
 		<h2 id="jobs-heading">Sync jobs</h2>
-		<div class="toolbar">
-			<label class="visually-hidden" for="job-state">State</label>
-			<select id="job-state" class="input input-sm" bind:value={stateFilter} onchange={loadJobs}>
-				<option value="">All states</option>
-				{#each STATES as s (s)}<option value={s}>{s.toLowerCase()}</option>{/each}
-			</select>
-			<button class="btn btn-sm" type="button" onclick={loadJobs}>Refresh</button>
-			<span class="muted">{totalCount} total</span>
-		</div>
+	</div>
+
+	<div class="tiles" role="group" aria-label="Show sync jobs">
+		<CountTile
+			value={counts?.total ?? null}
+			label="jobs"
+			active={stateFilter === ''}
+			title="Show jobs in every state"
+			onclick={() => showOnly('')}
+		/>
+		<CountTile
+			value={counts?.queued ?? null}
+			label="queued"
+			active={stateFilter === 'QUEUED'}
+			title="Show only queued jobs"
+			disabled={!counts?.queued && stateFilter !== 'QUEUED'}
+			onclick={() => showOnly('QUEUED')}
+		/>
+		<CountTile
+			value={counts?.processing ?? null}
+			label="processing"
+			tone={counts?.processing ? 'primary' : undefined}
+			active={stateFilter === 'PROCESSING'}
+			title="Show only jobs that are running"
+			disabled={!counts?.processing && stateFilter !== 'PROCESSING'}
+			onclick={() => showOnly('PROCESSING')}
+		/>
+		<CountTile
+			value={counts?.errored ?? null}
+			label="errored"
+			tone={counts?.errored ? 'warning' : undefined}
+			active={stateFilter === 'ERRORED'}
+			title="Show only jobs that failed and will be retried"
+			disabled={!counts?.errored && stateFilter !== 'ERRORED'}
+			onclick={() => showOnly('ERRORED')}
+		/>
+		<CountTile
+			value={counts?.failed ?? null}
+			label="failed"
+			tone={counts?.failed ? 'warning' : undefined}
+			active={stateFilter === 'FAILED'}
+			title="Show only jobs that failed for good"
+			disabled={!counts?.failed && stateFilter !== 'FAILED'}
+			onclick={() => showOnly('FAILED')}
+		/>
 	</div>
 
 	{#if jobsError}
 		<div class="alert alert-danger" role="alert">{jobsError}</div>
 	{/if}
+
+	<div class="list-bar">
+		<label class="visually-hidden" for="job-state">State</label>
+		<select id="job-state" class="input input-sm state" bind:value={stateFilter} onchange={restartJobs}>
+			<option value="">All states</option>
+			{#each STATES as s (s)}<option value={s}>{s.toLowerCase()}</option>{/each}
+		</select>
+		<button class="btn btn-sm" type="button" onclick={loadJobs}>Refresh</button>
+		{#if stateFilter}
+			<span class="shown">
+				<strong>Only {stateFilter.toLowerCase()} jobs</strong>
+				<button type="button" class="btn btn-link" onclick={() => showOnly('')}>Show all jobs</button>
+			</span>
+		{/if}
+		<Pager {pages} shown={jobs.length} total={totalCount} {loading} onchange={loadJobs} />
+	</div>
 
 	<div class="table-scroll">
 		<table class="table table-bordered table-sm" aria-busy={loading}>
@@ -283,15 +361,14 @@
 					</tr>
 				{:else}
 					<tr>
-						<td colspan="7" class="empty-cell">{loading ? 'Loading…' : 'No sync jobs.'}</td>
+						<td colspan="7" class="empty-cell">
+							{#if loading}Loading…{:else if stateFilter}No {stateFilter.toLowerCase()} sync jobs.{:else}No sync jobs.{/if}
+						</td>
 					</tr>
 				{/each}
 			</tbody>
 		</table>
 	</div>
-	{#if totalCount > jobs.length}
-		<p class="muted">Showing the newest {jobs.length} of {totalCount}.</p>
-	{/if}
 </section>
 
 <style>
@@ -324,8 +401,26 @@
 		gap: var(--space-3);
 		align-items: center;
 	}
-	.section-header .toolbar .input {
+	.tiles {
+		display: grid;
+		grid-template-columns: repeat(auto-fit, minmax(8rem, 10rem));
+		gap: var(--space-2);
+		margin-bottom: var(--space-4);
+	}
+	.list-bar {
+		display: flex;
+		align-items: center;
+		flex-wrap: wrap;
+		gap: var(--space-2) var(--space-4);
+		margin-bottom: var(--space-3);
+	}
+	.list-bar .state {
 		width: auto;
+	}
+	.shown {
+		display: inline-flex;
+		align-items: center;
+		gap: var(--space-2);
 	}
 	.failure {
 		font-size: var(--text-xs);

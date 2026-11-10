@@ -1898,3 +1898,66 @@ async fn admins_create_users_with_a_setup_link() {
     assert!(data["createUser"]["resetPasswordURL"].is_string());
     assert!(env.db.user_emails().list(dave.id).await.unwrap()[0].is_verified());
 }
+
+#[tokio::test]
+async fn access_requests_page_by_id() {
+    let Some(env) = setup().await else { return };
+    for (i, status) in [
+        "PENDING", "APPROVED", "PENDING", "PENDING", "PENDING", "PENDING",
+    ]
+    .iter()
+    .enumerate()
+    {
+        sqlx::query(
+            "INSERT INTO access_requests (name, email, additional_info, status) VALUES ($1, $2, '', $3)",
+        )
+            .bind(format!("r{i}"))
+            .bind(format!("r{i}@example.com"))
+            .bind(status)
+            .execute(env.db.pool())
+            .await
+            .unwrap();
+    }
+    let list = "query($after: ID) { accessRequests(status: PENDING, first: 2, after: $after) {
+        totalCount nodes { id name } pageInfo { hasNextPage endCursor } } }";
+    let names = |d: &Value| -> Vec<String> {
+        d["accessRequests"]["nodes"]
+            .as_array()
+            .unwrap()
+            .iter()
+            .map(|n| n["name"].as_str().unwrap().to_owned())
+            .collect()
+    };
+    env.err(Some(env.alice), list, json!({}), "FORBIDDEN").await;
+
+    let first = env.ok(Some(env.admin), list, json!({})).await;
+    assert_eq!(names(&first), ["r0", "r2"], "oldest first, pending only");
+    assert_eq!(first["accessRequests"]["totalCount"], 5);
+    let info = &first["accessRequests"]["pageInfo"];
+    assert_eq!(info["hasNextPage"], true);
+    // The cursor is the last request's ID, so deciding a request does not shift later pages.
+    assert_eq!(info["endCursor"], first["accessRequests"]["nodes"][1]["id"]);
+    let decide = "mutation($id: ID!) { setAccessRequestStatus(id: $id, status: REJECTED) {
+        request { status } } }";
+    env.ok(
+        Some(env.admin),
+        decide,
+        json!({ "id": first["accessRequests"]["nodes"][0]["id"] }),
+    )
+    .await;
+    let second = env
+        .ok(Some(env.admin), list, json!({ "after": info["endCursor"] }))
+        .await;
+    assert_eq!(names(&second), ["r3", "r4"]);
+    assert_eq!(second["accessRequests"]["totalCount"], 4);
+    let after = second["accessRequests"]["pageInfo"]["endCursor"].clone();
+    let third = env
+        .ok(Some(env.admin), list, json!({ "after": after }))
+        .await;
+    assert_eq!(names(&third), ["r5"]);
+    assert_eq!(third["accessRequests"]["pageInfo"]["hasNextPage"], false);
+    assert_eq!(
+        third["accessRequests"]["pageInfo"]["endCursor"],
+        Value::Null
+    );
+}

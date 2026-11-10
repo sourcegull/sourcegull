@@ -95,7 +95,7 @@ async fn executors_from_heartbeats() {
         .await
         .unwrap();
     executors
-        .heartbeat(&info("exec-b", "0.9.0"), &[])
+        .heartbeat(&info("exec-b", "99.0.0"), &[])
         .await
         .unwrap();
     executors
@@ -154,4 +154,33 @@ async fn executors_from_heartbeats() {
     let data = resp.data.into_json().unwrap();
     assert_eq!(data["executors"]["totalCount"], 1);
     assert_eq!(data["executors"]["nodes"][0]["compatibility"], "TOO_NEW");
+
+    // Paging, with the filters applied before it.
+    let paged = |vars: serde_json::Value| {
+        let (schema, auth) = (schema.clone(), auth.clone());
+        async move {
+            let actor = auth.actor_for(admin, AuthVia::Session).await.unwrap();
+            let q = "query($first: Int, $after: String, $active: Boolean) {
+                executors(first: $first, after: $after, active: $active, query: \"exec\") {
+                    totalCount nodes { hostname } pageInfo { hasNextPage endCursor } } }";
+            let resp = sourcegull_graphql::execute(
+                &schema,
+                Request::new(q).variables(Variables::from_json(vars)),
+                actor,
+            )
+            .await;
+            assert!(resp.errors.is_empty(), "{:?}", resp.errors);
+            resp.data.into_json().unwrap()["executors"].clone()
+        }
+    };
+    let first = paged(json!({ "first": 2 })).await;
+    assert_eq!(first["totalCount"], 3);
+    assert_eq!(first["nodes"].as_array().unwrap().len(), 2);
+    assert_eq!(first["pageInfo"]["hasNextPage"], true);
+    let second = paged(json!({ "first": 2, "after": first["pageInfo"]["endCursor"] })).await;
+    assert_eq!(second["nodes"], json!([{ "hostname": "exec-old" }]));
+    assert_eq!(second["pageInfo"]["hasNextPage"], false);
+    let active = paged(json!({ "first": 1, "active": true })).await;
+    assert_eq!(active["totalCount"], 2);
+    assert_eq!(active["pageInfo"]["hasNextPage"], true);
 }

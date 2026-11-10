@@ -14,6 +14,10 @@ A page of access requests.
 type AccessRequestConnection {
 	nodes: [AccessRequest!]!
 	totalCount: Int!
+	"""
+	`endCursor` is the ID of the last request on this page.
+	"""
+	pageInfo: PageInfo!
 }
 
 """
@@ -2105,6 +2109,20 @@ type CodeownersIngestedFileConnection {
 }
 
 """
+Sort order of `codeownersIngestedFiles`.
+"""
+enum CodeownersOrderBy {
+	"""
+	By repository name; files of repositories the viewer may not read come last.
+	"""
+	REPOSITORY
+	"""
+	By when the file was last uploaded.
+	"""
+	UPDATED_AT
+}
+
+"""
 An entry in a match environment: a variable with a value spanning a range. Named capture
 groups use their names; unnamed ones are `1`, `2`, ….
 """
@@ -2593,6 +2611,7 @@ A page of executors.
 type ExecutorConnection {
 	nodes: [Executor!]!
 	totalCount: Int!
+	pageInfo: PageInfo!
 }
 
 """
@@ -6385,6 +6404,21 @@ type OrgConnection {
 	The number of organizations in total.
 	"""
 	totalCount: Int!
+	pageInfo: PageInfo!
+}
+
+"""
+Sort order of `organizations`.
+"""
+enum OrgOrderBy {
+	"""
+	By name.
+	"""
+	NAME
+	"""
+	By when the organization was created.
+	"""
+	CREATED_AT
 }
 
 type OrganizationInvitation implements Node {
@@ -6963,6 +6997,28 @@ type PermissionsSyncJob {
 }
 
 """
+The number of permissions sync jobs in each state.
+"""
+type PermissionsSyncJobCounts {
+	"""
+	Every job, in any state.
+	"""
+	total: Int!
+	queued: Int!
+	processing: Int!
+	"""
+	Failed and to be retried.
+	"""
+	errored: Int!
+	"""
+	Failed for good.
+	"""
+	failed: Int!
+	completed: Int!
+	canceled: Int!
+}
+
+"""
 How urgent a job is.
 """
 enum PermissionsSyncJobPriority {
@@ -7403,7 +7459,20 @@ type QueryRoot {
 	lists only deactivated users; `siteAdmin` only site admins (true) or only other users
 	(false).
 	"""
-	users(first: Int, after: String, query: String, includeDeactivated: Boolean, deactivated: Boolean! = false, siteAdmin: Boolean, orderBy: UserOrderBy! = CREATED_AT, descending: Boolean! = false): UserConnection!
+	users(		first: Int,		after: String,		query: String,		includeDeactivated: Boolean,
+		"""
+		Default: false.
+		"""
+		deactivated: Boolean,		siteAdmin: Boolean,
+		"""
+		Default: `CREATED_AT`.
+		"""
+		orderBy: UserOrderBy,
+		"""
+		Default: false (oldest first, A to Z).
+		"""
+		descending: Boolean
+	): UserConnection!
 	"""
 	Numbers of users, site admins and deactivated users (site admins only).
 	"""
@@ -7424,7 +7493,16 @@ type QueryRoot {
 	"""
 	Lists organizations whose name or display name matches `query` (site admins only).
 	"""
-	organizations(first: Int, query: String): OrgConnection!
+	organizations(		first: Int,		after: String,		query: String,
+		"""
+		Default: `NAME`.
+		"""
+		orderBy: OrgOrderBy,
+		"""
+		Default: false (A to Z, oldest first).
+		"""
+		descending: Boolean
+	): OrgConnection!
 	"""
 	Looks up an organization by name (signed-in users only).
 	"""
@@ -7544,6 +7622,10 @@ type QueryRoot {
 	state (site admins only).
 	"""
 	permissionsSyncJobs(first: Int, after: String, userID: ID, repoID: ID, state: PermissionsSyncJobState): PermissionsSyncJobsConnection!
+	"""
+	The number of permissions sync jobs in each state (site admins only).
+	"""
+	permissionsSyncJobCounts: PermissionsSyncJobCounts!
 	"""
 	Computes values from search results.
 	"""
@@ -7768,7 +7850,7 @@ type QueryRoot {
 	Executors seen in the last day, most recently seen first (site admins only). `query`
 	matches the hostname or a queue; `active` keeps the ones seen in the last 30 seconds.
 	"""
-	executors(query: String, active: Boolean, first: Int): ExecutorConnection!
+	executors(query: String, active: Boolean, first: Int, after: String): ExecutorConnection!
 	"""
 	Whether executors can connect: `executors.accessToken` is set (site admins only).
 	"""
@@ -7891,9 +7973,19 @@ type QueryRoot {
 	"""
 	ownershipStatsByRepository(first: Int, after: String): RepositoryOwnershipStatsConnection!
 	"""
-	Ingested CODEOWNERS files by ID (site admins only); `after` is the last ID seen.
+	A page of the ingested CODEOWNERS files (site admins only). `query` matches a substring
+	of the repository name.
 	"""
-	codeownersIngestedFiles(first: Int, after: Int): CodeownersIngestedFileConnection!
+	codeownersIngestedFiles(		first: Int,		after: String,		query: String,
+		"""
+		Default: `REPOSITORY`.
+		"""
+		orderBy: CodeownersOrderBy,
+		"""
+		Default: false (A to Z, oldest first).
+		"""
+		descending: Boolean
+	): CodeownersIngestedFileConnection!
 	"""
 	Dashboards visible to the viewer.
 	"""

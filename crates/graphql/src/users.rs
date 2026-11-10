@@ -395,9 +395,11 @@ impl UserNode {
             .list_for_user(self.0.id)
             .await
             .map_err(db_error)?;
+        // Every one on one page.
         Ok(OrgConnection {
             total_count: to_int(i64::try_from(orgs.len()).unwrap_or(i64::MAX)),
             nodes: orgs.into_iter().map(OrgNode).collect(),
+            page_info: crate::pagination::PageInfo::default(),
         })
     }
 }
@@ -502,12 +504,16 @@ impl UsersQuery {
         after: Option<String>,
         query: Option<String>,
         include_deactivated: Option<bool>,
-        #[graphql(default)] deactivated: bool,
+        #[graphql(desc = "Default: false.")] deactivated: Option<bool>,
         site_admin: Option<bool>,
-        #[graphql(default)] order_by: UserOrderBy,
-        #[graphql(default)] descending: bool,
+        #[graphql(desc = "Default: `CREATED_AT`.")] order_by: Option<UserOrderBy>,
+        #[graphql(desc = "Default: false (oldest first, A to Z).")] descending: Option<bool>,
     ) -> Result<UserConnection> {
         require_site_admin(ctx)?;
+        // Explicit nulls mean the defaults.
+        let order_by = order_by.unwrap_or_default();
+        let descending = descending.unwrap_or(false);
+        let deactivated = deactivated.unwrap_or(false);
         let db = &services(ctx)?.db;
         let include_deactivated = include_deactivated.unwrap_or(false);
         let query = query.filter(|q| !q.trim().is_empty());

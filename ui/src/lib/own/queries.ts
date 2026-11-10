@@ -250,8 +250,14 @@ export function ownerName(o: OwnerPerson | OwnerTeam): string {
 
 // ---- Site admin: ingested CODEOWNERS files ---------------------------------------------------
 
-export const CODEOWNERS_FILES = `query CodeownersFiles($first: Int, $after: Int) {
-	codeownersIngestedFiles(first: $first, after: $after) {
+export const CODEOWNERS_FILES = `query CodeownersFiles(
+	$first: Int
+	$after: String
+	$query: String
+	$orderBy: CodeownersOrderBy
+	$descending: Boolean
+) {
+	codeownersIngestedFiles(first: $first, after: $after, query: $query, orderBy: $orderBy, descending: $descending) {
 		totalCount
 		pageInfo { hasNextPage endCursor }
 		nodes { id contents createdAt updatedAt repository { id name url } }

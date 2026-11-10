@@ -81,12 +81,12 @@ pub use oobmigrations::{
     MAX_MIGRATION_ERRORS, MigrationDescriptor, MinorVersion, OutOfBandMigration,
     OutOfBandMigrationError, OutOfBandMigrationStore,
 };
-pub use orgs::{NewOrgInvitation, OrgInvitation, OrgStore};
+pub use orgs::{NewOrgInvitation, OrgInvitation, OrgOrder, OrgStore};
 pub use password_resets::PasswordResetStore;
 pub use perms::{BindKind, PermsChange, PermsSource, PermsStore, RepoPermsInfo, authz_payload};
 pub use perms_sync_jobs::{
-    ListPermsSyncJobs, PERMS_SYNC_JOBS_TABLE, PermsSyncJob, PermsSyncJobRecord, PermsSyncJobStore,
-    PermsSyncReason, PermsSyncResult, PermsSyncSubject,
+    ListPermsSyncJobs, PERMS_SYNC_JOBS_TABLE, PermsSyncJob, PermsSyncJobCounts, PermsSyncJobRecord,
+    PermsSyncJobStore, PermsSyncReason, PermsSyncResult, PermsSyncSubject,
 };
 pub use rbac::{RbacStore, Role, RolePermission};
 pub use repo_events::{

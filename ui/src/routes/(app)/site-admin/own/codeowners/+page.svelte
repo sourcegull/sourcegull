@@ -1,7 +1,11 @@
 <script lang="ts">
 	import { onMount } from 'svelte';
 	import { page } from '$app/state';
+	import Pager from '#lib/components/Pager.svelte';
+	import SortHeader from '#lib/components/SortHeader.svelte';
+	import { cursorPages, firstPage, hasPreviousPage, pageAfter, pageLoaded, previousPage } from '#lib/cursor-pages.ts';
 	import { errorMessage, graphql } from '#lib/graphql.ts';
+	import type { CodeownersFilesQueryVariables, CodeownersOrderBy } from '#lib/graphql-types.ts';
 	import {
 		ADD_CODEOWNERS_FILE,
 		CODEOWNERS_FILES,
@@ -16,8 +20,12 @@
 
 	type Vars = Record<string, unknown>;
 
+	const pages = $state(cursorPages(50));
 	let files = $state<CodeownersFile[]>([]);
 	let totalCount = $state(0);
+	let query = $state('');
+	let order = $state<CodeownersOrderBy>('REPOSITORY');
+	let descending = $state(false);
 	let loading = $state(true);
 	let error = $state<string | null>(null);
 	let saving = $state(false);
@@ -25,33 +33,73 @@
 	let editing = $state<string | null>(null);
 	let repoName = $state(page.url.searchParams.get('repo') ?? '');
 	let contents = $state('');
+	let requestSeq = 0;
+
+	const fetchFiles = (vars: CodeownersFilesQueryVariables) =>
+		graphql<CodeownersFilesResult, CodeownersFilesQueryVariables>(CODEOWNERS_FILES, vars);
 
 	async function load(): Promise<void> {
+		const seq = ++requestSeq;
 		loading = true;
 		error = null;
 		try {
-			const all: CodeownersFile[] = [];
-			let after: number | null = null;
-			for (;;) {
-				const r: CodeownersFilesResult = await graphql<CodeownersFilesResult, Vars>(CODEOWNERS_FILES, {
-					first: 500,
-					after
-				});
-				all.push(...r.codeownersIngestedFiles.nodes);
-				totalCount = r.codeownersIngestedFiles.totalCount;
-				const end = r.codeownersIngestedFiles.pageInfo.endCursor;
-				if (!r.codeownersIngestedFiles.pageInfo.hasNextPage || !end) break;
-				after = Number(end);
+			const r = await fetchFiles({
+				first: pages.size,
+				after: pageAfter(pages),
+				query: query.trim() || null,
+				orderBy: order,
+				descending
+			});
+			if (seq !== requestSeq) return;
+			files = r.codeownersIngestedFiles.nodes;
+			totalCount = r.codeownersIngestedFiles.totalCount;
+			pageLoaded(pages, r.codeownersIngestedFiles.pageInfo);
+			// The page emptied (files deleted): step back to one with files.
+			if (files.length === 0 && hasPreviousPage(pages)) {
+				previousPage(pages);
+				void load();
+				return;
 			}
-			files = all;
-			const wanted = page.url.searchParams.get('repo');
-			const f = wanted ? all.find((x) => x.repository?.name === wanted) : undefined;
+		} catch (err) {
+			if (seq === requestSeq) error = errorMessage(err);
+		} finally {
+			if (seq === requestSeq) loading = false;
+		}
+	}
+
+	/** Opens the file of `?repo=` for editing when there is one (links from a repository). */
+	async function editWanted(): Promise<void> {
+		const wanted = page.url.searchParams.get('repo');
+		if (!wanted) return;
+		try {
+			const r = await fetchFiles({ first: 50, query: wanted });
+			const f = r.codeownersIngestedFiles.nodes.find((x) => x.repository?.name === wanted);
 			if (f) edit(f);
 		} catch (err) {
 			error = errorMessage(err);
-		} finally {
-			loading = false;
 		}
+	}
+
+	function restart(): void {
+		firstPage(pages);
+		void load();
+	}
+
+	let debounce: ReturnType<typeof setTimeout> | undefined;
+	function oninput(): void {
+		clearTimeout(debounce);
+		debounce = setTimeout(restart, 200);
+	}
+
+	function sortBy(o: CodeownersOrderBy): void {
+		if (order === o) {
+			descending = !descending;
+		} else {
+			order = o;
+			// Repositories A to Z, the latest upload first.
+			descending = o === 'UPDATED_AT';
+		}
+		restart();
 	}
 
 	function edit(f: CodeownersFile): void {
@@ -101,6 +149,8 @@
 
 	onMount(() => {
 		void load();
+		void editWanted();
+		return () => clearTimeout(debounce);
 	});
 </script>
 
@@ -159,13 +209,26 @@
 	</div>
 </form>
 
+<div class="list-bar">
+	<label class="visually-hidden" for="codeowners-filter">Filter by repository</label>
+	<input
+		id="codeowners-filter"
+		class="input filter"
+		type="search"
+		placeholder="Filter by repository…"
+		bind:value={query}
+		{oninput}
+	/>
+	<Pager {pages} shown={files.length} total={totalCount} {loading} onchange={load} />
+</div>
+
 <div class="table-scroll">
 	<table class="table table-bordered" aria-busy={loading}>
 		<thead>
 			<tr>
-				<th scope="col">Repository</th>
+				<SortHeader key="REPOSITORY" label="Repository" {order} {descending} onsort={sortBy} />
 				<th scope="col" class="num">Lines</th>
-				<th scope="col">Updated</th>
+				<SortHeader key="UPDATED_AT" label="Updated" {order} {descending} onsort={sortBy} />
 				<th scope="col"><span class="visually-hidden">Actions</span></th>
 			</tr>
 		</thead>
@@ -186,7 +249,10 @@
 				</tr>
 			{:else}
 				<tr>
-					<td colspan="4" class="empty-cell">{loading ? 'Loading…' : 'No CODEOWNERS files have been uploaded.'}</td>
+					<td colspan="4" class="empty-cell">
+						{#if loading}Loading…{:else if query.trim()}No repository with an uploaded file matches.{:else}No CODEOWNERS
+							files have been uploaded.{/if}
+					</td>
 				</tr>
 			{/each}
 		</tbody>
@@ -194,6 +260,18 @@
 </div>
 
 <style>
+	.list-bar {
+		display: flex;
+		align-items: center;
+		flex-wrap: wrap;
+		gap: var(--space-2) var(--space-4);
+		margin-bottom: var(--space-3);
+	}
+	.list-bar .filter {
+		flex: 0 1 20rem;
+		width: auto;
+		min-width: 12rem;
+	}
 	.editor {
 		margin: 0 0 var(--space-6);
 		max-width: 48rem;

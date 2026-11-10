@@ -364,6 +364,13 @@ export const PERMISSIONS_SYNC_JOBS = `query PermissionsSyncJobs($first: Int, $af
 			endCursor
 		}
 	}
+	permissionsSyncJobCounts {
+		total
+		queued
+		processing
+		errored
+		failed
+	}
 }`;
 
 export type PermissionsSyncJobState = 'QUEUED' | 'PROCESSING' | 'ERRORED' | 'FAILED' | 'COMPLETED' | 'CANCELED';
@@ -410,8 +417,8 @@ export const CANCEL_PERMISSIONS_SYNC_JOB = `mutation CancelPermissionsSyncJob($j
 }`;
 // Access requests admin page.
 
-export const ACCESS_REQUESTS = `query AccessRequests($first: Int) {
-	accessRequests(status: PENDING, first: $first) {
+export const ACCESS_REQUESTS = `query AccessRequests($first: Int, $after: ID) {
+	accessRequests(status: PENDING, first: $first, after: $after) {
 		nodes {
 			id
 			name
@@ -420,6 +427,10 @@ export const ACCESS_REQUESTS = `query AccessRequests($first: Int) {
 			createdAt
 		}
 		totalCount
+		pageInfo {
+			hasNextPage
+			endCursor
+		}
 	}
 }`;
 
@@ -433,9 +444,9 @@ export interface AccessRequestNode {
 
 export type AccessRequestsResult = AccessRequestsQuery;
 
-export const EXECUTORS = `query Executors($query: String, $active: Boolean, $first: Int) {
+export const EXECUTORS = `query Executors($query: String, $active: Boolean, $first: Int, $after: String) {
 	areExecutorsConfigured
-	executors(query: $query, active: $active, first: $first) {
+	executors(query: $query, active: $active, first: $first, after: $after) {
 		nodes {
 			id
 			hostname
@@ -456,6 +467,10 @@ export const EXECUTORS = `query Executors($query: String, $active: Boolean, $fir
 			}
 		}
 		totalCount
+		pageInfo {
+			hasNextPage
+			endCursor
+		}
 	}
 }`;
 
@@ -617,24 +632,32 @@ export interface ExecutorSecretNode {
 	accessLogs: { totalCount: number };
 }
 
-export const GLOBAL_EXECUTOR_SECRETS = `query GlobalExecutorSecrets($scope: ExecutorSecretScope!, $first: Int) {
-	executorSecrets(scope: $scope, first: $first) {
+export const GLOBAL_EXECUTOR_SECRETS = `query GlobalExecutorSecrets($scope: ExecutorSecretScope!, $first: Int, $after: String) {
+	executorSecrets(scope: $scope, first: $first, after: $after) {
 		nodes {${EXECUTOR_SECRET_FIELDS}
 		}
 		totalCount
+		pageInfo {
+			hasNextPage
+			endCursor
+		}
 	}
 	${DECLARED_KINDS_FIELDS}
 }`;
 
 export type GlobalExecutorSecretsResult = GlobalExecutorSecretsQuery;
 
-export const USER_EXECUTOR_SECRETS = `query UserExecutorSecrets($scope: ExecutorSecretScope!, $first: Int) {
+export const USER_EXECUTOR_SECRETS = `query UserExecutorSecrets($scope: ExecutorSecretScope!, $first: Int, $after: String) {
 	currentUser {
 		id
-		executorSecrets(scope: $scope, first: $first) {
+		executorSecrets(scope: $scope, first: $first, after: $after) {
 			nodes {${EXECUTOR_SECRET_FIELDS}
 			}
 			totalCount
+			pageInfo {
+				hasNextPage
+				endCursor
+			}
 		}
 	}
 }`;

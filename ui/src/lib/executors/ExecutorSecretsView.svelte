@@ -5,8 +5,10 @@
 	secrets the resources file owns are read-only, and when it owns them all none can be added.
 -->
 <script lang="ts">
+	import Pager from '#lib/components/Pager.svelte';
 	import RelatedLinks from '#lib/components/RelatedLinks.svelte';
 	import { onMount } from 'svelte';
+	import { cursorPages, firstPage, hasPreviousPage, pageAfter, pageLoaded, previousPage } from '#lib/cursor-pages.ts';
 	import ManagedBadge from '#lib/components/ManagedBadge.svelte';
 	import ManagedNotice from '#lib/components/ManagedNotice.svelte';
 	import { isExclusive } from '#lib/declared-config.ts';
@@ -36,7 +38,7 @@
 
 	let { namespace, scopes }: Props = $props();
 
-	type ListVariables = { scope: ExecutorSecretScope; first: number };
+	type ListVariables = { scope: ExecutorSecretScope; first: number; after: string | null };
 	type SecretVariables = { scope: ExecutorSecretScope; id: string };
 
 	const SCOPE_TITLES: Record<ExecutorSecretScope, string> = {
@@ -47,6 +49,7 @@
 	// The scopes are fixed per page.
 	// svelte-ignore state_referenced_locally
 	let scope = $state<ExecutorSecretScope>(scopes[0] ?? 'CODEINTEL');
+	const pages = $state(cursorPages(50));
 	let secrets = $state<ExecutorSecretNode[]>([]);
 	let totalCount = $state(0);
 	let namespaceId = $state<string | null>(null);
@@ -68,31 +71,41 @@
 	let logsFor = $state<ExecutorSecretNode | null>(null);
 	let logs = $state<ExecutorSecretAccessLogNode[]>([]);
 
+	let requestSeq = 0;
+
 	async function load(): Promise<void> {
+		const seq = ++requestSeq;
 		loading = true;
 		error = null;
 		try {
+			const vars = { scope, first: pages.size, after: pageAfter(pages) };
+			let pageInfo: { hasNextPage: boolean; endCursor: string | null } | undefined;
 			if (namespace === 'global') {
-				const data = await graphql<GlobalExecutorSecretsResult, ListVariables>(GLOBAL_EXECUTOR_SECRETS, {
-					scope,
-					first: 500
-				});
+				const data = await graphql<GlobalExecutorSecretsResult, ListVariables>(GLOBAL_EXECUTOR_SECRETS, vars);
+				if (seq !== requestSeq) return;
 				secrets = data.executorSecrets.nodes;
 				totalCount = data.executorSecrets.totalCount;
+				pageInfo = data.executorSecrets.pageInfo;
 				exclusive = isExclusive(data.site.declaredConfigFiles, 'executorSecrets');
 			} else {
-				const data = await graphql<UserExecutorSecretsResult, ListVariables>(USER_EXECUTOR_SECRETS, {
-					scope,
-					first: 500
-				});
+				const data = await graphql<UserExecutorSecretsResult, ListVariables>(USER_EXECUTOR_SECRETS, vars);
+				if (seq !== requestSeq) return;
 				namespaceId = data.currentUser?.id ?? null;
 				secrets = data.currentUser?.executorSecrets.nodes ?? [];
 				totalCount = data.currentUser?.executorSecrets.totalCount ?? 0;
+				pageInfo = data.currentUser?.executorSecrets.pageInfo;
+			}
+			pageLoaded(pages, pageInfo ?? { hasNextPage: false, endCursor: null });
+			// The page emptied (secrets deleted): step back to one with secrets.
+			if (secrets.length === 0 && hasPreviousPage(pages)) {
+				previousPage(pages);
+				void load();
+				return;
 			}
 		} catch (err) {
-			error = errorMessage(err);
+			if (seq === requestSeq) error = errorMessage(err);
 		} finally {
-			loading = false;
+			if (seq === requestSeq) loading = false;
 		}
 	}
 
@@ -177,6 +190,7 @@
 		scope = s;
 		logsFor = null;
 		editing = null;
+		firstPage(pages);
 		void load();
 	}
 
@@ -258,6 +272,11 @@
 	</form>
 {/if}
 
+<div class="list-bar">
+	<span class="muted small">{totalCount} {totalCount === 1 ? 'secret' : 'secrets'}</span>
+	<Pager {pages} shown={secrets.length} total={totalCount} {loading} onchange={load} />
+</div>
+
 <div class="table-scroll">
 	<table class="table" aria-busy={loading}>
 		<thead>
@@ -322,7 +341,6 @@
 		</tbody>
 	</table>
 </div>
-<p class="muted small">{totalCount} {totalCount === 1 ? 'secret' : 'secrets'}</p>
 
 {#if logsFor}
 	<section class="logs" aria-label="Access logs">
@@ -352,6 +370,13 @@
 {/if}
 
 <style>
+	.list-bar {
+		display: flex;
+		align-items: center;
+		flex-wrap: wrap;
+		gap: var(--space-2) var(--space-4);
+		margin-bottom: var(--space-3);
+	}
 	.scopes {
 		display: flex;
 		gap: var(--space-2);

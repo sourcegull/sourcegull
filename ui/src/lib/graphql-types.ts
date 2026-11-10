@@ -220,6 +220,13 @@ export type CodeownersFileInput = {
   repoName?: string | null | undefined;
 };
 
+/** Sort order of `codeownersIngestedFiles`. */
+export type CodeownersOrderBy =
+  /** By repository name; files of repositories the viewer may not read come last. */
+  | 'REPOSITORY'
+  /** By when the file was last uploaded. */
+  | 'UPDATED_AT';
+
 /** CreateFileBlockInput contains the information necessary to create a file block. */
 export type CreateFileBlockInput = {
   /** Name of the repository, e.g. "gitlab.com/group/project". */
@@ -610,6 +617,13 @@ export type OAuthGrantOrderBy =
   | 'APP'
   /** By last use; apps never used count as the oldest. */
   | 'LAST_USED_AT';
+
+/** Sort order of `organizations`. */
+export type OrgOrderBy =
+  /** By name. */
+  | 'NAME'
+  /** By when the organization was created. */
+  | 'CREATED_AT';
 
 /** A recipient's answer to an invitation. */
 export type OrganizationInvitationResponseType =
@@ -2960,11 +2974,14 @@ export type OrganizationSettingsQuery = { organization: { id: string, displayNam
 
 export type OrganizationsQueryVariables = Exact<{
   first?: number | null | undefined;
+  after?: string | null | undefined;
   query?: string | null | undefined;
+  orderBy?: OrgOrderBy | null | undefined;
+  descending?: boolean | null | undefined;
 }>;
 
 
-export type OrganizationsQuery = { organizations: { totalCount: number, nodes: Array<{ id: string, name: string, displayName: string | null, url: string, createdAt: string }> } };
+export type OrganizationsQuery = { organizations: { totalCount: number, pageInfo: { hasNextPage: boolean, endCursor: string | null }, nodes: Array<{ id: string, name: string, displayName: string | null, url: string, createdAt: string }> } };
 
 export type OverwriteSettingsMutationVariables = Exact<{
   subject: string | number;
@@ -3030,7 +3047,17 @@ export type TeamQueryVariables = Exact<{
 }>;
 
 
-export type TeamQuery = { team: { id: string, name: string, displayName: string | null, url: string, readonly: boolean, syncedFromCodeHost: boolean, viewerCanAdminister: boolean, creator: { username: string } | null, parentTeam: { id: string, name: string, displayName: string | null, url: string } | null, childTeams: { totalCount: number, nodes: Array<{ id: string, name: string, displayName: string | null, url: string, readonly: boolean, syncedFromCodeHost: boolean, members: { totalCount: number }, childTeams: { totalCount: number } }> }, members: { totalCount: number, nodes: Array<{ id: string, username: string, displayName: string | null, avatarURL: string | null }> } } | null };
+export type TeamQuery = { team: { id: string, name: string, displayName: string | null, url: string, readonly: boolean, syncedFromCodeHost: boolean, viewerCanAdminister: boolean, creator: { username: string } | null, parentTeam: { id: string, name: string, displayName: string | null, url: string } | null, childTeams: { totalCount: number, nodes: Array<{ id: string, name: string, displayName: string | null, url: string, readonly: boolean, syncedFromCodeHost: boolean, members: { totalCount: number }, childTeams: { totalCount: number } }> }, members: { totalCount: number } } | null };
+
+export type TeamMembersQueryVariables = Exact<{
+  name: string;
+  first?: number | null | undefined;
+  after?: string | null | undefined;
+  search?: string | null | undefined;
+}>;
+
+
+export type TeamMembersQuery = { team: { id: string, members: { totalCount: number, pageInfo: { hasNextPage: boolean, endCursor: string | null }, nodes: Array<{ id: string, username: string, displayName: string | null, avatarURL: string | null }> } } | null };
 
 export type TeamsQueryVariables = Exact<{
   first?: number | null | undefined;
@@ -3117,7 +3144,10 @@ export type BlobOwnershipQuery = { repository: { id: string, commit: { blob: { o
 
 export type CodeownersFilesQueryVariables = Exact<{
   first?: number | null | undefined;
-  after?: number | null | undefined;
+  after?: string | null | undefined;
+  query?: string | null | undefined;
+  orderBy?: CodeownersOrderBy | null | undefined;
+  descending?: boolean | null | undefined;
 }>;
 
 
@@ -3207,10 +3237,11 @@ export type OwnUserByNameQuery = { user: { id: string } | null };
 
 export type AccessRequestsQueryVariables = Exact<{
   first?: number | null | undefined;
+  after?: string | number | null | undefined;
 }>;
 
 
-export type AccessRequestsQuery = { accessRequests: { totalCount: number, nodes: Array<{ id: string, name: string, email: string, additionalInfo: string, createdAt: string }> } };
+export type AccessRequestsQuery = { accessRequests: { totalCount: number, nodes: Array<{ id: string, name: string, email: string, additionalInfo: string, createdAt: string }>, pageInfo: { hasNextPage: boolean, endCursor: string | null } } };
 
 export type BumpDerivativeGraphKeyMutationVariables = Exact<{ [key: string]: never; }>;
 
@@ -3293,21 +3324,23 @@ export type ExecutorsQueryVariables = Exact<{
   query?: string | null | undefined;
   active?: boolean | null | undefined;
   first?: number | null | undefined;
+  after?: string | null | undefined;
 }>;
 
 
-export type ExecutorsQuery = { areExecutorsConfigured: boolean, executors: { totalCount: number, nodes: Array<{ id: string, hostname: string, queueNames: Array<string>, active: boolean, os: string, architecture: string, executorVersion: string, runtime: string, runtimeVersion: string, gitVersion: string, compatibility: ExecutorCompatibility | null, firstSeenAt: string, lastSeenAt: string, activeJobs: Array<{ queue: string, id: number }> }> } };
+export type ExecutorsQuery = { areExecutorsConfigured: boolean, executors: { totalCount: number, nodes: Array<{ id: string, hostname: string, queueNames: Array<string>, active: boolean, os: string, architecture: string, executorVersion: string, runtime: string, runtimeVersion: string, gitVersion: string, compatibility: ExecutorCompatibility | null, firstSeenAt: string, lastSeenAt: string, activeJobs: Array<{ queue: string, id: number }> }>, pageInfo: { hasNextPage: boolean, endCursor: string | null } } };
 
 export type GlobalExecutorSecretsQueryVariables = Exact<{
   scope: ExecutorSecretScope;
   first?: number | null | undefined;
+  after?: string | null | undefined;
 }>;
 
 
 export type GlobalExecutorSecretsQuery = { executorSecrets: { totalCount: number, nodes: Array<{ id: string, key: string, scope: ExecutorSecretScope, overwritesGlobalSecret: boolean, createdAt: string, updatedAt: string, managedBy: string | null, namespace:
         | { name: string, id: string }
         | { username: string, id: string }
-       | null, creator: { username: string } | null, accessLogs: { totalCount: number } }> }, site: { declaredConfigFiles: Array<{ source: string, kinds: Array<string>, exclusive: boolean }> } };
+       | null, creator: { username: string } | null, accessLogs: { totalCount: number } }>, pageInfo: { hasNextPage: boolean, endCursor: string | null } }, site: { declaredConfigFiles: Array<{ source: string, kinds: Array<string>, exclusive: boolean }> } };
 
 export type OrganizeSiteConfigurationQueryVariables = Exact<{
   input: string;
@@ -3334,7 +3367,7 @@ export type PermissionsSyncJobsQueryVariables = Exact<{
 export type PermissionsSyncJobsQuery = { permissionsSyncJobs: { totalCount: number, nodes: Array<{ id: string, state: PermissionsSyncJobState, reason: string, queuedAt: string, finishedAt: string | null, ranForMs: number | null, failureMessage: string | null, permissionsAdded: number, permissionsRemoved: number, permissionsFound: number, codeHostStates: Array<{ providerID: string, providerType: string, status: string, message: string }>, subject:
         | { __typename: 'Repository', name: string }
         | { __typename: 'User', username: string }
-       | null }>, pageInfo: { hasNextPage: boolean, endCursor: string | null } } };
+       | null }>, pageInfo: { hasNextPage: boolean, endCursor: string | null } }, permissionsSyncJobCounts: { total: number, queued: number, processing: number, errored: number, failed: number } };
 
 export type PreciseIndexCoverageQueryVariables = Exact<{
   staleAfterDays: number;
@@ -3448,13 +3481,14 @@ export type UpdateSiteConfigurationMutation = { updateSiteConfiguration: boolean
 export type UserExecutorSecretsQueryVariables = Exact<{
   scope: ExecutorSecretScope;
   first?: number | null | undefined;
+  after?: string | null | undefined;
 }>;
 
 
 export type UserExecutorSecretsQuery = { currentUser: { id: string, executorSecrets: { totalCount: number, nodes: Array<{ id: string, key: string, scope: ExecutorSecretScope, overwritesGlobalSecret: boolean, createdAt: string, updatedAt: string, managedBy: string | null, namespace:
           | { name: string, id: string }
           | { username: string, id: string }
-         | null, creator: { username: string } | null, accessLogs: { totalCount: number } }> } } | null };
+         | null, creator: { username: string } | null, accessLogs: { totalCount: number } }>, pageInfo: { hasNextPage: boolean, endCursor: string | null } } } | null };
 
 export type UsersQueryVariables = Exact<{
   first?: number | null | undefined;
