@@ -770,3 +770,83 @@ async fn teams_synced_from_gitlab_groups() {
         .await;
     assert_eq!(d["teams"]["totalCount"], 0);
 }
+
+#[tokio::test(flavor = "multi_thread", worker_threads = 2)]
+async fn organizations_page_sort_and_filter() {
+    let Some(env) = setup().await else { return };
+    for (i, name) in ["delta", "alpha", "charlie", "bravo", "echo"]
+        .iter()
+        .enumerate()
+    {
+        let org = env.db.orgs().create(name, None).await.unwrap();
+        // Created in list order, a day apart: delta is the oldest.
+        sourcegull_db::sqlx::query(
+            "UPDATE orgs SET created_at = now() - make_interval(days => 10 - $2) WHERE id = $1",
+        )
+        .bind(org.id)
+        .bind(i32::try_from(i).unwrap())
+        .execute(env.db.pool())
+        .await
+        .unwrap();
+    }
+    let list = "query($first: Int, $after: String, $query: String, $orderBy: OrgOrderBy,
+            $descending: Boolean) {
+        organizations(first: $first, after: $after, query: $query, orderBy: $orderBy,
+            descending: $descending) {
+            totalCount nodes { name } pageInfo { hasNextPage endCursor } } }";
+    let names = |d: &Value| -> Vec<String> {
+        d["organizations"]["nodes"]
+            .as_array()
+            .unwrap()
+            .iter()
+            .map(|n| n["name"].as_str().unwrap().to_owned())
+            .collect()
+    };
+    assert_eq!(
+        env.error_code(env.alice, list, json!({})).await,
+        "FORBIDDEN"
+    );
+
+    // By name by default; explicit nulls mean the defaults.
+    let page = json!({ "first": 2, "orderBy": null, "descending": null });
+    let first = env.ok(env.admin, list, page.clone()).await;
+    assert_eq!(names(&first), ["alpha", "bravo"]);
+    assert_eq!(first["organizations"]["totalCount"], 5);
+    assert_eq!(first["organizations"]["pageInfo"]["hasNextPage"], true);
+    let mut next = page.clone();
+    next["after"] = first["organizations"]["pageInfo"]["endCursor"].clone();
+    let second = env.ok(env.admin, list, next.clone()).await;
+    assert_eq!(names(&second), ["charlie", "delta"]);
+    next["after"] = second["organizations"]["pageInfo"]["endCursor"].clone();
+    let third = env.ok(env.admin, list, next).await;
+    assert_eq!(names(&third), ["echo"]);
+    assert_eq!(third["organizations"]["pageInfo"]["hasNextPage"], false);
+    assert_eq!(third["organizations"]["pageInfo"]["endCursor"], Value::Null);
+
+    let newest = env
+        .ok(
+            env.admin,
+            list,
+            json!({ "orderBy": "CREATED_AT", "descending": true }),
+        )
+        .await;
+    assert_eq!(
+        names(&newest),
+        ["echo", "bravo", "charlie", "alpha", "delta"]
+    );
+    let z_to_a = env
+        .ok(env.admin, list, json!({ "descending": true, "first": 1 }))
+        .await;
+    assert_eq!(names(&z_to_a), ["echo"]);
+
+    // The filter and the count share their WHERE clause, page by page.
+    let filtered = json!({ "query": "a", "first": 2 });
+    let d = env.ok(env.admin, list, filtered.clone()).await;
+    assert_eq!(d["organizations"]["totalCount"], 4, "every name but echo");
+    assert_eq!(names(&d), ["alpha", "bravo"]);
+    let mut rest = filtered;
+    rest["after"] = d["organizations"]["pageInfo"]["endCursor"].clone();
+    let d = env.ok(env.admin, list, rest).await;
+    assert_eq!(names(&d), ["charlie", "delta"]);
+    assert_eq!(d["organizations"]["pageInfo"]["hasNextPage"], false);
+}

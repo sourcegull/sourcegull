@@ -123,7 +123,8 @@ panel with the reason for each owner:
 
   Patterns are read as GitLab globs on every host, so a Gitea file with regular expression
   patterns does not match as it does on Gitea. Site admins can also upload a CODEOWNERS file
-  for a repository (Site admin → CODEOWNERS files).
+  for a repository (Site admin → CODEOWNERS files, which lists them 50 at a time, filtered by
+  repository name and sorted by repository or upload time).
 - **Assigned owners**: users and teams assigned to a file, directory or repository in the UI.
 - **Signals**: recent contributors and recent viewers of a file (Site admin → Ownership
   signals turns them on and excludes repositories).

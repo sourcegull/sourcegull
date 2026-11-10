@@ -52,14 +52,15 @@ use sourcegull_own::resolve::{OwnerResolver, ResolvedOwner};
 use sourcegull_own::signals::{
     PathStats, RECENT_CONTRIBUTORS, RECENT_VIEWS, SignalConfig, SignalConfigUpdate, SignalStore,
 };
-use sourcegull_own::store::{Assignee, IngestedCodeowners};
+use sourcegull_own::store::{Assignee, CodeownersOrder, IngestedCodeowners, ListCodeowners};
 use sourcegull_own::{CompiledCodeowners, codeowners_cache, codeowners_paths};
 use sourcegull_services::git::GitReader;
 use sourcegull_services::relay::marshal_id;
 use sourcegull_types::{Repo, RepoId};
 
 use crate::context::{
-    access_error, codes, db_error, error, page_size, require_site_admin, require_viewer,
+    access_error, codes, db_error, error, page_size, repo_access, require_site_admin,
+    require_viewer,
 };
 use crate::pagination::{PageInfo, decode_cursor};
 use crate::teams::{TeamNode, own_store, parse_team_id};
@@ -566,6 +567,16 @@ impl CodeownersIngestedFileNode {
     }
 }
 
+/// Sort order of `codeownersIngestedFiles`.
+#[derive(Enum, Copy, Clone, Debug, PartialEq, Eq, Default)]
+pub enum CodeownersOrderBy {
+    /// By repository name; files of repositories the viewer may not read come last.
+    #[default]
+    Repository,
+    /// By when the file was last uploaded.
+    UpdatedAt,
+}
+
 /// A page of ingested CODEOWNERS files.
 #[derive(SimpleObject)]
 pub struct CodeownersIngestedFileConnection {
@@ -728,32 +739,44 @@ impl OwnQuery {
         })
     }
 
-    /// Ingested CODEOWNERS files by ID (site admins only); `after` is the last ID seen.
+    /// A page of the ingested CODEOWNERS files (site admins only). `query` matches a substring
+    /// of the repository name.
     async fn codeowners_ingested_files(
         &self,
         ctx: &Context<'_>,
         first: Option<i32>,
-        after: Option<i32>,
+        after: Option<String>,
+        query: Option<String>,
+        #[graphql(desc = "Default: `REPOSITORY`.")] order_by: Option<CodeownersOrderBy>,
+        #[graphql(desc = "Default: false (A to Z, oldest first).")] descending: Option<bool>,
     ) -> Result<CodeownersIngestedFileConnection> {
         require_site_admin(ctx)?;
         let store = own_store(ctx)?;
         let limit = page_size(first, DEFAULT_PAGE, MAX_PAGE);
-        let mut files = store
-            .list_codeowners(limit + 1, after.map(i64::from))
-            .await
-            .map_err(db_error)?;
-        let total = store.count_codeowners().await.map_err(db_error)?;
-        let has_next_page = i64::try_from(files.len()).unwrap_or(i64::MAX) > limit;
-        files.truncate(usize::try_from(limit).unwrap_or(0));
+        let offset = decode_cursor(after.as_deref())?;
+        // Explicit nulls mean the defaults.
+        let opts = ListCodeowners {
+            query,
+            readable: repo_access(ctx).await?.readable_ids(),
+            order: match order_by.unwrap_or_default() {
+                CodeownersOrderBy::Repository => CodeownersOrder::Repository,
+                CodeownersOrderBy::UpdatedAt => CodeownersOrder::UpdatedAt,
+            },
+            descending: descending.unwrap_or(false),
+            limit: limit + 1,
+            offset,
+        };
+        let files = store.list_codeowners(&opts).await.map_err(db_error)?;
+        let total = store.count_codeowners(&opts).await.map_err(db_error)?;
+        let page_info = PageInfo::new(offset, limit, files.len());
         Ok(CodeownersIngestedFileConnection {
             total_count: crate::context::to_int(total),
-            page_info: PageInfo {
-                has_next_page,
-                end_cursor: has_next_page
-                    .then(|| files.last().map(|f| f.id.to_string()))
-                    .flatten(),
-            },
-            nodes: files.into_iter().map(CodeownersIngestedFileNode).collect(),
+            page_info,
+            nodes: files
+                .into_iter()
+                .take(usize::try_from(limit).unwrap_or(0))
+                .map(CodeownersIngestedFileNode)
+                .collect(),
         })
     }
 }

@@ -7,7 +7,7 @@ use sourcegull_db::{Db, DbError, NewUser, migrate};
 use sourcegull_own::codeowners::CompiledCodeowners;
 use sourcegull_own::ownership::{self, CodeownersOrigin, OwnershipQuery, Reason};
 use sourcegull_own::resolve::{OwnerResolver, ResolvedOwner};
-use sourcegull_own::store::{Assignee, ListTeams, NewTeam, OwnStore};
+use sourcegull_own::store::{Assignee, ListCodeowners, ListTeams, NewTeam, OwnStore};
 use sourcegull_testutil::TestDb;
 use sourcegull_types::{RepoId, UserId};
 
@@ -184,11 +184,17 @@ async fn ingested_files_and_assignments() {
     );
     let f2 = store.update_codeowners(r, "* @bob").await.unwrap();
     assert_eq!((f2.id, f2.contents.as_str()), (f.id, "* @bob"));
-    assert_eq!(store.count_codeowners().await.unwrap(), 1);
-    assert_eq!(
-        store.list_codeowners(10, Some(f.id)).await.unwrap().len(),
-        0
-    );
+    let all = ListCodeowners {
+        limit: 10,
+        ..ListCodeowners::default()
+    };
+    assert_eq!(store.count_codeowners(&all).await.unwrap(), 1);
+    assert_eq!(store.list_codeowners(&all).await.unwrap().len(), 1);
+    let skip = ListCodeowners {
+        offset: 1,
+        ..all.clone()
+    };
+    assert_eq!(store.list_codeowners(&skip).await.unwrap().len(), 0);
     assert_eq!(
         store
             .codeowners_for_repos(&[r.get(), other.get()])

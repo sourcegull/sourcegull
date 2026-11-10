@@ -59,6 +59,22 @@ pub struct OrgStore {
     pool: PgPool,
 }
 
+/// Sort order of [`OrgStore::list`].
+#[derive(Debug, Clone, Copy, Default, PartialEq, Eq)]
+pub enum OrgOrder {
+    /// By name, case-insensitively.
+    #[default]
+    Name,
+    /// By when the org was created.
+    CreatedAt,
+}
+
+/// The `WHERE` of [`OrgStore::list`] and [`OrgStore::count`]: $1 is the name or display name
+/// substring.
+const ORGS_WHERE: &str = "deleted_at IS NULL \
+    AND ($1::text IS NULL OR strpos(lower(name), lower($1)) > 0 \
+         OR strpos(lower(coalesce(display_name, '')), lower($1)) > 0)";
+
 impl OrgStore {
     /// Creates a store on `pool`.
     pub fn new(pool: PgPool) -> Self {
@@ -159,13 +175,22 @@ impl OrgStore {
         .await?)
     }
 
-    /// Live orgs whose name or display name contains `query` (case-insensitively), by name.
-    pub async fn list(&self, query: Option<&str>, limit: i64, offset: i64) -> Result<Vec<Org>> {
+    /// Live orgs whose name or display name contains `query` (case-insensitively), in `order`.
+    pub async fn list(
+        &self,
+        query: Option<&str>,
+        order: OrgOrder,
+        descending: bool,
+        limit: i64,
+        offset: i64,
+    ) -> Result<Vec<Org>> {
+        let dir = if descending { "DESC" } else { "ASC" };
+        let order = match order {
+            OrgOrder::Name => format!("lower(name) {dir}, id {dir}"),
+            OrgOrder::CreatedAt => format!("created_at {dir}, id {dir}"),
+        };
         Ok(sqlx::query_as(&format!(
-            "SELECT {ORG_COLUMNS} FROM orgs WHERE deleted_at IS NULL \
-               AND ($1::text IS NULL OR strpos(lower(name), lower($1)) > 0 \
-                    OR strpos(lower(coalesce(display_name, '')), lower($1)) > 0) \
-             ORDER BY lower(name), id LIMIT $2 OFFSET $3"
+            "SELECT {ORG_COLUMNS} FROM orgs WHERE {ORGS_WHERE} ORDER BY {order} LIMIT $2 OFFSET $3"
         ))
         .bind(query.filter(|q| !q.is_empty()))
         .bind(limit)
@@ -176,14 +201,12 @@ impl OrgStore {
 
     /// The number of orgs [`list`](Self::list) matches.
     pub async fn count(&self, query: Option<&str>) -> Result<i64> {
-        Ok(sqlx::query_scalar(
-            "SELECT count(*) FROM orgs WHERE deleted_at IS NULL \
-               AND ($1::text IS NULL OR strpos(lower(name), lower($1)) > 0 \
-                    OR strpos(lower(coalesce(display_name, '')), lower($1)) > 0)",
+        Ok(
+            sqlx::query_scalar(&format!("SELECT count(*) FROM orgs WHERE {ORGS_WHERE}"))
+                .bind(query.filter(|q| !q.is_empty()))
+                .fetch_one(&self.pool)
+                .await?,
         )
-        .bind(query.filter(|q| !q.is_empty()))
-        .fetch_one(&self.pool)
-        .await?)
     }
 
     /// Sets the display name (`None` clears it). Fails with [`DbError::NotFound`] for a

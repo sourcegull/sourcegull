@@ -3,6 +3,8 @@
 	import { page } from '$app/state';
 	import { untrack } from 'svelte';
 	import { EMAIL_SETTINGS_URL } from '#lib/auth.ts';
+	import Pager from '#lib/components/Pager.svelte';
+	import { cursorPages, firstPage, hasPreviousPage, pageAfter, pageLoaded, previousPage } from '#lib/cursor-pages.ts';
 	import { errorMessage, graphql } from '#lib/graphql.ts';
 	import {
 		ADD_USER_TO_ORGANIZATION,
@@ -22,13 +24,12 @@
 
 	let { data }: PageProps = $props();
 
-	const PAGE_SIZE = 50;
 	const name = $derived(page.params.name ?? '');
 
+	const pages = $state(cursorPages(50));
 	let org = $state<OrgHeader | null>(null);
 	let members = $state<MemberNode[]>([]);
 	let totalCount = $state(0);
-	let endCursor = $state<string | null>(null);
 	let query = $state('');
 	let loading = $state(true);
 	let error = $state<string | null>(null);
@@ -37,29 +38,49 @@
 	let invited = $state<{ who: string; url: string; emailed: boolean } | null>(null);
 	let requestSeq = 0;
 
-	async function load(more = false): Promise<void> {
+	/** Loads the organization, then the first page of its members. */
+	async function load(): Promise<void> {
 		const seq = ++requestSeq;
 		loading = true;
 		try {
-			if (!more) {
-				org = (await graphql<OrganizationResult, Vars>(ORGANIZATION, { name })).organization;
-				if (!org?.viewerIsMember && !org?.viewerCanAdminister) {
-					members = [];
-					return;
-				}
+			org = (await graphql<OrganizationResult, Vars>(ORGANIZATION, { name })).organization;
+			if (seq !== requestSeq) return;
+			if (!org?.viewerIsMember && !org?.viewerCanAdminister) {
+				members = [];
+				loading = false;
+				return;
 			}
+			await loadMembers();
+		} catch (err) {
+			if (seq === requestSeq) {
+				error = errorMessage(err);
+				loading = false;
+			}
+		}
+	}
+
+	async function loadMembers(): Promise<void> {
+		const seq = ++requestSeq;
+		loading = true;
+		try {
 			const result = await graphql<OrganizationMembersResult, Vars>(ORGANIZATION_MEMBERS, {
 				name,
-				first: PAGE_SIZE,
-				after: more ? endCursor : null,
+				first: pages.size,
+				after: pageAfter(pages),
 				query: query.trim() || null
 			});
 			if (seq !== requestSeq || !result.organization) return;
 			const conn = result.organization.members;
-			members = more ? [...members, ...conn.nodes] : conn.nodes;
+			members = conn.nodes;
 			totalCount = conn.totalCount;
-			endCursor = conn.pageInfo.hasNextPage ? conn.pageInfo.endCursor : null;
+			pageLoaded(pages, conn.pageInfo);
 			error = null;
+			// The page emptied (members removed): step back to one with members.
+			if (members.length === 0 && hasPreviousPage(pages)) {
+				previousPage(pages);
+				void loadMembers();
+				return;
+			}
 		} catch (err) {
 			if (seq === requestSeq) error = errorMessage(err);
 		} finally {
@@ -67,15 +88,26 @@
 		}
 	}
 
+	function restart(): void {
+		firstPage(pages);
+		void loadMembers();
+	}
+
 	$effect(() => {
 		void name;
-		untrack(() => void load());
+		untrack(() => {
+			clearTimeout(debounce);
+			query = '';
+			firstPage(pages);
+			void load();
+		});
+		return () => clearTimeout(debounce);
 	});
 
 	let debounce: ReturnType<typeof setTimeout> | undefined;
 	function oninput(): void {
 		clearTimeout(debounce);
-		debounce = setTimeout(() => load(), 200);
+		debounce = setTimeout(restart, 200);
 	}
 
 	async function invite(): Promise<void> {
@@ -110,7 +142,7 @@
 		try {
 			await graphql(ADD_USER_TO_ORGANIZATION, { organization: org.id, username: invitee.trim().replace(/^@/, '') });
 			invitee = '';
-			await load();
+			await loadMembers();
 		} catch (err) {
 			error = errorMessage(err);
 		} finally {
@@ -133,7 +165,7 @@
 				await goto('/user/settings/organizations');
 				return;
 			}
-			await load();
+			await loadMembers();
 		} catch (err) {
 			error = errorMessage(err);
 		} finally {
@@ -194,16 +226,17 @@
 		</div>
 	{/if}
 
-	<div class="field">
+	<div class="list-bar">
 		<label class="visually-hidden" for="member-filter">Filter members</label>
 		<input
 			id="member-filter"
-			class="input"
+			class="input filter"
 			type="search"
 			placeholder="Filter by username or name…"
 			bind:value={query}
 			{oninput}
 		/>
+		<Pager {pages} shown={members.length} total={totalCount} {loading} onchange={loadMembers} />
 	</div>
 
 	<div class="table-scroll">
@@ -230,14 +263,15 @@
 						</td>
 					</tr>
 				{:else}
-					{#if !loading}<tr><td colspan="3" class="muted">No members match.</td></tr>{/if}
+					<tr>
+						<td colspan="3" class="empty-cell">
+							{#if loading}Loading…{:else if query.trim()}No members match.{:else}No members.{/if}
+						</td>
+					</tr>
 				{/each}
 			</tbody>
 		</table>
 	</div>
-	{#if endCursor}
-		<button class="btn" type="button" disabled={loading} onclick={() => load(true)}>Show more</button>
-	{/if}
 {:else if loading}
 	<p class="muted">Loading…</p>
 {/if}
@@ -249,6 +283,18 @@
 	}
 	.link {
 		word-break: break-all;
+	}
+	.list-bar {
+		display: flex;
+		align-items: center;
+		flex-wrap: wrap;
+		gap: var(--space-2) var(--space-4);
+		margin-bottom: var(--space-3);
+	}
+	.list-bar .filter {
+		flex: 0 1 20rem;
+		width: auto;
+		min-width: 12rem;
 	}
 	.actions {
 		text-align: right;

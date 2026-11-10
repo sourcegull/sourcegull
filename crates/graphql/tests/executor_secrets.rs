@@ -27,8 +27,8 @@ const CREATE: &str = "mutation($scope: ExecutorSecretScope!, $key: String!, $val
     }
 }";
 
-const GLOBAL: &str = "query($scope: ExecutorSecretScope!) {
-    executorSecrets(scope: $scope, first: 1) {
+const GLOBAL: &str = "query($scope: ExecutorSecretScope!, $after: String) {
+    executorSecrets(scope: $scope, first: 1, after: $after) {
         totalCount pageInfo { hasNextPage endCursor }
         nodes { key scope namespace { id } }
     }
@@ -194,6 +194,12 @@ async fn executor_secrets_access_and_validation() {
     assert_eq!(list["executorSecrets"]["totalCount"], 2);
     assert_eq!(list["executorSecrets"]["nodes"][0]["key"], "GITHUB_TOKEN");
     assert_eq!(list["executorSecrets"]["pageInfo"]["hasNextPage"], true);
+    let after = list["executorSecrets"]["pageInfo"]["endCursor"].clone();
+    let next = env
+        .ok(admin, GLOBAL, json!({"scope": "BATCHES", "after": after}))
+        .await;
+    assert_eq!(next["executorSecrets"]["nodes"][0]["key"], "NPM_TOKEN");
+    assert_eq!(next["executorSecrets"]["pageInfo"]["hasNextPage"], false);
     let list = env.ok(admin, GLOBAL, json!({"scope": "CODEINTEL"})).await;
     assert_eq!(list["executorSecrets"]["totalCount"], 0);
 

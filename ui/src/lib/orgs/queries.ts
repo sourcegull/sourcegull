@@ -17,6 +17,7 @@ import type {
 	OrganizationsQuery,
 	PendingInvitationsQuery,
 	SyncTeamsFromGitLabGroupsMutation,
+	TeamMembersQuery,
 	TeamQuery,
 	TeamsQuery,
 	ViewerOrganizationsQuery
@@ -35,9 +36,16 @@ export interface OrgSummary {
 	createdAt: string;
 }
 
-export const ORGANIZATIONS = `query Organizations($first: Int, $query: String) {
-	organizations(first: $first, query: $query) {
+export const ORGANIZATIONS = `query Organizations(
+	$first: Int
+	$after: String
+	$query: String
+	$orderBy: OrgOrderBy
+	$descending: Boolean
+) {
+	organizations(first: $first, after: $after, query: $query, orderBy: $orderBy, descending: $descending) {
 		totalCount
+		pageInfo { hasNextPage endCursor }
 		nodes { id name displayName url createdAt }
 	}
 }`;
@@ -271,10 +279,7 @@ export const TEAM = `query Team($name: String!) {
 		creator { username }
 		parentTeam { id name displayName url }
 		childTeams(first: 100) { totalCount nodes { ${TEAM_SUMMARY} } }
-		members(first: 100) {
-			totalCount
-			nodes { ... on User { id username displayName avatarURL } }
-		}
+		members { totalCount }
 	}
 }`;
 export interface TeamDetail extends TeamSummary {
@@ -287,9 +292,21 @@ export interface TeamDetail extends TeamSummary {
 		url: string;
 	} | null;
 	childTeams: { totalCount: number; nodes: TeamSummary[] };
-	members: { totalCount: number; nodes: MemberNode[] };
+	members: { totalCount: number };
 }
 export type TeamResult = TeamQuery;
+
+export const TEAM_MEMBERS = `query TeamMembers($name: String!, $first: Int, $after: String, $search: String) {
+	team(name: $name) {
+		id
+		members(first: $first, after: $after, search: $search) {
+			totalCount
+			pageInfo { hasNextPage endCursor }
+			nodes { ... on User { id username displayName avatarURL } }
+		}
+	}
+}`;
+export type TeamMembersResult = TeamMembersQuery;
 
 export const CREATE_TEAM = `mutation CreateTeam($name: String!, $displayName: String, $parentTeamName: String) {
 	createTeam(name: $name, displayName: $displayName, parentTeamName: $parentTeamName) { id name url }

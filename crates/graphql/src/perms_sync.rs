@@ -471,6 +471,21 @@ pub(crate) async fn user_permissions_info(
     Ok(UserPermissionsInfo { synced_at })
 }
 
+/// The number of permissions sync jobs in each state.
+#[derive(SimpleObject)]
+pub struct PermissionsSyncJobCounts {
+    /// Every job, in any state.
+    pub total: i32,
+    pub queued: i32,
+    pub processing: i32,
+    /// Failed and to be retried.
+    pub errored: i32,
+    /// Failed for good.
+    pub failed: i32,
+    pub completed: i32,
+    pub canceled: i32,
+}
+
 /// Permissions sync queries.
 #[derive(Default)]
 pub struct PermsSyncQuery;
@@ -521,6 +536,29 @@ impl PermsSyncQuery {
                 .collect(),
             total_count: to_int(total),
             page_info,
+        })
+    }
+
+    /// The number of permissions sync jobs in each state (site admins only).
+    async fn permissions_sync_job_counts(
+        &self,
+        ctx: &Context<'_>,
+    ) -> Result<PermissionsSyncJobCounts> {
+        require_site_admin(ctx)?;
+        let c = services(ctx)?
+            .db
+            .perms_sync_jobs()
+            .counts()
+            .await
+            .map_err(db_error)?;
+        Ok(PermissionsSyncJobCounts {
+            total: to_int(c.total),
+            queued: to_int(c.queued),
+            processing: to_int(c.processing),
+            errored: to_int(c.errored),
+            failed: to_int(c.failed),
+            completed: to_int(c.completed),
+            canceled: to_int(c.canceled),
         })
     }
 }

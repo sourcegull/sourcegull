@@ -1,5 +1,9 @@
 <script lang="ts">
+	import CountTile from '#lib/components/CountTile.svelte';
+	import Pager from '#lib/components/Pager.svelte';
 	import RelatedLinks from '#lib/components/RelatedLinks.svelte';
+	import SortHeader from '#lib/components/SortHeader.svelte';
+	import { cursorPages, firstPage, hasPreviousPage, pageAfter, pageLoaded, previousPage } from '#lib/cursor-pages.ts';
 	import { onMount } from 'svelte';
 	import { goto } from '$app/navigation';
 	import { page } from '$app/state';
@@ -31,16 +35,12 @@
 
 	let { data }: PageProps = $props();
 
-	const PAGE_SIZE = 50;
-
+	const pages = $state(cursorPages(50));
 	let users = $state<UserNode[]>([]);
 	let totalCount = $state(0);
 	let counts = $state<UsersResult['userCounts'] | null>(null);
 	let order = $state<UserOrderBy>('USERNAME');
 	let descending = $state(false);
-	/** Cursors of the pages before the current one, and the current page's. */
-	let cursors = $state<(string | null)[]>([null]);
-	let nextCursor = $state<string | null>(null);
 	// `?query=` prefills the filter, for links to one user.
 	let query = $state(page.url.searchParams.get('query') ?? '');
 	let includeDeactivated = $state(false);
@@ -99,8 +99,8 @@
 		error = null;
 		try {
 			const result = await graphql<UsersResult, UsersVariables>(USERS, {
-				first: PAGE_SIZE,
-				after: cursors[cursors.length - 1] ?? null,
+				first: pages.size,
+				after: pageAfter(pages),
 				query: query.trim() || null,
 				includeDeactivated,
 				deactivated: show === 'deactivated',
@@ -112,10 +112,10 @@
 			users = result.users.nodes;
 			totalCount = result.users.totalCount;
 			counts = result.userCounts;
-			nextCursor = result.users.pageInfo.hasNextPage ? result.users.pageInfo.endCursor : null;
+			pageLoaded(pages, result.users.pageInfo);
 			// The page emptied (users deactivated, or fewer matches): step back to one with users.
-			if (users.length === 0 && cursors.length > 1) {
-				cursors = cursors.slice(0, -1);
+			if (users.length === 0 && hasPreviousPage(pages)) {
+				previousPage(pages);
 				void load();
 				return;
 			}
@@ -128,7 +128,7 @@
 
 	/** Reloads from the first page, after the filter or the order changed. */
 	function restart(): void {
-		cursors = [null];
+		firstPage(pages);
 		void load();
 	}
 
@@ -136,18 +136,6 @@
 	function oninput(): void {
 		clearTimeout(debounce);
 		debounce = setTimeout(restart, 200);
-	}
-
-	function nextPage(): void {
-		if (!nextCursor) return;
-		cursors = [...cursors, nextCursor];
-		void load();
-	}
-
-	function previousPage(): void {
-		if (cursors.length < 2) return;
-		cursors = cursors.slice(0, -1);
-		void load();
 	}
 
 	/** Sorts by `o`, or flips the direction when already sorted by it. */
@@ -161,8 +149,6 @@
 		}
 		restart();
 	}
-	const arrow = (o: UserOrderBy) => (order === o ? (descending ? ' ↓' : ' ↑') : '');
-	const ariaSort = (o: UserOrderBy) => (order === o ? (descending ? 'descending' : 'ascending') : 'none');
 
 	/** Shows only site admins or only deactivated users; a second click shows everyone again. */
 	function showOnly(which: 'admins' | 'deactivated'): void {
@@ -178,7 +164,6 @@
 		show = 'all';
 		restart();
 	}
-	const fmt = (n: number) => n.toLocaleString('en-US');
 
 	async function toggleSiteAdmin(user: UserNode): Promise<void> {
 		const siteAdmin = !user.siteAdmin;
@@ -315,38 +300,30 @@
 </div>
 
 <div class="tiles" role="group" aria-label="Show users">
-	<button
-		type="button"
-		class="tile"
-		class:active={show === 'all' && !query.trim() && !includeDeactivated}
+	<CountTile
+		value={counts?.users ?? null}
+		label="users"
+		active={show === 'all' && !query.trim() && !includeDeactivated}
 		title="Show all users and clear the filter"
 		onclick={showAll}
-	>
-		<span class="value">{counts ? fmt(counts.users) : '–'}</span><span class="tile-label">users</span>
-	</button>
-	<button
-		type="button"
-		class="tile"
-		class:active={show === 'admins'}
-		aria-pressed={show === 'admins'}
+	/>
+	<CountTile
+		value={counts?.siteAdmins ?? null}
+		label="site admins"
+		tone="primary"
+		active={show === 'admins'}
 		title="Show only site admins"
 		onclick={() => showOnly('admins')}
-	>
-		<span class="value admins">{counts ? fmt(counts.siteAdmins) : '–'}</span><span class="tile-label">site admins</span>
-	</button>
-	<button
-		type="button"
-		class="tile"
-		class:active={show === 'deactivated'}
-		aria-pressed={show === 'deactivated'}
+	/>
+	<CountTile
+		value={counts?.deactivated ?? null}
+		label="deactivated"
+		tone={counts?.deactivated ? 'warning' : undefined}
+		active={show === 'deactivated'}
 		title="Show only deactivated users"
 		disabled={!counts?.deactivated && show !== 'deactivated'}
 		onclick={() => showOnly('deactivated')}
-	>
-		<span class="value" class:warn={!!counts?.deactivated}>{counts ? fmt(counts.deactivated) : '–'}</span><span
-			class="tile-label">deactivated</span
-		>
-	</button>
+	/>
 </div>
 
 <section class="card create-card">
@@ -445,47 +422,23 @@
 			><input type="checkbox" bind:checked={includeDeactivated} onchange={restart} /> Show deactivated users</label
 		>
 	{/if}
-	<span class="shown">
-		{#if show !== 'all'}
+	{#if show !== 'all'}
+		<span class="shown">
 			<strong>Only {show === 'admins' ? 'site admins' : 'deactivated users'}</strong>
 			<button type="button" class="btn btn-link" onclick={showAll}>Show all users</button>
-		{/if}
-	</span>
-	<span class="pager">
-		<span class="muted">
-			{#if totalCount > 0}
-				{fmt((cursors.length - 1) * PAGE_SIZE + 1)}–{fmt((cursors.length - 1) * PAGE_SIZE + users.length)} of
-				{fmt(totalCount)}
-			{/if}
 		</span>
-		<button class="btn btn-sm" type="button" disabled={cursors.length < 2 || loading} onclick={previousPage}
-			>Previous</button
-		>
-		<button class="btn btn-sm" type="button" disabled={!nextCursor || loading} onclick={nextPage}>Next</button>
-	</span>
+	{/if}
+	<Pager {pages} shown={users.length} total={totalCount} {loading} onchange={load} />
 </div>
 
 <div class="table-scroll">
 	<table class="table table-bordered" aria-busy={loading}>
 		<thead>
 			<tr>
-				<th scope="col" aria-sort={ariaSort('USERNAME')}
-					><button type="button" class="link" onclick={() => sortBy('USERNAME')}>Username{arrow('USERNAME')}</button
-					></th
-				>
-				<th scope="col" aria-sort={ariaSort('DISPLAY_NAME')}
-					><button type="button" class="link" onclick={() => sortBy('DISPLAY_NAME')}
-						>Display name{arrow('DISPLAY_NAME')}</button
-					></th
-				>
-				<th scope="col" aria-sort={ariaSort('CREATED_AT')}
-					><button type="button" class="link" onclick={() => sortBy('CREATED_AT')}>Created{arrow('CREATED_AT')}</button
-					></th
-				>
-				<th scope="col" aria-sort={ariaSort('SITE_ADMIN')}
-					><button type="button" class="link" onclick={() => sortBy('SITE_ADMIN')}>Role{arrow('SITE_ADMIN')}</button
-					></th
-				>
+				<SortHeader key="USERNAME" label="Username" {order} {descending} onsort={sortBy} />
+				<SortHeader key="DISPLAY_NAME" label="Display name" {order} {descending} onsort={sortBy} />
+				<SortHeader key="CREATED_AT" label="Created" {order} {descending} onsort={sortBy} />
+				<SortHeader key="SITE_ADMIN" label="Role" {order} {descending} onsort={sortBy} />
 				<th scope="col"><span class="visually-hidden">Actions</span></th>
 			</tr>
 		</thead>
@@ -597,59 +550,6 @@
 		gap: var(--space-2);
 		margin-bottom: var(--space-5);
 	}
-	.tile {
-		display: flex;
-		flex-direction: column;
-		align-items: flex-start;
-		padding: var(--space-2) var(--space-3);
-		border: 1px solid var(--color-border);
-		border-radius: var(--radius);
-		background: var(--color-surface);
-		color: var(--color-text);
-		font: inherit;
-		text-align: left;
-	}
-	.tile {
-		cursor: pointer;
-	}
-	.tile:hover:not(:disabled) {
-		background: var(--color-bg-hover);
-		border-color: var(--color-border-strong);
-	}
-	.tile.active {
-		border-color: var(--color-primary);
-		box-shadow: inset 0 0 0 1px var(--color-primary);
-	}
-	.tile:disabled {
-		cursor: default;
-	}
-	.tile .value {
-		font-size: var(--text-xl);
-		font-weight: var(--weight-semibold);
-		font-variant-numeric: tabular-nums;
-	}
-	.tile .value.admins {
-		color: var(--color-primary);
-	}
-	.tile .value.warn {
-		color: var(--color-warning);
-	}
-	.tile .tile-label {
-		color: var(--color-text-muted);
-	}
-	button.link {
-		background: none;
-		border: none;
-		padding: 0;
-		font: inherit;
-		text-transform: inherit;
-		letter-spacing: inherit;
-		color: inherit;
-		cursor: pointer;
-	}
-	button.link:hover {
-		color: var(--color-text);
-	}
 	.list-bar {
 		display: flex;
 		align-items: center;
@@ -658,12 +558,6 @@
 		margin-bottom: var(--space-3);
 	}
 	.list-bar .shown {
-		display: inline-flex;
-		align-items: center;
-		gap: var(--space-2);
-		margin-right: auto;
-	}
-	.pager {
 		display: inline-flex;
 		align-items: center;
 		gap: var(--space-2);

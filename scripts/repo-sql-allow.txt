@@ -4,6 +4,7 @@
 crates/analytics/src/query.rs  # site.analytics is site-admin only; codeIntelTopRepositories filters names by RepoAccess first
 crates/batches-graphql/src/apply.rs  # service_types: code host types to plan changesets, never shown
 crates/own/src/jobs.rs  # ownership indexer and scheduler, background jobs that act for no user
+crates/own/src/store.rs  # ingested CODEOWNERS list is site-admin only; repository names match and sort only within RepoAccess::readable_ids
 crates/own/src/signals.rs  # signal indexing and coverage stats; stats are site-admin only
 crates/pgqueue/src/queue.rs  # doc comment example of a dequeue filter
 crates/searchjobs/src/store.rs  # worker context; job log is creator or site admin only, over the repositories the job searched

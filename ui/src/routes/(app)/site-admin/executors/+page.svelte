@@ -1,36 +1,68 @@
 <script lang="ts">
+	import Pager from '#lib/components/Pager.svelte';
 	import RelatedLinks from '#lib/components/RelatedLinks.svelte';
 	import { onDestroy, onMount } from 'svelte';
+	import { cursorPages, firstPage, hasPreviousPage, pageAfter, pageLoaded, previousPage } from '#lib/cursor-pages.ts';
 	import { errorMessage, graphql } from '#lib/graphql.ts';
+	import type { ExecutorsQueryVariables } from '#lib/graphql-types.ts';
 	import { EXECUTORS, type ExecutorNode, type ExecutorsResult } from '#lib/queries.ts';
 
 	/** The list refreshes this often (executors send a heartbeat every 5 seconds). */
 	const REFRESH_MS = 10_000;
 
+	const pages = $state(cursorPages(50));
 	let executors = $state<ExecutorNode[]>([]);
 	let totalCount = $state(0);
+	/** The executors seen in the last day, whatever the filter. */
+	let seenCount = $state(0);
 	let configured = $state(true);
 	let activeOnly = $state(false);
 	let query = $state('');
 	let loading = $state(true);
 	let error = $state<string | null>(null);
 	let timer: ReturnType<typeof setInterval> | undefined;
+	let requestSeq = 0;
 
+	/** Loads the current page; the timer calls it too, so a refresh keeps the page. */
 	async function load(): Promise<void> {
+		const seq = ++requestSeq;
 		error = null;
 		try {
-			const result = await graphql<ExecutorsResult, { query: string | null; active: boolean | null; first: number }>(
-				EXECUTORS,
-				{ query: query.trim() || null, active: activeOnly || null, first: 200 }
-			);
+			const filtered = query.trim() !== '' || activeOnly;
+			const result = await graphql<ExecutorsResult, ExecutorsQueryVariables>(EXECUTORS, {
+				query: query.trim() || null,
+				active: activeOnly || null,
+				first: pages.size,
+				after: pageAfter(pages)
+			});
+			if (seq !== requestSeq) return;
 			configured = result.areExecutorsConfigured;
 			executors = result.executors.nodes;
 			totalCount = result.executors.totalCount;
+			if (!filtered) seenCount = totalCount;
+			pageLoaded(pages, result.executors.pageInfo);
+			// The page emptied (executors went away): step back to one with executors.
+			if (executors.length === 0 && hasPreviousPage(pages)) {
+				previousPage(pages);
+				void load();
+				return;
+			}
 		} catch (err) {
-			error = errorMessage(err);
+			if (seq === requestSeq) error = errorMessage(err);
 		} finally {
-			loading = false;
+			if (seq === requestSeq) loading = false;
 		}
+	}
+
+	function restart(): void {
+		firstPage(pages);
+		void load();
+	}
+
+	let debounce: ReturnType<typeof setTimeout> | undefined;
+	function oninput(): void {
+		clearTimeout(debounce);
+		debounce = setTimeout(restart, 200);
 	}
 
 	const COMPATIBILITY: Record<string, string> = {
@@ -49,7 +81,10 @@
 		void load();
 		timer = setInterval(() => void load(), REFRESH_MS);
 	});
-	onDestroy(() => clearInterval(timer));
+	onDestroy(() => {
+		clearInterval(timer);
+		clearTimeout(debounce);
+	});
 </script>
 
 <svelte:head><title>Executors · Site admin · Sourcegull</title></svelte:head>
@@ -65,7 +100,7 @@
 		<RelatedLinks />
 	</div>
 	<div class="page-actions">
-		<span class="badge">{totalCount} seen in the last day</span>
+		<span class="badge">{seenCount} seen in the last day</span>
 	</div>
 </div>
 
@@ -80,25 +115,21 @@
 	<div class="alert alert-danger" role="alert">{error}</div>
 {/if}
 
-<form
-	class="toolbar filters"
-	onsubmit={(e) => {
-		e.preventDefault();
-		void load();
-	}}
->
+<div class="list-bar">
 	<input
-		class="input"
+		class="input filter"
 		type="search"
-		placeholder="Filter by hostname or queue"
+		placeholder="Filter by hostname or queue…"
 		aria-label="Filter executors"
 		bind:value={query}
+		{oninput}
 	/>
 	<label class="check">
-		<input type="checkbox" bind:checked={activeOnly} onchange={() => void load()} />
+		<input type="checkbox" bind:checked={activeOnly} onchange={restart} />
 		Active only
 	</label>
-</form>
+	<Pager {pages} shown={executors.length} total={totalCount} {loading} onchange={load} />
+</div>
 
 <div class="table-scroll">
 	<table class="table table-bordered" aria-busy={loading}>
@@ -146,8 +177,10 @@
 				</tr>
 			{:else}
 				<tr>
-					<td colspan="5" class="empty-cell">{loading ? 'Loading…' : 'No executors have connected in the last day.'}</td
-					>
+					<td colspan="5" class="empty-cell">
+						{#if loading}Loading…{:else if query.trim() || activeOnly}No executors match.{:else}No executors have
+							connected in the last day.{/if}
+					</td>
 				</tr>
 			{/each}
 		</tbody>
@@ -155,13 +188,17 @@
 </div>
 
 <style>
-	.filters {
-		gap: var(--space-3);
-		margin-bottom: var(--space-4);
+	.list-bar {
+		display: flex;
+		align-items: center;
+		flex-wrap: wrap;
+		gap: var(--space-2) var(--space-4);
+		margin-bottom: var(--space-3);
 	}
-	.filters input[type='search'] {
-		flex: 1 1 14rem;
-		max-width: 20rem;
+	.list-bar .filter {
+		flex: 0 1 20rem;
+		width: auto;
+		min-width: 12rem;
 	}
 	.nowrap {
 		white-space: nowrap;

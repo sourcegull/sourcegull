@@ -108,6 +108,44 @@ fn codeowners_from_row(r: &PgRow) -> sqlx::Result<IngestedCodeowners> {
     })
 }
 
+/// Sort order of [`OwnStore::list_codeowners`].
+#[derive(Debug, Clone, Copy, Default, PartialEq, Eq)]
+pub enum CodeownersOrder {
+    /// By repository name, case-insensitively.
+    #[default]
+    Repository,
+    /// By when the file was last uploaded.
+    UpdatedAt,
+}
+
+/// Filters for [`OwnStore::list_codeowners`] and [`OwnStore::count_codeowners`].
+#[derive(Debug, Clone, Default)]
+pub struct ListCodeowners {
+    /// Case-insensitive substring of the repository name.
+    pub query: Option<String>,
+    /// The repositories the viewer may read (`None`: all). Only their names match `query`
+    /// and sort; files of other repositories are still listed.
+    pub readable: Option<Vec<i32>>,
+    pub order: CodeownersOrder,
+    pub descending: bool,
+    pub limit: i64,
+    pub offset: i64,
+}
+
+/// The `FROM` and `WHERE` of [`OwnStore::list_codeowners`] and [`OwnStore::count_codeowners`]:
+/// $1 is the repository name pattern, $2 the readable repository IDs (null: all).
+const CODEOWNERS_FROM: &str = "codeowners_files f LEFT JOIN repo r ON r.id = f.repo_id \
+    WHERE $1::text IS NULL \
+       OR (r.name ILIKE $1 AND ($2::int[] IS NULL OR f.repo_id = ANY($2)))";
+
+fn codeowners_pattern(opts: &ListCodeowners) -> Option<String> {
+    opts.query
+        .as_deref()
+        .map(str::trim)
+        .filter(|q| !q.is_empty())
+        .map(|q| format!("%{}%", escape_like(q)))
+}
+
 /// Who an assignment names.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub enum Assignee {
@@ -514,18 +552,25 @@ impl OwnStore {
         Ok(row.as_ref().map(codeowners_from_row).transpose()?)
     }
 
-    /// Ingested files by id, after `after` (an id).
-    pub async fn list_codeowners(
-        &self,
-        limit: i64,
-        after: Option<i64>,
-    ) -> Result<Vec<IngestedCodeowners>> {
-        let rows = sqlx::query(
-            "SELECT id, repo_id, contents, created_at, updated_at FROM codeowners_files \
-             WHERE id > coalesce($2, 0) ORDER BY id LIMIT $1",
-        )
-        .bind(limit)
-        .bind(after)
+    /// One page of ingested files, filtered and sorted by `opts`.
+    pub async fn list_codeowners(&self, opts: &ListCodeowners) -> Result<Vec<IngestedCodeowners>> {
+        let dir = if opts.descending { "DESC" } else { "ASC" };
+        let order = match opts.order {
+            // Files of repositories the viewer may not read have no name to sort by: last.
+            CodeownersOrder::Repository => format!(
+                "CASE WHEN $2::int[] IS NULL OR f.repo_id = ANY($2) THEN lower(r.name) END \
+                 {dir} NULLS LAST, f.id {dir}"
+            ),
+            CodeownersOrder::UpdatedAt => format!("f.updated_at {dir}, f.id {dir}"),
+        };
+        let rows = sqlx::query(&format!(
+            "SELECT f.id, f.repo_id, f.contents, f.created_at, f.updated_at \
+             FROM {CODEOWNERS_FROM} ORDER BY {order} LIMIT $3 OFFSET $4"
+        ))
+        .bind(codeowners_pattern(opts))
+        .bind(opts.readable.as_deref())
+        .bind(opts.limit)
+        .bind(opts.offset)
         .fetch_all(&self.pool)
         .await?;
         Ok(rows
@@ -534,10 +579,15 @@ impl OwnStore {
             .collect::<sqlx::Result<_>>()?)
     }
 
-    pub async fn count_codeowners(&self) -> Result<i64> {
-        Ok(sqlx::query_scalar("SELECT count(*) FROM codeowners_files")
-            .fetch_one(&self.pool)
-            .await?)
+    /// The number of files [`Self::list_codeowners`] lists for `opts`, over all pages.
+    pub async fn count_codeowners(&self, opts: &ListCodeowners) -> Result<i64> {
+        Ok(
+            sqlx::query_scalar(&format!("SELECT count(*) FROM {CODEOWNERS_FROM}"))
+                .bind(codeowners_pattern(opts))
+                .bind(opts.readable.as_deref())
+                .fetch_one(&self.pool)
+                .await?,
+        )
     }
 
     /// The ingested files of those of `repos` that have one.

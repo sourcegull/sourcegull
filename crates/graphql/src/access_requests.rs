@@ -19,6 +19,7 @@ use crate::audit::{self, events};
 use crate::context::{
     auth_error, codes, db_error, error, page_size, require_site_admin, services, to_int,
 };
+use crate::pagination::PageInfo;
 
 const KIND: &str = "AccessRequest";
 
@@ -89,6 +90,8 @@ impl AccessRequestNode {
 pub struct AccessRequestConnection {
     nodes: Vec<AccessRequestNode>,
     total_count: i32,
+    /// `endCursor` is the ID of the last request on this page.
+    page_info: PageInfo,
 }
 
 /// The result of deciding a request.
@@ -128,14 +131,24 @@ impl AccessRequestsQuery {
         let store = services(ctx)?.db.access_requests();
         let after = after.map(|id| parse_id(&id)).transpose()?.unwrap_or(0);
         let status = status.map(Status::from);
-        let rows = store
-            .list(status, after, page_size(first, 50, 100))
+        let limit = page_size(first, 50, 100);
+        let mut rows = store
+            .list(status, after, limit + 1)
             .await
             .map_err(db_error)?;
         let total = store.count(status).await.map_err(db_error)?;
+        let has_next_page = i64::try_from(rows.len()).unwrap_or(i64::MAX) > limit;
+        rows.truncate(usize::try_from(limit).unwrap_or(0));
+        let end_cursor = has_next_page
+            .then(|| rows.last().map(|r| marshal_id(KIND, r.id)))
+            .flatten();
         Ok(AccessRequestConnection {
             nodes: rows.into_iter().map(AccessRequestNode).collect(),
             total_count: to_int(total),
+            page_info: PageInfo {
+                has_next_page,
+                end_cursor,
+            },
         })
     }
 

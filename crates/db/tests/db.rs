@@ -6,7 +6,7 @@
 
 use sourcegull_db::migrate::{self, MigrationProblem};
 use sourcegull_db::{
-    Db, DbError, DbOptions, ListUsersOptions, LockoutPolicy, NewSecurityEvent, NewUser,
+    Db, DbError, DbOptions, ListUsersOptions, LockoutPolicy, NewSecurityEvent, NewUser, OrgOrder,
 };
 use sourcegull_testutil::TestDb;
 use sourcegull_types::{OrgRole, SettingsSubject, UserId};
@@ -529,14 +529,33 @@ async fn org_store_listing_members_and_deletion() {
     let b = orgs.create("beta", None).await.unwrap();
     let names = |v: Vec<sourcegull_types::Org>| v.into_iter().map(|o| o.name).collect::<Vec<_>>();
     assert_eq!(
-        names(orgs.list(None, 10, 0).await.unwrap()),
+        names(orgs.list(None, OrgOrder::Name, false, 10, 0).await.unwrap()),
         ["acme", "beta"]
     );
     assert_eq!(
-        names(orgs.list(Some("INC"), 10, 0).await.unwrap()),
+        names(
+            orgs.list(Some("INC"), OrgOrder::Name, false, 10, 0)
+                .await
+                .unwrap()
+        ),
         ["acme"]
     );
-    assert_eq!(names(orgs.list(None, 1, 1).await.unwrap()), ["beta"]);
+    assert_eq!(
+        names(orgs.list(None, OrgOrder::Name, false, 1, 1).await.unwrap()),
+        ["beta"]
+    );
+    assert_eq!(
+        names(orgs.list(None, OrgOrder::Name, true, 10, 0).await.unwrap()),
+        ["beta", "acme"]
+    );
+    assert_eq!(
+        names(
+            orgs.list(None, OrgOrder::CreatedAt, true, 10, 0)
+                .await
+                .unwrap()
+        ),
+        ["beta", "acme"]
+    );
     assert_eq!(orgs.count(Some("et")).await.unwrap(), 1);
 
     let a2 = orgs.update(a.id, None).await.unwrap();

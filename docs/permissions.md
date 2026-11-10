@@ -304,7 +304,9 @@ organization. GitHub cannot act as another user, so `username` is rejected.
 a code host rejected their token (GitLab, GitHub or Gitea), Sourcegull shows them a banner on every
 page: "Sign in again with GitHub to see your private repositories", linking to that code host's
 sign-in provider. It goes away once they sign in again. The sync jobs under Site admin →
-Repository permissions show each code host's error with its name.
+Repository permissions show each code host's error with its name. They list 50 at a time,
+newest first; the counts at the top (queued, processing, errored, failed) narrow the list to
+one state (GraphQL `permissionsSyncJobs` and `permissionsSyncJobCounts`).
 
 **Explicit permissions**: with `"permissions.userMapping": { "enabled": true, "bindID":
 "email" }` (or `"username"`), every private repository is restricted and site admins grant
@@ -328,9 +330,13 @@ grant include `BATCH_CHANGES#READ`, `BATCH_CHANGES#WRITE`, `OWNERSHIP#ASSIGN` an
 - **Organizations** group users. Members share the organization's settings (part of the
   [settings cascade](configuration.md#settings-and-the-settings-cascade)), saved searches,
   search contexts, notebooks, watches, trends dashboards and bulk changes. Members invite
-  others by username or email.
+  others by username or email. **Site admin → Organizations** lists them 50 at a time,
+  filtered by name or display name and sorted by name or creation date (GraphQL
+  `organizations` with `orderBy` and `descending`).
 - **Teams** (nested, with members) are used for [code ownership](features.md#code-ownership).
   They can be synced hourly from GitLab groups with `own.syncTeamsFromGitLabGroups`.
+
+An organization's and a team's members list 50 at a time, filtered by username or display name.
 
 ## Access tokens
 
@@ -373,8 +379,8 @@ verified here. The GraphQL mutation is `createUser`.
 
 When built-in sign-up is off, the sign-in page lets visitors request an account (turn this off
 with `"auth.accessRequest": { "enabled": false }`). Site admins review requests under **Site
-admin → Access requests**; approving one creates the user and returns a one-time account setup
-link, which is also emailed when SMTP is configured.
+admin → Access requests**, 50 at a time, oldest first; approving one creates the user and returns
+a one-time account setup link, which is also emailed when SMTP is configured.
 
 ## Accounts
 

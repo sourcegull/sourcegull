@@ -8,6 +8,7 @@ use sourcegull_db::Executor;
 use sourcegull_services::relay::marshal_id;
 
 use crate::context::{db_error, page_size, require_site_admin, services, to_int};
+use crate::pagination::{PageInfo, decode_cursor};
 
 const KIND: &str = "Executor";
 
@@ -134,6 +135,7 @@ fn compatibility(server: &str, executor: &str) -> Option<ExecutorCompatibility> 
 pub struct ExecutorConnection {
     nodes: Vec<ExecutorNode>,
     total_count: i32,
+    page_info: PageInfo,
 }
 
 /// Executor queries.
@@ -150,6 +152,7 @@ impl ExecutorsQuery {
         query: Option<String>,
         active: Option<bool>,
         first: Option<i32>,
+        after: Option<String>,
     ) -> Result<ExecutorConnection> {
         require_site_admin(ctx)?;
         let since = Utc::now()
@@ -174,10 +177,23 @@ impl ExecutorsQuery {
             });
         }
         let total = rows.len();
-        rows.truncate(usize::try_from(page_size(first, 50, 500)).unwrap_or(50));
+        let limit = page_size(first, 50, 500);
+        let offset = decode_cursor(after.as_deref())?;
+        let rest = rows
+            .into_iter()
+            .skip(usize::try_from(offset).unwrap_or(usize::MAX));
+        let page: Vec<Executor> = rest
+            .take(usize::try_from(limit + 1).unwrap_or(usize::MAX))
+            .collect();
+        let page_info = PageInfo::new(offset, limit, page.len());
         Ok(ExecutorConnection {
-            nodes: rows.into_iter().map(ExecutorNode).collect(),
+            nodes: page
+                .into_iter()
+                .take(usize::try_from(limit).unwrap_or(0))
+                .map(ExecutorNode)
+                .collect(),
             total_count: i32::try_from(total).unwrap_or(i32::MAX),
+            page_info,
         })
     }
 

@@ -129,6 +129,18 @@ pub struct ListPermsSyncJobs {
     pub offset: i64,
 }
 
+/// The number of sync runs in each state ([`PermsSyncJobStore::counts`]).
+#[derive(Debug, Clone, Copy, Default, PartialEq, Eq, sqlx::FromRow)]
+pub struct PermsSyncJobCounts {
+    pub total: i64,
+    pub queued: i64,
+    pub processing: i64,
+    pub errored: i64,
+    pub failed: i64,
+    pub completed: i64,
+    pub canceled: i64,
+}
+
 const RECORD_COLUMNS: &str = "id, state, reason, priority, queued_at, started_at, finished_at, \
      failure_message, cancel, user_id, repository_id, triggered_by_user_id, added, removed, \
      found, code_host_states";
@@ -363,6 +375,22 @@ impl PermsSyncJobStore {
         .bind(user)
         .bind(repo)
         .bind(filter.state.as_deref())
+        .fetch_one(&self.pool)
+        .await?)
+    }
+
+    /// The number of runs in each state, over all users and repositories.
+    pub async fn counts(&self) -> Result<PermsSyncJobCounts> {
+        Ok(sqlx::query_as(
+            "SELECT count(*) AS total,
+                    count(*) FILTER (WHERE state = 'queued') AS queued,
+                    count(*) FILTER (WHERE state = 'processing') AS processing,
+                    count(*) FILTER (WHERE state = 'errored') AS errored,
+                    count(*) FILTER (WHERE state = 'failed') AS failed,
+                    count(*) FILTER (WHERE state = 'completed') AS completed,
+                    count(*) FILTER (WHERE state = 'canceled') AS canceled
+             FROM permission_sync_jobs",
+        )
         .fetch_one(&self.pool)
         .await?)
     }
