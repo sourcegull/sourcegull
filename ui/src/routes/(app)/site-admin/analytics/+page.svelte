@@ -1,4 +1,5 @@
 <script lang="ts">
+	import { formatDateTime } from '#lib/format.svelte.ts';
 	import RelatedLinks from '#lib/components/RelatedLinks.svelte';
 	import { errorMessage, graphql } from '#lib/graphql.ts';
 	import StatChart from '#lib/analytics/StatChart.svelte';
@@ -51,7 +52,7 @@
 			? preciseShare(a.codeIntel.preciseEvents.summary.totalCount, a.codeIntel.searchBasedEvents.summary.totalCount)
 			: null
 	);
-	const formatDate = (iso: string | null) => (iso ? new Date(iso).toLocaleString() : 'not yet');
+	const formatDate = (iso: string | null) => (iso ? formatDateTime(iso) : 'not yet');
 </script>
 
 <svelte:head><title>Analytics · Site admin · Sourcegull</title></svelte:head>

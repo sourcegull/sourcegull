@@ -2,6 +2,7 @@
  * The site admin's status indicator: `statusMessages`, as the nav item shows them. The query is polled; `summarize` turns the messages into
  * the indicator's state and the popover's entries.
  */
+import { formatNumber } from '#lib/format.svelte.ts';
 import { sourceVariable } from './declared-config.ts';
 import type { StatusMessagesQuery } from '#lib/graphql-types.ts';
 
@@ -67,7 +68,7 @@ export interface StatusEntry {
 	linkText: string;
 }
 
-const n = (v: number) => v.toLocaleString('en-US');
+const n = (v: number) => formatNumber(v);
 
 /** "Cloning repositories: 9 cloned, 4 cloning, 1,413 queued". */
 export function cloningSummary(m: { cloned: number; cloning: number; queued: number }): string {

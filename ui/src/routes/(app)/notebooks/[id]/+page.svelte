@@ -1,4 +1,5 @@
 <script lang="ts">
+	import { formatDateTime } from '#lib/format.svelte.ts';
 	import type { UpdateNotebookMutation } from '#lib/graphql-types.ts';
 	import { logEvent } from '#lib/events.ts';
 	import { goto } from '$app/navigation';
@@ -247,7 +248,7 @@
 	}
 
 	function formatDate(s: string): string {
-		return new Date(s).toLocaleString(undefined, { dateStyle: 'medium', timeStyle: 'short' });
+		return formatDateTime(s, { dateStyle: 'medium', timeStyle: 'short' });
 	}
 
 	// A usage event for the admin analytics.

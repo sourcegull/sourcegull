@@ -1,4 +1,5 @@
 <script lang="ts">
+	import { formatDateTime } from '#lib/format.svelte.ts';
 	import { onMount } from 'svelte';
 	import { errorMessage, graphql } from '#lib/graphql.ts';
 	import {
@@ -38,7 +39,7 @@
 		}
 	}
 
-	const formatDate = (iso: string) => new Date(iso).toLocaleString();
+	const formatDate = (iso: string) => formatDateTime(iso);
 
 	onMount(() => {
 		void load();

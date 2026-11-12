@@ -1,4 +1,5 @@
 <script lang="ts">
+	import { formatDateTime, formatNumber } from '#lib/format.svelte.ts';
 	import RelatedLinks from '#lib/components/RelatedLinks.svelte';
 	import { onMount } from 'svelte';
 	import { errorMessage, graphql } from '#lib/graphql.ts';
@@ -109,7 +110,7 @@
 				title={s.help}
 				onclick={() => pick(s.state)}
 			>
-				<span class="stat-value">{count(coverage.counts, s.state).toLocaleString('en-US')}</span>
+				<span class="stat-value">{formatNumber(count(coverage.counts, s.state))}</span>
 				<span class="stat-label">{s.label}</span>
 			</button>
 		{/each}
@@ -159,9 +160,7 @@
 				<tr>
 					<td><a href={n.codeGraphURL}>{n.repositoryName}</a></td>
 					<td><span class="badge {info.badge}" title={info.help}>{info.label}</span></td>
-					<td class="mono small" title={n.indexedAt ? new Date(n.indexedAt).toLocaleString() : ''}
-						>{indexedSummary(n, now)}</td
-					>
+					<td class="mono small" title={n.indexedAt ? formatDateTime(n.indexedAt) : ''}>{indexedSummary(n, now)}</td>
 					<td class="small">
 						{#if n.failureMessage !== null || n.failedAt}
 							<div class="failure">{n.failureMessage || 'no message'}</div>

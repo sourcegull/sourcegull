@@ -160,6 +160,12 @@ list from the levels before it. The settings:
   without HTML. A dismissible notice stays dismissed in that browser until its message changes.
 - `orgs.allMembersBatchChangesAdmin`, in an organization's settings: every member may close and
   delete the organization's bulk changes.
+- `display.dateFormat` (default `locale`): how dates and times are shown. `locale` formats them
+  for `display.locale`; `iso` shows ISO 8601 (`2026-10-30 14:05`) whatever the locale.
+- `display.locale`: the locale for dates, times and numbers, as a language tag such as `en-GB` or
+  `de-DE`. Unset, each browser formats them for its own language (in Firefox, Settings → Language
+  can make that follow the operating system's regional format). A tag the browser doesn't know
+  counts as unset.
 
 Other keys are kept and passed through to the UI. `search.includeForks` is accepted but has no
 effect yet: use `fork:yes` in the query.

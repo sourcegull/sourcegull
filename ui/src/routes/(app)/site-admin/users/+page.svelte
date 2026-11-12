@@ -1,4 +1,5 @@
 <script lang="ts">
+	import { formatDate } from '#lib/format.svelte.ts';
 	import CountTile from '#lib/components/CountTile.svelte';
 	import Pager from '#lib/components/Pager.svelte';
 	import RelatedLinks from '#lib/components/RelatedLinks.svelte';
@@ -276,8 +277,6 @@
 			creating = false;
 		}
 	}
-
-	const formatDate = (iso: string) => new Date(iso).toLocaleDateString();
 
 	onMount(() => {
 		void load();

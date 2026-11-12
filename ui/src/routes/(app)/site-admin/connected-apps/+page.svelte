@@ -1,4 +1,5 @@
 <script lang="ts">
+	import { formatDateTime } from '#lib/format.svelte.ts';
 	import { onMount } from 'svelte';
 	import Pager from '#lib/components/Pager.svelte';
 	import RelatedLinks from '#lib/components/RelatedLinks.svelte';
@@ -94,7 +95,7 @@
 		}
 	}
 
-	const formatDate = (iso: string) => new Date(iso).toLocaleString();
+	const formatDate = (iso: string) => formatDateTime(iso);
 
 	onMount(() => {
 		void load();

@@ -5,6 +5,7 @@
 	secrets the resources file owns are read-only, and when it owns them all none can be added.
 -->
 <script lang="ts">
+	import { formatDateTime } from '#lib/format.svelte.ts';
 	import Pager from '#lib/components/Pager.svelte';
 	import RelatedLinks from '#lib/components/RelatedLinks.svelte';
 	import { onMount } from 'svelte';
@@ -194,7 +195,7 @@
 		void load();
 	}
 
-	const formatDate = (iso: string) => new Date(iso).toLocaleString();
+	const formatDate = (iso: string) => formatDateTime(iso);
 
 	onMount(() => {
 		void load();

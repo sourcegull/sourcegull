@@ -3,6 +3,7 @@
  * create, edit, delete, test connection, sync now, sync history and the webhook secret.
  */
 
+import { formatNumber } from '#lib/format.svelte.ts';
 import { DECLARED_KINDS_FIELDS, type DeclaredKindsFile } from '#lib/declared-config.ts';
 import type {
 	AddExternalServiceMutation,
@@ -89,7 +90,7 @@ export interface RateLimiterState {
 export function rateLimitSummary(s: RateLimiterState): string {
 	if (s.infinite) return 'Unlimited (rateLimit.enabled is false)';
 	const perHour = Math.round((s.limit * 3600) / Math.max(1, s.interval));
-	return `${perHour.toLocaleString('en-US')} requests/hour · ${s.currentCapacity.toLocaleString('en-US')} of ${s.burst.toLocaleString('en-US')} available now`;
+	return `${formatNumber(perHour)} requests/hour · ${formatNumber(s.currentCapacity)} of ${formatNumber(s.burst)} available now`;
 }
 
 export interface SyncJob {

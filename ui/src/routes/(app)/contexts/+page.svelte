@@ -1,4 +1,5 @@
 <script lang="ts">
+	import { formatDate } from '#lib/format.svelte.ts';
 	import Icon from '#lib/components/Icon.svelte';
 	import ManagedBadge from '#lib/components/ManagedBadge.svelte';
 	import { page } from '$app/state';
@@ -156,7 +157,7 @@
 							{#if c.query}<code class="query">{c.query}</code>{/if}
 						</td>
 						<td>{c.autoDefined ? 'Built in' : namespaceLabel(c.namespace)}</td>
-						<td class="muted">{c.autoDefined ? '' : new Date(c.updatedAt).toLocaleDateString()}</td>
+						<td class="muted">{c.autoDefined ? '' : formatDate(c.updatedAt)}</td>
 						<td class="actions">
 							{#if user && !c.viewerHasAsDefault}
 								<button type="button" class="btn btn-sm" onclick={() => makeDefault(c)}>Make default</button>

@@ -4,6 +4,7 @@
 	settings and logs.
 -->
 <script lang="ts">
+	import { formatNumber } from '#lib/format.svelte.ts';
 	import RelatedLinks from '#lib/components/RelatedLinks.svelte';
 	import { goto } from '$app/navigation';
 	import { page } from '$app/state';
@@ -123,7 +124,7 @@
 			<dt>Event types</dt>
 			<dd>{describeEventTypes(hook.eventTypes)}</dd>
 			<dt>Deliveries</dt>
-			<dd>{hook.stats.total.toLocaleString('en-US')} logged, {hook.stats.errored.toLocaleString('en-US')} failed</dd>
+			<dd>{formatNumber(hook.stats.total)} logged, {formatNumber(hook.stats.errored)} failed</dd>
 		</dl>
 	{/if}
 

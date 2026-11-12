@@ -1,4 +1,5 @@
 <script lang="ts">
+	import { formatDateTime } from '#lib/format.svelte.ts';
 	import { page } from '$app/state';
 	import { errorMessage, graphql } from '#lib/graphql.ts';
 	import {
@@ -92,7 +93,7 @@
 				{#each events as e (e.id)}
 					<tr>
 						<td><span class="badge status {statusClass(e.status)}">{e.status.toLowerCase()}</span></td>
-						<td>{new Date(e.timestamp).toLocaleString()}</td>
+						<td>{formatDateTime(e.timestamp)}</td>
 						<td>{e.resultCount}</td>
 						<td class="ranges">
 							{#each e.ranges.slice(0, open[e.id] ? undefined : 3) as r, i (i)}

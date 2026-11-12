@@ -5,6 +5,7 @@
 	can be added here.
 -->
 <script lang="ts">
+	import { formatNumber } from '#lib/format.svelte.ts';
 	import RelatedLinks from '#lib/components/RelatedLinks.svelte';
 	import { onMount } from 'svelte';
 	import { formatDate, relativeTime } from '#lib/batches/batch-change.ts';
@@ -136,8 +137,8 @@
 					</td>
 					<td class="small">{describeEventTypes(h.eventTypes)}</td>
 					<td class="num">
-						{h.stats.total.toLocaleString('en-US')}
-						{#if h.stats.errored > 0}<span class="bad">({h.stats.errored.toLocaleString('en-US')} failed)</span>{/if}
+						{formatNumber(h.stats.total)}
+						{#if h.stats.errored > 0}<span class="bad">({formatNumber(h.stats.errored)} failed)</span>{/if}
 					</td>
 					<td class="small">{relativeTime(h.updatedAt)}</td>
 				</tr>
@@ -147,7 +148,7 @@
 		</tbody>
 	</table>
 </div>
-<p class="muted small count">{total.toLocaleString('en-US')} webhooks.</p>
+<p class="muted small count">{formatNumber(total)} webhooks.</p>
 
 {#if hasMore}
 	<button class="btn" type="button" onclick={() => void load(true)} disabled={loading}>Show more</button>
@@ -204,7 +205,7 @@
 			</tbody>
 		</table>
 	</div>
-	<p class="muted small count">{deliveryTotal.toLocaleString('en-US')} attempts.</p>
+	<p class="muted small count">{formatNumber(deliveryTotal)} attempts.</p>
 	{#if deliveriesMore}
 		<button class="btn" type="button" onclick={() => void loadDeliveries(true)} disabled={deliveriesLoading}
 			>Show older</button

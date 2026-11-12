@@ -4,6 +4,7 @@
 	show stay as they are.
 -->
 <script lang="ts">
+	import { formatDateTime } from '#lib/format.svelte.ts';
 	import { beforeNavigate } from '$app/navigation';
 	import { onMount } from 'svelte';
 	import JsoncEditor from '#lib/components/JsoncEditor.svelte';
@@ -169,7 +170,7 @@
 <div class="toolbar settings-toolbar">
 	{#if latest}
 		<span class="muted"
-			>Last saved {new Date(latest.createdAt).toLocaleString()}{#if latest.author}{' '}by
+			>Last saved {formatDateTime(latest.createdAt)}{#if latest.author}{' '}by
 				{latest.author.username}{/if}</span
 		>
 	{:else}

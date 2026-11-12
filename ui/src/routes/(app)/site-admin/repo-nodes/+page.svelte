@@ -1,4 +1,5 @@
 <script lang="ts">
+	import { formatNumber } from '#lib/format.svelte.ts';
 	import RelatedLinks from '#lib/components/RelatedLinks.svelte';
 	import type { RetryFailedRepoMovesMutation } from '#lib/graphql-types.ts';
 	import { onMount } from 'svelte';
@@ -140,11 +141,11 @@
 						{/if}
 					</td>
 					<td class="num">
-						{n.repositoriesCount.toLocaleString()} held
+						{formatNumber(n.repositoriesCount)} held
 						<div class="muted small">
-							{n.assignedRepositoriesCount.toLocaleString()} assigned
+							{formatNumber(n.assignedRepositoriesCount)} assigned
 							{#if n.repositoriesOnDisk !== null}
-								<br />{n.repositoriesOnDisk.toLocaleString()} on disk
+								<br />{formatNumber(n.repositoriesOnDisk)} on disk
 							{/if}
 						</div>
 					</td>
@@ -152,7 +153,7 @@
 					<td class="num">
 						{n.indexDiskBytes !== null ? formatBytes(n.indexDiskBytes) : '—'}
 						<div class="muted small">
-							{n.indexedRepositoriesCount.toLocaleString()} repositories indexed
+							{formatNumber(n.indexedRepositoriesCount)} repositories indexed
 						</div>
 					</td>
 				</tr>
@@ -186,7 +187,7 @@
 		<p data-testid="rebalance-summary">
 			<strong>{rebalanceSummary(rebalance)}</strong>
 			{#if rebalance.done > 0}
-				<span class="muted small">{rebalance.done.toLocaleString()} moved in the last week.</span>
+				<span class="muted small">{formatNumber(rebalance.done)} moved in the last week.</span>
 			{/if}
 		</p>
 		{#if rebalance.moves.length > 0}

@@ -5,6 +5,7 @@
 	the white surface, dark steps on the dark surface).
 -->
 <script lang="ts">
+	import { formatDate } from '#lib/format.svelte.ts';
 	import { errorMessage, graphql } from '#lib/graphql.ts';
 	import {
 		BURNDOWN_SERIES,
@@ -65,7 +66,7 @@
 	const x = (i: number) => M.left + (points.length <= 1 ? plotW / 2 : (i / (points.length - 1)) * plotW);
 	const y = (v: number) => M.top + plotH - (v / top) * plotH;
 
-	const day = (iso: string) => new Date(iso).toLocaleDateString(undefined, { month: 'short', day: 'numeric' });
+	const day = (iso: string) => formatDate(iso, { month: 'short', day: 'numeric' });
 
 	/** At most ~6 date labels along the x axis. */
 	const xLabels = $derived.by(() => {

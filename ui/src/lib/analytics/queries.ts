@@ -4,6 +4,7 @@
  * activity. Helpers for the overview and user pages.
  */
 import type { AnalyticsOverviewQuery, SiteUsersActivityQuery } from '#lib/graphql-types.ts';
+import { formatDate } from '#lib/format.svelte.ts';
 
 export type DateRange = 'LAST_WEEK' | 'LAST_MONTH' | 'LAST_THREE_MONTHS';
 export type Grouping = 'DAILY' | 'WEEKLY';
@@ -158,10 +159,9 @@ export function formatLatency(ms: number | null): string {
 	return ms >= 1000 ? `≤ ${trim(ms / 1000)} s` : `≤ ${ms} ms`;
 }
 
-/** The label of a bucket start (`2026-10-19T00:00:00Z`): "Oct 19" (UTC). */
+/** The label of a bucket start (`2026-10-19T00:00:00Z`) in UTC: "Oct 19" in `en-US`. */
 export function bucketLabel(date: string, grouping: Grouping): string {
-	const d = new Date(date);
-	const label = d.toLocaleDateString('en-US', { month: 'short', day: 'numeric', timeZone: 'UTC' });
+	const label = formatDate(date, { month: 'short', day: 'numeric', timeZone: 'UTC' });
 	return grouping === 'WEEKLY' ? `Week of ${label}` : label;
 }
 

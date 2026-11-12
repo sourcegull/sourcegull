@@ -4,6 +4,7 @@
 	the resources file owns can be synced, not edited; when it owns them all, none can be added.
 -->
 <script lang="ts">
+	import { formatNumber } from '#lib/format.svelte.ts';
 	import RelatedLinks from '#lib/components/RelatedLinks.svelte';
 	import { onMount } from 'svelte';
 	import { formatDate, relativeTime } from '#lib/batches/batch-change.ts';
@@ -107,7 +108,7 @@
 						<ManagedBadge managedBy={s.managedBy} />
 						<div class="muted small">{kindLabel(s.kind)} · {s.url}</div>
 					</td>
-					<td class="num">{s.repoCount.toLocaleString('en-US')}</td>
+					<td class="num">{formatNumber(s.repoCount)}</td>
 					<td>
 						{#if s.lastSyncAt}
 							<span title={formatDate(s.lastSyncAt)}>{relativeTime(s.lastSyncAt)}</span>

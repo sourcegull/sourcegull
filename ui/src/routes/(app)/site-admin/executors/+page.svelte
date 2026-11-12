@@ -1,4 +1,5 @@
 <script lang="ts">
+	import { formatDateTime } from '#lib/format.svelte.ts';
 	import Pager from '#lib/components/Pager.svelte';
 	import RelatedLinks from '#lib/components/RelatedLinks.svelte';
 	import { onDestroy, onMount } from 'svelte';
@@ -173,7 +174,7 @@
 							{executor.runtimeVersion} · git {executor.gitVersion}
 						</div>
 					</td>
-					<td class="nowrap" title={new Date(executor.lastSeenAt).toLocaleString()}>{ago(executor.lastSeenAt)}</td>
+					<td class="nowrap" title={formatDateTime(executor.lastSeenAt)}>{ago(executor.lastSeenAt)}</td>
 				</tr>
 			{:else}
 				<tr>

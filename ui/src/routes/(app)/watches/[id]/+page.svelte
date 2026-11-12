@@ -1,4 +1,5 @@
 <script lang="ts">
+	import { formatDateTime } from '#lib/format.svelte.ts';
 	import { logEvent } from '#lib/events.ts';
 	import { goto } from '$app/navigation';
 	import { page } from '$app/state';
@@ -150,7 +151,7 @@
 					{#if monitor.unfilteredResults}<span class="badge badge-danger">unfiltered</span>{/if}
 				</h1>
 				<p class="page-description">
-					Owned by {namespaceLabel(monitor.owner)} · created {new Date(monitor.createdAt).toLocaleString()}
+					Owned by {namespaceLabel(monitor.owner)} · created {formatDateTime(monitor.createdAt)}
 					{#if monitor.runsAs}· runs as @{monitor.runsAs.username}{/if}
 				</p>
 			</div>
@@ -164,7 +165,7 @@
 				<strong>Unfiltered:</strong> every email recipient gets all results found with @{monitor.runsAs?.username}'s
 				access, including results in repositories they cannot read. Turned on by @{monitor.unfilteredBy
 					?.username}{#if monitor.unfilteredAt}
-					on {new Date(monitor.unfilteredAt).toLocaleString()}{/if}.
+					on {formatDateTime(monitor.unfilteredAt)}{/if}.
 			</div>
 		{/if}
 		{#key version}

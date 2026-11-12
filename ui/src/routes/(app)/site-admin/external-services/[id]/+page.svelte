@@ -5,6 +5,7 @@
 	regenerating the secret are left to the file.
 -->
 <script lang="ts">
+	import { formatNumber } from '#lib/format.svelte.ts';
 	import RelatedLinks from '#lib/components/RelatedLinks.svelte';
 	import { goto } from '$app/navigation';
 	import { page } from '$app/state';
@@ -266,7 +267,7 @@
 		<dl class="facts">
 			<dt>Repositories</dt>
 			<dd>
-				<a href="/repositories">{service.repoCount.toLocaleString('en-US')}</a>
+				<a href="/repositories">{formatNumber(service.repoCount)}</a>
 			</dd>
 			<dt>Last sync</dt>
 			<dd>

@@ -1,4 +1,5 @@
 <script lang="ts">
+	import { formatDate as localeDate } from '#lib/format.svelte.ts';
 	import { EVENTS, logEvent } from '#lib/events.ts';
 	import CodeHostLink from '#lib/repo/CodeHostLink.svelte';
 	import { externalURLs, type CodeHostTarget } from '#lib/repo/codehost.ts';
@@ -87,9 +88,7 @@
 
 	function formatDate(s: string): string {
 		const d = new Date(s);
-		return Number.isNaN(d.getTime())
-			? s
-			: d.toLocaleDateString(undefined, { year: 'numeric', month: 'short', day: 'numeric' });
+		return Number.isNaN(d.getTime()) ? s : localeDate(d, { year: 'numeric', month: 'short', day: 'numeric' });
 	}
 </script>
 

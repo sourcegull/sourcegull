@@ -1,4 +1,5 @@
 <script lang="ts">
+	import { formatDateTime } from '#lib/format.svelte.ts';
 	import CountTile from '#lib/components/CountTile.svelte';
 	import Pager from '#lib/components/Pager.svelte';
 	import RelatedLinks from '#lib/components/RelatedLinks.svelte';
@@ -154,7 +155,7 @@
 		}
 	}
 
-	const formatTime = (iso: string | null) => (iso ? new Date(iso).toLocaleString() : 'never');
+	const formatTime = (iso: string | null) => (iso ? formatDateTime(iso) : 'never');
 	const subjectName = (job: PermissionsSyncJobNode) =>
 		job.subject === null ? '(deleted)' : job.subject.__typename === 'User' ? job.subject.username : job.subject.name;
 	const providerLabel = (type: string) => ({ gitlab: 'GitLab', github: 'GitHub', gitea: 'Gitea' })[type] ?? type;
