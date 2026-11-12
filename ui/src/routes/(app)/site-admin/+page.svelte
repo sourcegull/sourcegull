@@ -230,7 +230,7 @@
 		</ul>
 	{:else if summary}
 		<div class="alert alert-success" role="status">
-			<strong>All systems normal.</strong> Repositories are cloned and indexed, and repo nodes have disk space.
+			<strong>All systems normal.</strong> Repositories are cloned and indexed, and repo nodes answer and have disk space.
 		</div>
 	{/if}
 </section>

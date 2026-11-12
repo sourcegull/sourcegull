@@ -748,6 +748,13 @@ export type RemoteUnavailableReason =
   /** The code host token may not download the project's code. */
   | 'NO_CODE_ACCESS';
 
+/** Why a repo node does not answer. */
+export type RepoNodeUnavailableState =
+  /** It shut down cleanly (a restart or an upgrade) or is starting: expected back soon. */
+  | 'RESTARTING'
+  /** It stopped without shutting down cleanly, or has been gone too long to be a restart. */
+  | 'DOWN';
+
 /** Why a user can read a repository. */
 export type RepositoryAccessReasonKind =
   /** Site admins read everything (`authz.enforceForSiteAdmins` is off). */
@@ -1417,6 +1424,7 @@ export type SiteAdminHealthQuery = { site: { productVersion: string }, repositor
     | { __typename: 'SyncError', message: string }
     | { __typename: 'IndexingProgress', notIndexed: number, indexed: number }
     | { __typename: 'GitserverDiskThresholdReached', message: string, address: string, clonesPaused: boolean }
+    | { __typename: 'RepoNodeUnavailable', message: string, address: string, state: RepoNodeUnavailableState }
   > };
 
 export type UpdateCheckQueryVariables = Exact<{ [key: string]: never; }>;
@@ -3701,6 +3709,7 @@ export type AdminRepositoriesQuery = { repositoryStats: { total: number, cloned:
     | { __typename: 'SyncError' }
     | { __typename: 'IndexingProgress' }
     | { __typename: 'GitserverDiskThresholdReached', message: string, address: string, clonesPaused: boolean }
+    | { __typename: 'RepoNodeUnavailable', message: string, address: string, state: RepoNodeUnavailableState }
   >, repositories: { totalCount: number, pageInfo: { hasNextPage: boolean, endCursor: string | null }, nodes: Array<{ id: string, name: string, url: string, isArchived: boolean, mirrorInfo: { cloned: boolean, cloneInProgress: boolean, cloneProgress: string | null, isCorrupted: boolean, updatedAt: string | null, lastChanged: string | null, lastError: string | null, byteSize: string, shard: string | null, isEmpty: boolean, remoteUnavailable: RemoteUnavailableReason | null }, textSearchIndex: { lastIndexedAt: string | null, lastError: string | null } | null }> } };
 
 export type AdminRepositoryQueryVariables = Exact<{
@@ -4023,6 +4032,7 @@ export type StatusMessagesQuery = { statusMessages: Array<
     | { __typename: 'SyncError', message: string }
     | { __typename: 'IndexingProgress', notIndexed: number, indexed: number }
     | { __typename: 'GitserverDiskThresholdReached', message: string, address: string, clonesPaused: boolean }
+    | { __typename: 'RepoNodeUnavailable', message: string, address: string, state: RepoNodeUnavailableState }
   > };
 
 export type OutOfBandMigrationsQueryVariables = Exact<{ [key: string]: never; }>;

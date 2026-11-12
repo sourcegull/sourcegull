@@ -52,6 +52,16 @@ Workers: autoscaled by KEDA on queue depth ({{ .Values.worker.autoscaling.keda.m
   kubectl -n {{ .Release.Namespace }} get scaledobject {{ include "sourcegull.componentName" (dict "root" . "component" "worker") }}
 {{- end }}
 
+{{- if and .Release.IsUpgrade .Values.repo.enabled }}
+
+Upgrade: repo nodes restart one at a time. While a repo node restarts, search leaves out the
+repositories on it and says so ("repo node restarting"), and Site admin shows the node as
+restarting. Search is complete again when the rollout below has finished.
+{{- end }}
+
 Check the rollout and run the smoke test:
   kubectl -n {{ .Release.Namespace }} rollout status deploy/{{ include "sourcegull.componentName" (dict "root" . "component" "web") }}
+{{- if .Values.repo.enabled }}
+  kubectl -n {{ .Release.Namespace }} rollout status statefulset/{{ include "sourcegull.componentName" (dict "root" . "component" "repo") }}
+{{- end }}
   helm test {{ .Release.Name }} -n {{ .Release.Namespace }}

@@ -412,12 +412,30 @@ pub(crate) fn skipped_entry(reason: SkippedReason, names: &[String]) -> Skipped 
         SkippedReason::RepositoryMissing => (format!("{n} missing"), Severity::Info),
         SkippedReason::RepositoryCloning => (format!("{n} cloning"), Severity::Info),
         SkippedReason::ShardTimeout => (format!("{n} timed out"), Severity::Warn),
+        SkippedReason::BackendMissing => (
+            format!("{n} not searched: repo node unavailable"),
+            Severity::Warn,
+        ),
         _ => (format!("{n} errored"), Severity::Warn),
     };
     let message = match reason {
         SkippedReason::DisplayLimit => {
             "Not all results were shown. Use `count:` to see more.".to_owned()
         }
+        SkippedReason::BackendMissing => format!(
+            "The repo node holding {} did not answer. It may be down or restarting, as during an \
+             upgrade; search again once it is back.\n\n{}",
+            if n == 1 {
+                "this repository"
+            } else {
+                "these repositories"
+            },
+            names
+                .iter()
+                .map(|n| format!("- `{n}`"))
+                .collect::<Vec<_>>()
+                .join("\n")
+        ),
         _ => names
             .iter()
             .map(|n| format!("- `{n}`"))
@@ -438,6 +456,10 @@ pub(crate) fn skip_reason(status: &Status) -> SkippedReason {
         Some(ErrorKind::RepoNotFound) => SkippedReason::RepositoryMissing,
         Some(ErrorKind::CloneInProgress) => SkippedReason::RepositoryCloning,
         Some(ErrorKind::Timeout) => SkippedReason::ShardTimeout,
+        // The repo node could not be reached: down, or restarting (as during an upgrade).
+        _ if status.code() == sourcegull_rpc::tonic::Code::Unavailable => {
+            SkippedReason::BackendMissing
+        }
         _ if status.code() == sourcegull_rpc::tonic::Code::DeadlineExceeded => {
             SkippedReason::ShardTimeout
         }
@@ -1118,6 +1140,24 @@ pub fn to_match(
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn unreachable_repo_node_is_backend_missing() {
+        use sourcegull_rpc::tonic::Code;
+        let down = Status::new(Code::Unavailable, "tcp connect error: Connection refused");
+        assert_eq!(skip_reason(&down), SkippedReason::BackendMissing);
+        assert_eq!(
+            skip_reason(&Status::new(Code::Internal, "boom")),
+            SkippedReason::Error
+        );
+
+        let names = vec!["a/b".to_owned(), "c/d".to_owned()];
+        let entry = skipped_entry(SkippedReason::BackendMissing, &names);
+        assert_eq!(entry.title, "2 not searched: repo node unavailable");
+        assert_eq!(entry.severity, Severity::Warn);
+        assert!(entry.message.contains("these repositories"));
+        assert!(entry.message.ends_with("- `a/b`\n- `c/d`"));
+    }
 
     #[test]
     fn expired_call_timeouts_are_shard_timeouts() {

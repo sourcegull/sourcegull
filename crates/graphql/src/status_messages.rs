@@ -1,7 +1,8 @@
 //! `statusMessages`: what the site admin's status indicator in the top navigation
 //! shows, computed on each call: auto updates disabled,
 //! no repositories, code host connections whose last sync failed, repos whose last clone or
-//! fetch failed, clone and index progress, repo nodes low on disk space, and configuration
+//! fetch failed, clone and index progress, repo nodes that do not answer (their repositories
+//! are left out of search), repo nodes low on disk space, and configuration
 //! files (SOURCEGULL_RESOURCES_FILE, SOURCEGULL_GLOBAL_SETTINGS_FILE) that could not be applied.
 //!
 //! Sourcegull reports a repo node that paused clones for lack of disk space (the repos it skipped
@@ -13,7 +14,8 @@
 
 use std::time::Duration;
 
-use async_graphql::{Context, Object, Result, SimpleObject, Union};
+use async_graphql::{Context, Enum, Object, Result, SimpleObject, Union};
+use sourcegull_db::RepoNodeAvailability;
 use sourcegull_rpc::repo::v1 as pb;
 
 use crate::context::{db_error, require_site_admin, services, to_int};
@@ -24,7 +26,7 @@ use crate::external_services::ExternalServiceNode;
 const DISK_WARNING_PERCENT: f64 = 90.0;
 
 /// How long `statusMessages` waits for a repo node's disk usage; the indicator polls, so a
-/// slow node is skipped rather than holding the request.
+/// node that does not answer in time is reported as unavailable rather than holding the request.
 const DISK_INFO_TIMEOUT: Duration = Duration::from_secs(2);
 
 /// `GitUpdatesDisabled`: `disableAutoGitUpdates` is set.
@@ -102,6 +104,71 @@ pub(crate) struct GitserverDiskThresholdReached {
     clones_paused: bool,
 }
 
+/// Why a repo node does not answer.
+#[derive(Enum, Clone, Copy, PartialEq, Eq)]
+pub(crate) enum RepoNodeUnavailableState {
+    /// It shut down cleanly (a restart or an upgrade) or is starting: expected back soon.
+    Restarting,
+    /// It stopped without shutting down cleanly, or has been gone too long to be a restart.
+    Down,
+}
+
+/// `RepoNodeUnavailable`: a repo node did not answer, so search leaves out its repositories
+/// and they are not cloned or updated.
+#[derive(SimpleObject)]
+pub(crate) struct RepoNodeUnavailable {
+    /// The message.
+    message: String,
+    /// The repo node's address.
+    address: String,
+    /// Whether the node is restarting or down.
+    state: RepoNodeUnavailableState,
+}
+
+/// "45 s", "3 min", "2 h".
+fn age(secs: i64) -> String {
+    let secs = secs.max(0);
+    match secs {
+        0..120 => format!("{secs} s"),
+        120..7200 => format!("{} min", secs / 60),
+        _ => format!("{} h", secs / 3600),
+    }
+}
+
+/// The message for repo node `addr`, unreachable for `reason`.
+fn unavailable_message(
+    addr: &str,
+    reason: &str,
+    availability: RepoNodeAvailability,
+    now: chrono::DateTime<chrono::Utc>,
+) -> String {
+    let ago = |t: chrono::DateTime<chrono::Utc>| age(now.signed_duration_since(t).num_seconds());
+    let effect = "Search leaves out the repositories on it, and they are not cloned or updated, \
+                  until it is back.";
+    match availability {
+        RepoNodeAvailability::Stopped { since } => format!(
+            "Repo node {addr:?} is restarting: it shut down cleanly {} ago, as for an upgrade. \
+             {effect} This usually takes a few minutes.",
+            ago(since)
+        ),
+        RepoNodeAvailability::Starting { since } => format!(
+            "Repo node {addr:?} is starting: it started {} ago and does not serve yet. {effect} \
+             This usually takes a few minutes.",
+            ago(since)
+        ),
+        RepoNodeAvailability::Down { last_seen } => {
+            let seen = match last_seen {
+                Some(t) => format!("its last heartbeat was {} ago", ago(t)),
+                None => "it has never sent a heartbeat".to_owned(),
+            };
+            format!(
+                "Repo node {addr:?} is down: it is not answering ({reason}), did not shut down \
+                 cleanly, and {seen}. {effect} Check the node's pod or host."
+            )
+        }
+    }
+}
+
 /// `DeclaredConfigError`: a configuration file could not be (fully) applied; what it applied
 /// before stays.
 #[derive(SimpleObject)]
@@ -125,6 +192,7 @@ pub(crate) enum StatusMessage {
     SyncError(SyncError),
     IndexingProgress(IndexingProgress),
     GitserverDiskThresholdReached(GitserverDiskThresholdReached),
+    RepoNodeUnavailable(RepoNodeUnavailable),
 }
 
 /// `n` with thousands separators (`1,413`).
@@ -149,9 +217,16 @@ fn repositories(n: i64) -> String {
     format!("{} {noun}", thousands(n))
 }
 
-/// Disk usage of the configured repo nodes, in percent; nodes that do not answer in time
-/// are left out.
-async fn disk_usage(ctx: &Context<'_>) -> Result<Vec<(String, f64)>> {
+/// What a configured repo node answered about its disk.
+enum NodeDisk {
+    /// Percent of the disk in use, when the node knows its disk size.
+    Used(Option<f64>),
+    /// The node could not be reached, failed, or did not answer in time.
+    Unavailable(String),
+}
+
+/// Asks every configured repo node for its disk usage.
+async fn node_disks(ctx: &Context<'_>) -> Result<Vec<(String, NodeDisk)>> {
     let clients = services(ctx)?.repo_clients.clone();
     let nodes: Vec<String> = clients.router().nodes().map(str::to_owned).collect();
     let tasks: Vec<_> = nodes
@@ -159,27 +234,49 @@ async fn disk_usage(ctx: &Context<'_>) -> Result<Vec<(String, f64)>> {
         .map(|addr| {
             let clients = clients.clone();
             tokio::spawn(async move {
-                let mut c = clients.for_node(&addr).ok()?;
-                let info =
-                    tokio::time::timeout(DISK_INFO_TIMEOUT, c.disk_info(pb::DiskInfoRequest {}))
-                        .await
-                        .ok()?
-                        .ok()?
-                        .into_inner();
-                (info.total_bytes > 0).then(|| {
-                    let used = info.total_bytes.saturating_sub(info.free_bytes);
-                    (addr, used as f64 * 100.0 / info.total_bytes as f64)
-                })
+                let disk = match clients.for_node(&addr) {
+                    Err(e) => NodeDisk::Unavailable(e.to_string()),
+                    Ok(mut c) => match tokio::time::timeout(
+                        DISK_INFO_TIMEOUT,
+                        c.disk_info(pb::DiskInfoRequest {}),
+                    )
+                    .await
+                    {
+                        Err(_) => NodeDisk::Unavailable(format!(
+                            "no answer within {} s",
+                            DISK_INFO_TIMEOUT.as_secs()
+                        )),
+                        Ok(Err(status)) => NodeDisk::Unavailable(unavailable_reason(&status)),
+                        Ok(Ok(info)) => {
+                            let info = info.into_inner();
+                            NodeDisk::Used((info.total_bytes > 0).then(|| {
+                                let used = info.total_bytes.saturating_sub(info.free_bytes);
+                                used as f64 * 100.0 / info.total_bytes as f64
+                            }))
+                        }
+                    },
+                };
+                (addr, disk)
             })
         })
         .collect();
     let mut out = Vec::new();
     for t in tasks {
-        if let Ok(Some(u)) = t.await {
-            out.push(u);
+        if let Ok(d) = t.await {
+            out.push(d);
         }
     }
     Ok(out)
+}
+
+/// A short reason for a failed call to a repo node.
+fn unavailable_reason(status: &sourcegull_rpc::tonic::Status) -> String {
+    let message = status.message().trim();
+    if message.is_empty() {
+        format!("{:?}", status.code())
+    } else {
+        message.to_owned()
+    }
 }
 
 /// The status message queries.
@@ -246,7 +343,8 @@ impl StatusMessagesQuery {
             ));
         }
 
-        // Repo nodes that paused clones, then nodes over the disk usage threshold.
+        // Repo nodes that paused clones, then nodes that do not answer or are over the disk usage
+        // threshold.
         let paused = svc
             .db
             .search_index()
@@ -272,7 +370,41 @@ impl StatusMessagesQuery {
                 },
             ));
         }
-        for (addr, percent) in disk_usage(ctx).await? {
+        let disks = node_disks(ctx).await?;
+        let heartbeats = if disks
+            .iter()
+            .any(|(_, d)| matches!(d, NodeDisk::Unavailable(_)))
+        {
+            let store = svc.db.repo_moves();
+            Some((
+                store.heartbeats().await.map_err(db_error)?,
+                store.now().await.map_err(db_error)?,
+            ))
+        } else {
+            None
+        };
+        for (addr, disk) in disks {
+            let percent = match disk {
+                NodeDisk::Unavailable(reason) => {
+                    let (beats, now) = match &heartbeats {
+                        Some((beats, now)) => (beats.as_slice(), *now),
+                        None => (&[][..], chrono::Utc::now()),
+                    };
+                    let availability = sourcegull_db::repo_node_availability(beats, &addr, now);
+                    messages.push(StatusMessage::RepoNodeUnavailable(RepoNodeUnavailable {
+                        message: unavailable_message(&addr, &reason, availability, now),
+                        state: if availability.is_temporary() {
+                            RepoNodeUnavailableState::Restarting
+                        } else {
+                            RepoNodeUnavailableState::Down
+                        },
+                        address: addr,
+                    }));
+                    continue;
+                }
+                NodeDisk::Used(None) => continue,
+                NodeDisk::Used(Some(p)) => p,
+            };
             if percent >= DISK_WARNING_PERCENT && !paused.iter().any(|(n, _)| *n == addr) {
                 messages.push(StatusMessage::GitserverDiskThresholdReached(
                     GitserverDiskThresholdReached {

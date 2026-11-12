@@ -58,6 +58,24 @@ describe('status messages', () => {
 				clonesPaused: false
 			}).kind
 		).toBe('warning');
+		const down = statusEntry({
+			__typename: 'RepoNodeUnavailable',
+			message: 'Repo node "repo-0" is down: it is not answering (connection refused).',
+			address: 'repo-0',
+			state: 'DOWN'
+		});
+		expect(down.kind).toBe('error');
+		expect(down.title).toBe('Repo node down: search results are incomplete');
+		expect(down.href).toBe('/site-admin/repo-nodes');
+		const restarting: StatusMessage = {
+			__typename: 'RepoNodeUnavailable',
+			message: 'Repo node "repo-0" is restarting: it shut down cleanly 40 s ago, as for an upgrade.',
+			address: 'repo-0',
+			state: 'RESTARTING'
+		};
+		expect(statusEntry(restarting).kind).toBe('progress');
+		// Temporary: the indicator shows work in progress, not an error.
+		expect(summarize([restarting]).state).toBe('progress');
 		expect(
 			statusEntry({
 				__typename: 'ExternalServiceSyncError',

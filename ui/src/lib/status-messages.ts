@@ -21,6 +21,7 @@ export const STATUS_MESSAGES = `query StatusMessages {
 		... on SyncError { message }
 		... on IndexingProgress { notIndexed indexed }
 		... on GitserverDiskThresholdReached { message address clonesPaused }
+		... on RepoNodeUnavailable { message address state }
 		... on DeclaredConfigError { message source path }
 	}
 }`;
@@ -49,6 +50,7 @@ export type StatusMessage =
 			address: string;
 			clonesPaused: boolean;
 	  }
+	| { __typename: 'RepoNodeUnavailable'; message: string; address: string; state: 'RESTARTING' | 'DOWN' }
 	| { __typename: 'DeclaredConfigError'; message: string; source: string; path: string };
 
 export type StatusMessagesResult = StatusMessagesQuery;
@@ -119,6 +121,18 @@ export function statusEntry(m: StatusMessage): StatusEntry {
 			return {
 				kind: m.clonesPaused ? 'error' : 'warning',
 				title: m.clonesPaused ? 'Clones are paused: low disk space' : 'Repo node low on disk space',
+				text: m.message,
+				href: '/site-admin/repo-nodes',
+				linkText: 'View repo nodes'
+			};
+		case 'RepoNodeUnavailable':
+			// A restart (an upgrade) is temporary: shown as work in progress, not as a failure.
+			return {
+				kind: m.state === 'RESTARTING' ? 'progress' : 'error',
+				title:
+					m.state === 'RESTARTING'
+						? 'Repo node restarting: search results are incomplete for a few minutes'
+						: 'Repo node down: search results are incomplete',
 				text: m.message,
 				href: '/site-admin/repo-nodes',
 				linkText: 'View repo nodes'

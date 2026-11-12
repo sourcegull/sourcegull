@@ -591,6 +591,7 @@ const STATUS: &str = "{ statusMessages {
     ... on SyncError { message }
     ... on IndexingProgress { notIndexed indexed }
     ... on GitserverDiskThresholdReached { message address clonesPaused }
+    ... on RepoNodeUnavailable { message address state }
 } }";
 
 fn of_type<'a>(data: &'a Value, ty: &str) -> Vec<&'a Value> {
@@ -600,6 +601,71 @@ fn of_type<'a>(data: &'a Value, ty: &str) -> Vec<&'a Value> {
         .iter()
         .filter(|m| m["__typename"] == ty)
         .collect()
+}
+
+#[tokio::test]
+async fn status_messages_report_unreachable_repo_nodes() {
+    let Some(env) = setup().await else { return };
+    let data = env.ok(STATUS, json!({})).await;
+    assert!(of_type(&data, "RepoNodeUnavailable").is_empty(), "{data}");
+
+    // A second node that nothing answers on, as while a repo node restarts.
+    env.node.clients.set_router(sourcegull_rpc::Router::new([
+        env.node.addr.clone(),
+        GONE.to_owned(),
+    ]));
+    let data = env.ok(STATUS, json!({})).await;
+    let down = of_type(&data, "RepoNodeUnavailable");
+    assert_eq!(down.len(), 1, "{data}");
+    assert_eq!(down[0]["address"], GONE);
+    // No heartbeat at all: down.
+    assert_eq!(down[0]["state"], "DOWN");
+    let message = down[0]["message"].as_str().unwrap();
+    assert!(
+        message.starts_with("Repo node \"http://127.0.0.1:1\" is down: it is not answering ("),
+        "{message}"
+    );
+    assert!(
+        message.contains("it has never sent a heartbeat"),
+        "{message}"
+    );
+    assert!(
+        message.contains("Search leaves out the repositories on it"),
+        "{message}"
+    );
+
+    // It ran and shut down cleanly, as a repo node does when an upgrade replaces it.
+    let moves = env.db.repo_moves();
+    moves
+        .heartbeat(GONE, &[GONE.to_owned()], chrono::Utc::now())
+        .await
+        .unwrap();
+    moves.mark_stopping(GONE).await.unwrap();
+    let data = env.ok(STATUS, json!({})).await;
+    let down = of_type(&data, "RepoNodeUnavailable");
+    assert_eq!(down[0]["state"], "RESTARTING", "{data}");
+    let message = down[0]["message"].as_str().unwrap();
+    assert!(
+        message
+            .starts_with("Repo node \"http://127.0.0.1:1\" is restarting: it shut down cleanly "),
+        "{message}"
+    );
+
+    // Its next heartbeat clears the shutdown: started, not serving yet, still restarting.
+    moves
+        .heartbeat(GONE, &[GONE.to_owned()], chrono::Utc::now())
+        .await
+        .unwrap();
+    let data = env.ok(STATUS, json!({})).await;
+    let down = of_type(&data, "RepoNodeUnavailable");
+    assert_eq!(down[0]["state"], "RESTARTING", "{data}");
+    assert!(
+        down[0]["message"]
+            .as_str()
+            .unwrap()
+            .contains("is starting: it started "),
+        "{data}"
+    );
 }
 
 #[tokio::test]

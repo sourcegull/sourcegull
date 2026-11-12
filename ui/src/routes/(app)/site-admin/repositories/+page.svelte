@@ -31,6 +31,8 @@
 	let filter = $state<RepositoryFilter>(parseFilter(page.url.searchParams.get('filter')));
 	/** Repo nodes low on disk space (clones paused, or over the usage threshold). */
 	let diskAlerts = $state.raw<{ message: string; address: string; clonesPaused: boolean }[]>([]);
+	/** Repo nodes that did not answer. */
+	let downNodes = $state.raw<{ message: string; address: string; state: 'RESTARTING' | 'DOWN' }[]>([]);
 	let refreshTimer: ReturnType<typeof setTimeout> | undefined;
 	let query = $state('');
 	/** Cursors of the pages before the current one, and the current page's. */
@@ -62,6 +64,11 @@
 			diskAlerts = result.statusMessages.flatMap((m) =>
 				'message' in m && m.__typename === 'GitserverDiskThresholdReached'
 					? [m as { message: string; address: string; clonesPaused: boolean }]
+					: []
+			);
+			downNodes = result.statusMessages.flatMap((m) =>
+				m.__typename === 'RepoNodeUnavailable'
+					? [m as { message: string; address: string; state: 'RESTARTING' | 'DOWN' }]
 					: []
 			);
 			// While repositories clone or index, the counts and rows refresh on their own.
@@ -188,6 +195,12 @@
 	</div>
 </div>
 
+{#each downNodes as node (node.address)}
+	<div class="alert {node.state === 'RESTARTING' ? 'alert-info' : 'alert-danger'}" role="alert">
+		<strong>{node.state === 'RESTARTING' ? 'Repo node restarting.' : 'Repo node down.'}</strong>
+		{node.message} See <a href="/site-admin/repo-nodes">repo nodes</a>.
+	</div>
+{/each}
 {#each diskAlerts as alert (alert.address)}
 	<div class="alert alert-danger" role="alert">
 		<strong>{alert.clonesPaused ? 'Clones are paused.' : 'Repo node low on disk space.'}</strong>
