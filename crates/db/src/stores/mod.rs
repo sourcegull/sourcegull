@@ -94,8 +94,9 @@ pub use repo_events::{
     WebhookLogFilter, WebhookLogStore,
 };
 pub use repo_moves::{
-    MoveCounts, MoveKind, NewRepoMove, OpenRepoMove, Planning, REPO_NODE_LIVE_WINDOW, RepoMove,
-    RepoMoveStore, RepoNodeHeartbeat, live_repo_nodes, move_state, unsettled_repo_nodes,
+    MoveCounts, MoveKind, NewRepoMove, OpenRepoMove, Planning, REPO_NODE_LIVE_WINDOW,
+    REPO_NODE_RESTART_WINDOW, RepoMove, RepoMoveStore, RepoNodeAvailability, RepoNodeHeartbeat,
+    live_repo_nodes, move_state, repo_node_availability, repo_node_outage, unsettled_repo_nodes,
 };
 pub use repo_update_jobs::{
     REPO_UPDATE_JOBS_TABLE, RepoUpdateJob, RepoUpdateJobRecord, RepoUpdateJobStore,

@@ -671,6 +671,10 @@ impl RepoNode {
         }
         running.abort_all();
         heartbeats.abort();
+        // Until the next heartbeat, other processes report this node as restarting, not down.
+        if let Err(e) = inner.db.repo_moves().mark_stopping(&inner.me).await {
+            tracing::warn!(error = %e, "recording the repo node shutdown failed");
+        }
     }
 
     /// Sends the heartbeat every rebalance interval until `cancel` fires. The first one is

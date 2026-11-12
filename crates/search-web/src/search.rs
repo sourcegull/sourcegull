@@ -188,6 +188,46 @@ fn excluded_archive_skipped(count: usize) -> Skipped {
 }
 
 /// The note that a ref glob (`rev:*refs/heads/*`) searched only indexed branches.
+/// Says in the "repo node unavailable" note whether the repo nodes' heartbeats show a restart
+/// (temporary: info) or a node that is down; left as is when they look healthy or cannot be read.
+async fn describe_outage(state: &SearchBackend, note: &mut Skipped) {
+    let store = state.db.repo_moves();
+    let (Ok(beats), Ok(now)) = (store.heartbeats().await, store.now().await) else {
+        return;
+    };
+    let nodes: Vec<String> = state
+        .repo_clients
+        .router()
+        .nodes()
+        .map(str::to_owned)
+        .collect();
+    let Some(outage) = sourcegull_db::repo_node_outage(&beats, &nodes, now) else {
+        return;
+    };
+    let (what, explanation) = if outage.is_temporary() {
+        note.severity = Severity::Info;
+        (
+            "repo node restarting",
+            "The repo node holding them is restarting, as during an upgrade. This is temporary: \
+             search again in a few minutes.",
+        )
+    } else {
+        (
+            "repo node down",
+            "The repo node holding them is down. Search again once it is back; a site admin can \
+             check it under Site admin > Repo nodes.",
+        )
+    };
+    if let Some(n) = note.title.split(' ').next() {
+        note.title = format!("{n} not searched: {what}");
+    }
+    let list = note
+        .message
+        .split_once("\n\n")
+        .map_or(note.message.as_str(), |(_, list)| list);
+    note.message = format!("{explanation}\n\n{list}");
+}
+
 fn unindexed_branches_skipped() -> Skipped {
     Skipped {
         reason: SkippedReason::UnindexedBranches,
@@ -1261,6 +1301,13 @@ pub async fn run(
                 query_expression: "timeout:2m".to_owned(),
             }),
         });
+    }
+    if let Some(note) = progress
+        .skipped
+        .iter_mut()
+        .find(|s| s.reason == SkippedReason::BackendMissing)
+    {
+        describe_outage(&state, note).await;
     }
     progress.done = true;
     progress.repositories_count = Some(u32::try_from(searched.len()).unwrap_or(u32::MAX));

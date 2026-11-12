@@ -92,6 +92,7 @@ export const ADMIN_REPOSITORIES = `query AdminRepositories($first: Int, $after: 
 	statusMessages {
 		__typename
 		... on GitserverDiskThresholdReached { message address clonesPaused }
+		... on RepoNodeUnavailable { message address state }
 	}
 	repositories(first: $first, after: $after, query: $query, cloneStatus: $cloneStatus,
 		failedFetch: $failedFetch, corrupted: $corrupted, indexed: $indexed, notIndexed: $notIndexed) {

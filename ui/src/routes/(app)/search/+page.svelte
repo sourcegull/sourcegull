@@ -327,8 +327,21 @@
 	const skipped = $derived(progress?.skipped ?? []);
 	const archivedNote = $derived(skipped.find((s) => s.reason === 'excluded-archive'));
 	const branchesNote = $derived(skipped.find((s) => s.reason === 'unindexed-branches'));
+	/** Repositories left out because their repo node did not answer: shown as a warning, not a note. */
+	const nodeDownNote = $derived(skipped.find((s) => s.reason === 'backend-missing'));
+	/** The note's explanation: whether the node is restarting (temporary) or down. */
+	const nodeDownText = $derived((nodeDownNote?.message ?? '').split('\n\n')[0]);
+	/** The repositories the note lists, one "- `name`" line each. */
+	const nodeDownRepos = $derived(
+		(nodeDownNote?.message ?? '').split('\n').flatMap((line) => {
+			const m = /^- `(.+)`$/.exec(line);
+			return m ? [m[1]] : [];
+		})
+	);
 	const otherNotes = $derived(
-		skipped.filter((s) => s.reason !== 'excluded-archive' && s.reason !== 'unindexed-branches')
+		skipped.filter(
+			(s) => s.reason !== 'excluded-archive' && s.reason !== 'unindexed-branches' && s.reason !== 'backend-missing'
+		)
 	);
 	const archivedChecked = $derived(includesArchived(text));
 	const branchesChecked = $derived(includesOtherBranches(text));
@@ -340,7 +353,8 @@
 	/** Below 52rem the filter sidebar is a panel toggled from the toolbar. */
 	let filtersOpen = $state(false);
 	const limitHit = $derived(skipped.some((s) => s.reason === 'display'));
-	const incomplete = $derived(skipped.some((s) => s.severity === 'warn'));
+	/** A note in the collapsed list means missing results (a repo node down has its own warning). */
+	const incomplete = $derived(otherNotes.some((s) => s.severity === 'warn'));
 
 	const EXAMPLES: { query: string; description: string }[] = [
 		{ query: 'lang:rust fn main', description: 'Rust entry points' },
@@ -677,6 +691,25 @@
 						{/if}
 					</span>
 				</p>
+			{/if}
+
+			{#if nodeDownNote}
+				<div
+					class="alert {nodeDownNote.severity === 'info' ? 'alert-info' : 'alert-warning'}"
+					role={nodeDownNote.severity === 'info' ? 'status' : 'alert'}
+				>
+					<strong>Results are incomplete: {nodeDownNote.title}.</strong>
+					<p>
+						{nodeDownText}
+						{#if user?.siteAdmin}<a href="/site-admin/repo-nodes">View repo nodes</a>{/if}
+					</p>
+					<details>
+						<summary>Repositories not searched</summary>
+						<ul>
+							{#each nodeDownRepos as name (name)}<li><code>{name}</code></li>{/each}
+						</ul>
+					</details>
+				</div>
 			{/if}
 
 			{#if otherNotes.length > 0}

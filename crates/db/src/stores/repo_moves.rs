@@ -99,6 +99,8 @@ pub struct RepoNodeHeartbeat {
     pub nodes: Vec<String>,
     pub started_at: DateTime<Utc>,
     pub seen_at: DateTime<Utc>,
+    /// When the node shut down cleanly; cleared by its next heartbeat.
+    pub stopping_at: Option<DateTime<Utc>>,
 }
 
 /// Moves per state.
@@ -146,7 +148,8 @@ impl RepoMoveStore {
         sqlx::query(
             "INSERT INTO repo_nodes (addr, nodes, started_at, seen_at) VALUES ($1, $2, $3, now())
              ON CONFLICT (addr) DO UPDATE
-             SET nodes = EXCLUDED.nodes, started_at = EXCLUDED.started_at, seen_at = now()",
+             SET nodes = EXCLUDED.nodes, started_at = EXCLUDED.started_at, seen_at = now(),
+                 stopping_at = NULL",
         )
         .bind(addr)
         .bind(&nodes)
@@ -156,13 +159,23 @@ impl RepoMoveStore {
         Ok(())
     }
 
+    /// Records that `addr` is shutting down cleanly, so that while it is unreachable it counts
+    /// as restarting rather than down (see [`repo_node_availability`]).
+    pub async fn mark_stopping(&self, addr: &str) -> Result<()> {
+        sqlx::query("UPDATE repo_nodes SET stopping_at = now() WHERE addr = $1")
+            .bind(addr)
+            .execute(&self.pool)
+            .await?;
+        Ok(())
+    }
+
     /// Every node's last heartbeat, by address.
     pub async fn heartbeats(&self) -> Result<Vec<RepoNodeHeartbeat>> {
-        Ok(
-            sqlx::query_as("SELECT addr, nodes, started_at, seen_at FROM repo_nodes ORDER BY addr")
-                .fetch_all(&self.pool)
-                .await?,
+        Ok(sqlx::query_as(
+            "SELECT addr, nodes, started_at, seen_at, stopping_at FROM repo_nodes ORDER BY addr",
         )
+        .fetch_all(&self.pool)
+        .await?)
     }
 
     /// The database's clock (heartbeats are compared with it, not with the caller's).
@@ -515,6 +528,80 @@ impl RepoMoveStore {
 /// intervals of the default 10 s.
 pub const REPO_NODE_LIVE_WINDOW: Duration = Duration::from_secs(60);
 
+/// How long a repo node that shut down cleanly counts as restarting while it is unreachable;
+/// after that it counts as down.
+pub const REPO_NODE_RESTART_WINDOW: Duration = Duration::from_secs(10 * 60);
+
+/// Why a repo node that does not answer is unreachable, from its heartbeats.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum RepoNodeAvailability {
+    /// It shut down cleanly at `since` (a restart or an upgrade) and has not started again yet.
+    Stopped { since: DateTime<Utc> },
+    /// It started at `since` and sends heartbeats, but does not serve yet.
+    Starting { since: DateTime<Utc> },
+    /// No clean shutdown and no recent heartbeat: it crashed, or its host is gone. `last_seen`
+    /// is its last heartbeat, if it ever sent one.
+    Down { last_seen: Option<DateTime<Utc>> },
+}
+
+impl RepoNodeAvailability {
+    /// Whether the node is expected back on its own soon.
+    pub fn is_temporary(self) -> bool {
+        !matches!(self, Self::Down { .. })
+    }
+}
+
+/// Classifies `addr`, which did not answer, by its heartbeat at `now`.
+pub fn repo_node_availability(
+    heartbeats: &[RepoNodeHeartbeat],
+    addr: &str,
+    now: DateTime<Utc>,
+) -> RepoNodeAvailability {
+    let Some(h) = heartbeats.iter().find(|h| h.addr == addr) else {
+        return RepoNodeAvailability::Down { last_seen: None };
+    };
+    let within = |t: DateTime<Utc>, window: Duration| {
+        now.signed_duration_since(t)
+            <= chrono::Duration::from_std(window).unwrap_or(chrono::Duration::MAX)
+    };
+    match h.stopping_at {
+        Some(since) if within(since, REPO_NODE_RESTART_WINDOW) => {
+            RepoNodeAvailability::Stopped { since }
+        }
+        None if within(h.seen_at, REPO_NODE_LIVE_WINDOW) => RepoNodeAvailability::Starting {
+            since: h.started_at,
+        },
+        _ => RepoNodeAvailability::Down {
+            last_seen: Some(h.seen_at),
+        },
+    }
+}
+
+/// What the heartbeats of `nodes` say about an outage, for a caller that knows some node did
+/// not answer but not which: down when a node has no recent heartbeat (and no recent clean
+/// shutdown), else restarting when one shut down cleanly or started within
+/// [`REPO_NODE_LIVE_WINDOW`], else `None` (the heartbeats look healthy).
+pub fn repo_node_outage(
+    heartbeats: &[RepoNodeHeartbeat],
+    nodes: &[String],
+    now: DateTime<Utc>,
+) -> Option<RepoNodeAvailability> {
+    let live = chrono::Duration::from_std(REPO_NODE_LIVE_WINDOW).unwrap_or(chrono::Duration::MAX);
+    let mut restarting = None;
+    for addr in nodes {
+        match repo_node_availability(heartbeats, addr, now) {
+            down @ RepoNodeAvailability::Down { .. } => return Some(down),
+            // A node that serves sends the same heartbeats: only a recent start counts.
+            RepoNodeAvailability::Starting { since } if now.signed_duration_since(since) > live => {
+            }
+            other => {
+                restarting.get_or_insert(other);
+            }
+        }
+    }
+    restarting
+}
+
 /// Nodes whose heartbeat is at most `window` old at `now`.
 pub fn live_repo_nodes(
     heartbeats: &[RepoNodeHeartbeat],
@@ -691,5 +778,94 @@ impl Planning {
     pub async fn commit(self) -> Result<()> {
         self.tx.commit().await?;
         Ok(())
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    fn hb(
+        seen_secs_ago: i64,
+        stopping_secs_ago: Option<i64>,
+        now: DateTime<Utc>,
+    ) -> RepoNodeHeartbeat {
+        RepoNodeHeartbeat {
+            addr: "http://repo-0:3178".to_owned(),
+            nodes: vec!["http://repo-0:3178".to_owned()],
+            started_at: now - chrono::Duration::seconds(seen_secs_ago + 5),
+            seen_at: now - chrono::Duration::seconds(seen_secs_ago),
+            stopping_at: stopping_secs_ago.map(|s| now - chrono::Duration::seconds(s)),
+        }
+    }
+
+    #[test]
+    fn availability_tells_restarts_from_outages() {
+        let now = Utc::now();
+        let addr = "http://repo-0:3178";
+        let of = |h: RepoNodeHeartbeat| repo_node_availability(&[h], addr, now);
+
+        // Shut down cleanly a minute ago: restarting.
+        let a = of(hb(70, Some(60), now));
+        assert_eq!(
+            a,
+            RepoNodeAvailability::Stopped {
+                since: now - chrono::Duration::seconds(60)
+            }
+        );
+        assert!(a.is_temporary());
+        // Started again (heartbeat cleared the flag) but not serving yet.
+        assert!(matches!(
+            of(hb(3, None, now)),
+            RepoNodeAvailability::Starting { .. }
+        ));
+        // Stopped cleanly too long ago to be a restart.
+        assert!(!of(hb(1200, Some(1200), now)).is_temporary());
+        // No clean shutdown and no recent heartbeat: crashed or gone.
+        assert_eq!(
+            of(hb(300, None, now)),
+            RepoNodeAvailability::Down {
+                last_seen: Some(now - chrono::Duration::seconds(300))
+            }
+        );
+        // Never sent a heartbeat.
+        assert_eq!(
+            repo_node_availability(&[], addr, now),
+            RepoNodeAvailability::Down { last_seen: None }
+        );
+    }
+
+    #[test]
+    fn outage_from_all_heartbeats() {
+        let now = Utc::now();
+        let node = |addr: &str, seen: i64, started: i64, stopping: Option<i64>| RepoNodeHeartbeat {
+            addr: addr.to_owned(),
+            nodes: Vec::new(),
+            started_at: now - chrono::Duration::seconds(started),
+            seen_at: now - chrono::Duration::seconds(seen),
+            stopping_at: stopping.map(|s| now - chrono::Duration::seconds(s)),
+        };
+        let nodes = vec!["a".to_owned(), "b".to_owned()];
+        // Both healthy and long running: nothing to say.
+        let healthy = [node("a", 3, 3600, None), node("b", 5, 3600, None)];
+        assert_eq!(repo_node_outage(&healthy, &nodes, now), None);
+        // b shut down cleanly for an upgrade.
+        let upgrade = [node("a", 3, 3600, None), node("b", 40, 3600, Some(30))];
+        assert!(matches!(
+            repo_node_outage(&upgrade, &nodes, now),
+            Some(RepoNodeAvailability::Stopped { .. })
+        ));
+        // b started again a moment ago.
+        let starting = [node("a", 3, 3600, None), node("b", 2, 10, None)];
+        assert!(matches!(
+            repo_node_outage(&starting, &nodes, now),
+            Some(RepoNodeAvailability::Starting { .. })
+        ));
+        // b stopped sending heartbeats without a clean shutdown; down wins over restarting.
+        let crashed = [node("a", 3, 10, None), node("b", 600, 3600, None)];
+        assert!(matches!(
+            repo_node_outage(&crashed, &nodes, now),
+            Some(RepoNodeAvailability::Down { .. })
+        ));
     }
 }

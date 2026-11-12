@@ -338,9 +338,9 @@ async fn write_results(
                         SkippedReason::RepositoryMissing | SkippedReason::ShardTimeout => {
                             Some(JobError::fatal(message))
                         }
-                        SkippedReason::Error | SkippedReason::RepositoryCloning => {
-                            Some(JobError::retry(message))
-                        }
+                        SkippedReason::Error
+                        | SkippedReason::BackendMissing
+                        | SkippedReason::RepositoryCloning => Some(JobError::retry(message)),
                         _ => failure,
                     };
                 }

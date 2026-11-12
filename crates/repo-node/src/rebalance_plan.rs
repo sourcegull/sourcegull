@@ -104,6 +104,7 @@ mod tests {
             nodes: list,
             started_at: now,
             seen_at: now - chrono::Duration::seconds(age_secs),
+            stopping_at: None,
         }
     }
 

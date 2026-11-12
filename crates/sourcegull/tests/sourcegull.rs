@@ -199,7 +199,8 @@ async fn migrate_upgrade_drift_versions() {
     assert!(
         versions
             .output
-            .contains(&format!("({})", sourcegull_db::upgrade::CURRENT_VERSION)),
+            // `(X)`, or `(X+dev)` with migrations added since release X.
+            .contains(&format!("({}", sourcegull_db::upgrade::CURRENT_VERSION)),
         "{}",
         versions.output
     );

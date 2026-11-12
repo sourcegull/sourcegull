@@ -8292,6 +8292,39 @@ type RepoNodeHeartbeat {
 	configured: Boolean!
 }
 
+"""
+`RepoNodeUnavailable`: a repo node did not answer, so search leaves out its repositories
+and they are not cloned or updated.
+"""
+type RepoNodeUnavailable {
+	"""
+	The message.
+	"""
+	message: String!
+	"""
+	The repo node's address.
+	"""
+	address: String!
+	"""
+	Whether the node is restarting or down.
+	"""
+	state: RepoNodeUnavailableState!
+}
+
+"""
+Why a repo node does not answer.
+"""
+enum RepoNodeUnavailableState {
+	"""
+	It shut down cleanly (a restart or an upgrade) or is starting: expected back soon.
+	"""
+	RESTARTING
+	"""
+	It stopped without shutting down cleanly, or has been gone too long to be a restart.
+	"""
+	DOWN
+}
+
 type RepoRebalanceStatus {
 	"""
 	Configured repo nodes that are down or run with another node list. Nothing is moved
@@ -9790,7 +9823,7 @@ enum SlowRequestKind {
 """
 `StatusMessage`.
 """
-union StatusMessage = DeclaredConfigError | GitUpdatesDisabled | NoRepositoriesDetected | CloningProgress | ExternalServiceSyncError | SyncError | IndexingProgress | GitserverDiskThresholdReached
+union StatusMessage = DeclaredConfigError | GitUpdatesDisabled | NoRepositoriesDetected | CloningProgress | ExternalServiceSyncError | SyncError | IndexingProgress | GitserverDiskThresholdReached | RepoNodeUnavailable
 
 
 input StringComparator {

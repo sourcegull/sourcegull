@@ -296,11 +296,12 @@ impl TriggerHandler {
     }
 }
 
-/// Skips that fail the job for a retry: the repo node failed or is still cloning.
+/// Skips that fail the job for a retry: the repo node failed, could not be reached, or is
+/// still cloning.
 fn retryable(reason: SkippedReason) -> bool {
     matches!(
         reason,
-        SkippedReason::Error | SkippedReason::RepositoryCloning
+        SkippedReason::Error | SkippedReason::BackendMissing | SkippedReason::RepositoryCloning
     )
 }
 

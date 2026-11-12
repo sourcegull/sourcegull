@@ -9455,6 +9455,11 @@
           "name": "seen_at",
           "type": "timestamp with time zone",
           "nullable": false
+        },
+        {
+          "name": "stopping_at",
+          "type": "timestamp with time zone",
+          "nullable": true
         }
       ],
       "constraints": {

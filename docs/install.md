@@ -169,6 +169,13 @@ helm install sourcegull oci://ghcr.io/sourcegull/charts/sourcegull \
 
 Every value is documented in `values.yaml` and validated by `values.schema.json`.
 
+Upgrading (`helm upgrade`) restarts the repo nodes one at a time. While a repo node restarts,
+search leaves out the repositories on it and says the node is restarting, and Site admin lists
+it as restarting. A node that stopped without shutting down cleanly, or is not back within ten
+minutes, shows as down instead. Search is complete again once
+`kubectl rollout status statefulset/sourcegull-repo` finishes; the notes `helm upgrade` prints
+give the exact commands.
+
 ## S3 blob storage
 
 The blob store holds SCIP uploads, code graph files and search job results. By default it is
