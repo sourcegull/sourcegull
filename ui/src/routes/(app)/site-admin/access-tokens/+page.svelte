@@ -1,4 +1,5 @@
 <script lang="ts">
+	import { formatDate } from '#lib/format.svelte.ts';
 	import { onMount } from 'svelte';
 	import { page } from '$app/state';
 	import CountTile from '#lib/components/CountTile.svelte';
@@ -118,7 +119,6 @@
 		}
 	}
 
-	const formatDate = (iso: string) => new Date(iso).toLocaleDateString();
 	const expired = (t: Token) => t.expiresAt !== null && new Date(t.expiresAt).getTime() <= Date.now();
 
 	onMount(() => {

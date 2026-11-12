@@ -1,4 +1,5 @@
 <script lang="ts">
+	import { formatDateTime, formatNumber } from '#lib/format.svelte.ts';
 	import { onMount } from 'svelte';
 	import Icon from '#lib/components/Icon.svelte';
 	import { errorMessage, graphql } from '#lib/graphql.ts';
@@ -64,7 +65,7 @@
 	});
 
 	/** When GitHub was last asked, for the release status tooltips. */
-	const checkedAt = $derived(update?.checkedAt ? `Checked ${new Date(update.checkedAt).toLocaleString()}.` : '');
+	const checkedAt = $derived(update?.checkedAt ? `Checked ${formatDateTime(update.checkedAt)}.` : '');
 
 	const summary = $derived(health ? summarize(health.statusMessages) : null);
 
@@ -98,7 +99,7 @@
 			: []
 	);
 	const showSetup = $derived(!setupHidden && setup.some((s) => !s.done));
-	const n = (v: number | undefined) => (v === undefined ? '—' : v.toLocaleString('en-US'));
+	const n = (v: number | undefined) => (v === undefined ? '—' : formatNumber(v));
 
 	const ALERT: Record<StatusEntry['kind'], string> = {
 		error: 'alert-danger',

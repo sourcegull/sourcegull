@@ -3,6 +3,7 @@
 	`observability.logSlowGraphQLRequests` / `observability.logSlowSearches`, newest first.
 -->
 <script lang="ts">
+	import { formatNumber } from '#lib/format.svelte.ts';
 	import RelatedLinks from '#lib/components/RelatedLinks.svelte';
 	import { formatDate, relativeTime } from '#lib/batches/batch-change.ts';
 	import { errorMessage, graphql } from '#lib/graphql.ts';
@@ -76,7 +77,7 @@
 		<option value="GRAPHQL">GraphQL requests</option>
 		<option value="SEARCH">Searches</option>
 	</select>
-	<span class="muted small" aria-live="polite">{total.toLocaleString('en-US')} slow requests logged.</span>
+	<span class="muted small" aria-live="polite">{formatNumber(total)} slow requests logged.</span>
 </div>
 
 {#if error}<div class="alert alert-danger" role="alert">{error}</div>{/if}

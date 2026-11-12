@@ -3,6 +3,7 @@
 	one (`?connection=<ExternalService ID>`): status, event, the selected headers and the body.
 -->
 <script lang="ts">
+	import { formatNumber } from '#lib/format.svelte.ts';
 	import RelatedLinks from '#lib/components/RelatedLinks.svelte';
 	import { page } from '$app/state';
 	import { formatDate, relativeTime } from '#lib/batches/batch-change.ts';
@@ -80,7 +81,7 @@
 	{#if !connection}
 		<label class="checkbox"><input type="checkbox" bind:checked={onlyUnmatched} /> Only unmatched</label>
 	{/if}
-	<span class="muted small" aria-live="polite">{total.toLocaleString('en-US')} deliveries.</span>
+	<span class="muted small" aria-live="polite">{formatNumber(total)} deliveries.</span>
 </div>
 
 {#if error}<div class="alert alert-danger" role="alert">{error}</div>{/if}

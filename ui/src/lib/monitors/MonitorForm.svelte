@@ -13,6 +13,7 @@
 </script>
 
 <script lang="ts">
+	import { formatDateTime } from '#lib/format.svelte.ts';
 	import { errorMessage, graphql } from '#lib/graphql.ts';
 	import QueryInput from '#lib/search/QueryInput.svelte';
 	import { parsePatternType } from '#lib/search/query.ts';
@@ -356,8 +357,8 @@
 			<div class="alert alert-danger" role="alert">
 				Unfiltered results were turned on by <strong>@{othersUnfiltered.unfilteredBy}</strong
 				>{#if othersUnfiltered.unfilteredAt}
-					on {new Date(othersUnfiltered.unfilteredAt).toLocaleString()}{/if}. Saving turns them off unless you turn them
-				on yourself.
+					on {formatDateTime(othersUnfiltered.unfilteredAt)}{/if}. Saving turns them off unless you turn them on
+				yourself.
 			</div>
 		{/if}
 		{#if canShareUnfiltered}

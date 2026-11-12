@@ -4,6 +4,7 @@
  * re-clone / re-index / fetch actions, and disk usage per repo node.
  */
 
+import { formatNumber } from '#lib/format.svelte.ts';
 import type { RemoteUnavailableReason } from '#lib/repo/queries.ts';
 import type {
 	AdminRepositoriesQuery,
@@ -282,10 +283,10 @@ export function rebalanceSummary(r: RepoRebalance): string {
 	const open = r.queued + r.copying + r.flipped;
 	if (open === 0 && r.failed === 0) return 'Balanced: every repository is on its node.';
 	const parts = [
-		r.copying ? `${r.copying.toLocaleString()} copying` : '',
-		r.queued ? `${r.queued.toLocaleString()} queued` : '',
-		r.flipped ? `${r.flipped.toLocaleString()} switched over, old copy pending removal` : '',
-		r.failed ? `${r.failed.toLocaleString()} failed` : ''
+		r.copying ? `${formatNumber(r.copying)} copying` : '',
+		r.queued ? `${formatNumber(r.queued)} queued` : '',
+		r.flipped ? `${formatNumber(r.flipped)} switched over, old copy pending removal` : '',
+		r.failed ? `${formatNumber(r.failed)} failed` : ''
 	].filter(Boolean);
 	return `Moving repositories: ${parts.join(', ')}.`;
 }

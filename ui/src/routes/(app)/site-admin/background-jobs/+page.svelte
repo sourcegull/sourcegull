@@ -4,6 +4,7 @@
 	oldest queued job, recent failures with retry and cancel).
 -->
 <script lang="ts">
+	import { formatNumber } from '#lib/format.svelte.ts';
 	import { onDestroy, onMount } from 'svelte';
 	import { formatDate, relativeTime } from '#lib/batches/batch-change.ts';
 	import { errorMessage, graphql } from '#lib/graphql.ts';
@@ -124,27 +125,27 @@
 					<dl class="counts">
 						<div>
 							<dt>Queued</dt>
-							<dd>{q.queued.toLocaleString('en-US')}</dd>
+							<dd>{formatNumber(q.queued)}</dd>
 						</div>
 						<div>
 							<dt>Processing</dt>
-							<dd>{q.processing.toLocaleString('en-US')}</dd>
+							<dd>{formatNumber(q.processing)}</dd>
 						</div>
 						<div>
 							<dt>Completed</dt>
-							<dd>{q.completed.toLocaleString('en-US')}</dd>
+							<dd>{formatNumber(q.completed)}</dd>
 						</div>
 						<div>
 							<dt>Errored</dt>
-							<dd class:bad={q.errored > 0}>{q.errored.toLocaleString('en-US')}</dd>
+							<dd class:bad={q.errored > 0}>{formatNumber(q.errored)}</dd>
 						</div>
 						<div>
 							<dt>Failed</dt>
-							<dd class:bad={q.failed > 0}>{q.failed.toLocaleString('en-US')}</dd>
+							<dd class:bad={q.failed > 0}>{formatNumber(q.failed)}</dd>
 						</div>
 						<div>
 							<dt>Canceled</dt>
-							<dd>{q.canceled.toLocaleString('en-US')}</dd>
+							<dd>{formatNumber(q.canceled)}</dd>
 						</div>
 						<div>
 							<dt>Oldest queued</dt>
@@ -263,8 +264,8 @@
 						</dd>
 						<dt>Last 7 days</dt>
 						<dd>
-							{r.stats.runCount.toLocaleString('en-US')} runs,
-							<span class:bad={r.stats.errorCount > 0}>{r.stats.errorCount.toLocaleString('en-US')} errors</span
+							{formatNumber(r.stats.runCount)} runs,
+							<span class:bad={r.stats.errorCount > 0}>{formatNumber(r.stats.errorCount)} errors</span
 							>{#if r.stats.runCount > 0}; duration min {formatMs(r.stats.minDurationMs)}, avg {formatMs(
 									r.stats.avgDurationMs
 								)}, max {formatMs(r.stats.maxDurationMs)}{/if}

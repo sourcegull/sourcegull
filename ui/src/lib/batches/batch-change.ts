@@ -2,6 +2,7 @@
  * Bulk changes: the list, the detail page's header, stats, close/delete, the burndown
  * chart and the bulk operations tab.
  */
+import { formatDateTime } from '#lib/format.svelte.ts';
 import type {
 	BatchChangeDetailQuery,
 	BatchChangesQuery,
@@ -375,7 +376,7 @@ export function bulkOperationSummary(type: BulkOperationType, count: number): st
 }
 
 /** Formats an ISO time for tables. */
-export const formatDate = (iso: string): string => new Date(iso).toLocaleString();
+export const formatDate = (iso: string): string => formatDateTime(iso);
 
 /** "3 days ago", "in 2 hours". */
 export function relativeTime(iso: string, now: Date = new Date()): string {

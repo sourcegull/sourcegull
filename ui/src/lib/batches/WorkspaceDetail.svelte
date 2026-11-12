@@ -5,6 +5,7 @@
 	changeset specs it produced, and retrying it. Polls while the execution runs.
 -->
 <script lang="ts">
+	import { formatDateTime } from '#lib/format.svelte.ts';
 	import { onDestroy } from 'svelte';
 	import { errorMessage, graphql } from '#lib/graphql.ts';
 	import {
@@ -101,7 +102,7 @@
 				: '';
 	}
 
-	const time = (iso: string | null) => (iso ? new Date(iso).toLocaleString() : '—');
+	const time = (iso: string | null) => (iso ? formatDateTime(iso) : '—');
 </script>
 
 <section class="detail" aria-label="Workspace details" aria-busy={loading}>

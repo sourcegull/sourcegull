@@ -244,6 +244,12 @@ pub const SETTINGS_SECTIONS: &[ConfigSection] = &[
         keys: &["quicklinks", "notices"],
     },
     ConfigSection {
+        id: "display",
+        title: "Dates & numbers",
+        description: "How the UI formats dates, times and numbers.",
+        keys: &["display.dateFormat", "display.locale"],
+    },
+    ConfigSection {
         id: "organization",
         title: "Organization",
         description: "How an organization's members work together.",

@@ -1,4 +1,5 @@
 <script lang="ts">
+	import { formatNumber } from '#lib/format.svelte.ts';
 	/** A large count with a label, which filters a list when clicked. */
 	let {
 		value,
@@ -23,9 +24,7 @@
 </script>
 
 <button type="button" class="tile" class:active aria-pressed={active} {title} {disabled} {onclick}>
-	<span class="value {tone ?? ''}">{value === null ? '–' : value.toLocaleString('en-US')}</span><span class="label"
-		>{label}</span
-	>
+	<span class="value {tone ?? ''}">{value === null ? '–' : formatNumber(value)}</span><span class="label">{label}</span>
 </button>
 
 <style>

@@ -1,4 +1,5 @@
 <script lang="ts">
+	import { formatNumber } from '#lib/format.svelte.ts';
 	import type { CreateSavedSearchMutation } from '#lib/graphql-types.ts';
 	import { goto } from '$app/navigation';
 	import { page } from '$app/state';
@@ -561,9 +562,9 @@
 				</button>
 				<span class="progress" role="status" aria-live="polite">
 					{#if progress}
-						<strong>{resultCount.toLocaleString()}{limitHit ? '+' : ''}</strong>
+						<strong>{formatNumber(resultCount)}{limitHit ? '+' : ''}</strong>
 						result{resultCount === 1 && !limitHit ? '' : 's'}
-						{#if progress.repositoriesCount != null}in <strong>{progress.repositoriesCount.toLocaleString()}</strong>
+						{#if progress.repositoriesCount != null}in <strong>{formatNumber(progress.repositoriesCount)}</strong>
 							repositor{progress.repositoriesCount === 1 ? 'y' : 'ies'}{/if}
 						<span class="progress-time">· {seconds(progress.durationMs)}</span>
 					{:else if running}

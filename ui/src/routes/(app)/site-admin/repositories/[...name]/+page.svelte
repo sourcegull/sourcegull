@@ -1,4 +1,5 @@
 <script lang="ts">
+	import { formatDateTime, formatNumber } from '#lib/format.svelte.ts';
 	import RelatedLinks from '#lib/components/RelatedLinks.svelte';
 	import { page } from '$app/state';
 	import { errorMessage, graphql } from '#lib/graphql.ts';
@@ -62,7 +63,7 @@
 	}
 
 	function when(iso: string | null | undefined): string {
-		return iso ? `${new Date(iso).toLocaleString()} (${relativeTime(iso)})` : '—';
+		return iso ? `${formatDateTime(iso)} (${relativeTime(iso)})` : '—';
 	}
 
 	function short(oid: string | null | undefined): string {
@@ -194,12 +195,12 @@
 				{#if ix.status}
 					<dt>Files</dt>
 					<dd>
-						{ix.status.contentFilesCount.toLocaleString()} ({formatBytes(ix.status.contentByteSize)} of text)
+						{formatNumber(ix.status.contentFilesCount)} ({formatBytes(ix.status.contentByteSize)} of text)
 					</dd>
 					<dt>Lines</dt>
 					<dd>
-						{ix.status.newLinesCount.toLocaleString()}
-						<span class="muted">({ix.status.defaultBranchNewLinesCount.toLocaleString()} on the default branch)</span>
+						{formatNumber(ix.status.newLinesCount)}
+						<span class="muted">({formatNumber(ix.status.defaultBranchNewLinesCount)} on the default branch)</span>
 					</dd>
 					<dt>Index size</dt>
 					<dd>{formatBytes(ix.status.indexByteSize)} in {ix.status.indexShardsCount} file(s)</dd>
@@ -268,7 +269,7 @@
 									<td class="mono">{s.file}</td>
 									<td>{s.kind}</td>
 									<td class="num">{formatBytes(s.byteSize)}</td>
-									<td class="num">{s.filesCount.toLocaleString()}</td>
+									<td class="num">{formatNumber(s.filesCount)}</td>
 									<td class="num">{s.repositoriesCount}</td>
 								</tr>
 							{/each}

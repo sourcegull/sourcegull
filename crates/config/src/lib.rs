@@ -43,7 +43,7 @@ pub use sections::{
     find_section, section_for_key, section_header,
 };
 pub use settings::{
-    Notice, NoticeLocation, PatternType, Quicklink, Settings, SettingsCascade,
+    DateFormat, Notice, NoticeLocation, PatternType, Quicklink, Settings, SettingsCascade,
     default_settings_jsonc, merge_values, settings_schema,
 };
 pub use site::*;

@@ -4,6 +4,7 @@
 	while the execution is going.
 -->
 <script lang="ts">
+	import { formatDateTime } from '#lib/format.svelte.ts';
 	import { goto } from '$app/navigation';
 	import { page } from '$app/state';
 	import { onDestroy, onMount } from 'svelte';
@@ -143,7 +144,7 @@
 		void act(() => graphql(RETRY_BATCH_SPEC_EXECUTION, { batchSpec: id, includeCompleted: false }));
 	};
 
-	const time = (iso: string | null) => (iso ? new Date(iso).toLocaleString() : '—');
+	const time = (iso: string | null) => (iso ? formatDateTime(iso) : '—');
 	/** Percentage of the workspaces that run, for the progress bar's segments. */
 	const share = (n: number) =>
 		progress && progress.total > 0 ? Math.round((100 * Math.min(n, progress.total)) / progress.total) : 0;

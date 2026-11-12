@@ -1,4 +1,5 @@
 <script lang="ts">
+	import { formatDate, formatDateTime } from '#lib/format.svelte.ts';
 	import RelatedLinks from '#lib/components/RelatedLinks.svelte';
 	import { errorMessage, graphql } from '#lib/graphql.ts';
 	import {
@@ -138,11 +139,9 @@
 						{#if u.locked}<span class="badge badge-warning">locked</span>{/if}
 					</td>
 					<td>{u.email ?? '–'}</td>
-					<td title={u.lastActiveAt ? new Date(u.lastActiveAt).toLocaleString() : undefined}
-						>{relativeTime(u.lastActiveAt)}</td
-					>
+					<td title={u.lastActiveAt ? formatDateTime(u.lastActiveAt) : undefined}>{relativeTime(u.lastActiveAt)}</td>
 					<td class="num">{u.eventsCount}</td>
-					<td>{new Date(u.createdAt).toLocaleDateString()}</td>
+					<td>{formatDate(u.createdAt)}</td>
 				</tr>
 			{:else}
 				<tr><td colspan="5" class="empty-cell">{loading ? 'Loading…' : 'No users match.'}</td></tr>

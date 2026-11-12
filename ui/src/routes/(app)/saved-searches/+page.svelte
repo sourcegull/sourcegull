@@ -1,4 +1,5 @@
 <script lang="ts">
+	import { formatDate as localeDate } from '#lib/format.svelte.ts';
 	import type { CreateSavedSearchMutation } from '#lib/graphql-types.ts';
 	import { goto } from '$app/navigation';
 	import Icon from '#lib/components/Icon.svelte';
@@ -91,7 +92,7 @@
 	}
 
 	function formatDate(s: string): string {
-		return new Date(s).toLocaleDateString(undefined, { year: 'numeric', month: 'short', day: 'numeric' });
+		return localeDate(s, { year: 'numeric', month: 'short', day: 'numeric' });
 	}
 </script>
 

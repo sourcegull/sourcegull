@@ -1,4 +1,5 @@
 <script lang="ts">
+	import { formatDateTime } from '#lib/format.svelte.ts';
 	import Icon from '#lib/components/Icon.svelte';
 	import { goto } from '$app/navigation';
 	import { page } from '$app/state';
@@ -127,7 +128,7 @@
 				<p class="page-description">
 					Owned by {namespaceLabel(search.owner)}
 					{#if search.createdBy}· created by @{search.createdBy.username}{/if}
-					· updated {new Date(search.updatedAt).toLocaleString()}
+					· updated {formatDateTime(search.updatedAt)}
 				</p>
 			</div>
 			<div class="page-actions">

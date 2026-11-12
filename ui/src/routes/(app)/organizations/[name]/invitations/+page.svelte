@@ -1,4 +1,5 @@
 <script lang="ts">
+	import { formatDateTime } from '#lib/format.svelte.ts';
 	import { page } from '$app/state';
 	import { untrack } from 'svelte';
 	import { errorMessage, graphql } from '#lib/graphql.ts';
@@ -92,12 +93,10 @@
 					<td><strong>{recipient(inv)}</strong></td>
 					<td>{inv.sender?.username ?? ''}</td>
 					<td>
-						{new Date(inv.createdAt).toLocaleString()}
-						{#if inv.notifiedAt}<span class="badge" title="Emailed {new Date(inv.notifiedAt).toLocaleString()}"
-								>Emailed</span
-							>{/if}
+						{formatDateTime(inv.createdAt)}
+						{#if inv.notifiedAt}<span class="badge" title="Emailed {formatDateTime(inv.notifiedAt)}">Emailed</span>{/if}
 					</td>
-					<td>{inv.expiresAt ? new Date(inv.expiresAt).toLocaleString() : 'Never'}</td>
+					<td>{inv.expiresAt ? formatDateTime(inv.expiresAt) : 'Never'}</td>
 					<td class="actions">
 						<button class="btn btn-sm" type="button" disabled={busy !== null} onclick={() => act(inv, 'resend')}
 							>Resend</button

@@ -1,4 +1,5 @@
 <script lang="ts">
+	import { formatNumber } from '#lib/format.svelte.ts';
 	import Icon from '#lib/components/Icon.svelte';
 	import { goto, replaceState } from '$app/navigation';
 	import { page } from '$app/state';
@@ -213,7 +214,7 @@
 			<span class="meta">
 				{#if blob.languages.length > 0}<span class="badge">{blob.languages.join(', ')}</span>{/if}
 				<span class="muted"
-					>{blob.binary ? '' : `${blob.totalLines.toLocaleString()} lines · `}{formatBytes(blob.byteSize)}</span
+					>{blob.binary ? '' : `${formatNumber(blob.totalLines)} lines · `}{formatBytes(blob.byteSize)}</span
 				>
 			</span>
 			<div class="spacer"></div>

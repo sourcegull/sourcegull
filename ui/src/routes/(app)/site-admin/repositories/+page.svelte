@@ -1,4 +1,5 @@
 <script lang="ts">
+	import { formatDateTime, formatNumber } from '#lib/format.svelte.ts';
 	import RelatedLinks from '#lib/components/RelatedLinks.svelte';
 	import { onMount } from 'svelte';
 	import { page } from '$app/state';
@@ -215,37 +216,36 @@
 	<section class="summary card" aria-label="Sync status">
 		<div class="tiles">
 			<button type="button" class="tile" onclick={() => showFilter('cloned')}>
-				<span class="value">{s.cloned.toLocaleString('en-US')}</span><span class="tile-label">cloned</span>
+				<span class="value">{formatNumber(s.cloned)}</span><span class="tile-label">cloned</span>
 			</button>
 			<button type="button" class="tile" class:busy={s.cloning > 0} onclick={() => showFilter('cloning')}>
-				<span class="value">{s.cloning.toLocaleString('en-US')}</span><span class="tile-label">cloning</span>
+				<span class="value">{formatNumber(s.cloning)}</span><span class="tile-label">cloning</span>
 			</button>
 			<button type="button" class="tile" onclick={() => showFilter('not-cloned')}>
-				<span class="value">{s.queued.toLocaleString('en-US')}</span><span class="tile-label">queued</span>
+				<span class="value">{formatNumber(s.queued)}</span><span class="tile-label">queued</span>
 			</button>
 			<button type="button" class="tile" class:bad={s.failedFetch > 0} onclick={() => showFilter('failed')}>
-				<span class="value">{s.failedFetch.toLocaleString('en-US')}</span><span class="tile-label">failed</span>
+				<span class="value">{formatNumber(s.failedFetch)}</span><span class="tile-label">failed</span>
 			</button>
 			<button type="button" class="tile" onclick={() => showFilter('indexed')}>
-				<span class="value">{s.indexed.toLocaleString('en-US')}</span><span class="tile-label">indexed</span>
+				<span class="value">{formatNumber(s.indexed)}</span><span class="tile-label">indexed</span>
 			</button>
 		</div>
 		<div class="bars">
 			<div class="bar-row">
 				<span
-					>Cloned {s.cloned.toLocaleString('en-US')} of {s.total.toLocaleString('en-US')}
-					{#if failedNotCloned > 0}<span class="error-text"
-							>({failedNotCloned.toLocaleString('en-US')} failed to clone)</span
+					>Cloned {formatNumber(s.cloned)} of {formatNumber(s.total)}
+					{#if failedNotCloned > 0}<span class="error-text">({formatNumber(failedNotCloned)} failed to clone)</span
 						>{/if}
 					{#if s.noCodeAccess > 0}<span class="badge badge-warning" title={NO_CODE_ACCESS_HINT}
-							>{s.noCodeAccess.toLocaleString('en-US')} no code access</span
+							>{formatNumber(s.noCodeAccess)} no code access</span
 						>{/if}</span
 				>
 				<progress max="100" value={percent(s.cloned, s.total)} aria-label="Cloned"></progress>
 				<span class="pct">{percent(s.cloned, s.total)}%</span>
 			</div>
 			<div class="bar-row">
-				<span>Indexed {s.indexed.toLocaleString('en-US')} of {s.cloned.toLocaleString('en-US')} cloned</span>
+				<span>Indexed {formatNumber(s.indexed)} of {formatNumber(s.cloned)} cloned</span>
 				<progress max="100" value={percent(s.indexed, s.cloned)} aria-label="Indexed"></progress>
 				<span class="pct">{percent(s.indexed, s.cloned)}%</span>
 			</div>
@@ -271,7 +271,7 @@
 				onclick={() => showFilter(f.value)}
 			>
 				{f.label}
-				{#if counts[f.value] !== undefined}<span class="count">{counts[f.value]?.toLocaleString('en-US')}</span>{/if}
+				{#if counts[f.value] !== undefined}<span class="count">{formatNumber(counts[f.value] ?? 0)}</span>{/if}
 			</button>
 		{/each}
 	</div>
@@ -348,14 +348,10 @@
 					</td>
 					<td class="num">{m.cloned ? formatBytes(m.byteSize) : '—'}</td>
 					<td class="mono small nowrap">{m.shard ?? '—'}</td>
-					<td title={m.updatedAt ? new Date(m.updatedAt).toLocaleString() : undefined}>{relativeTime(m.updatedAt)}</td>
-					<td title={m.lastChanged ? new Date(m.lastChanged).toLocaleString() : undefined}
-						>{relativeTime(m.lastChanged)}</td
-					>
+					<td title={m.updatedAt ? formatDateTime(m.updatedAt) : undefined}>{relativeTime(m.updatedAt)}</td>
+					<td title={m.lastChanged ? formatDateTime(m.lastChanged) : undefined}>{relativeTime(m.lastChanged)}</td>
 					<td
-						title={repo.textSearchIndex?.lastIndexedAt
-							? new Date(repo.textSearchIndex.lastIndexedAt).toLocaleString()
-							: undefined}
+						title={repo.textSearchIndex?.lastIndexedAt ? formatDateTime(repo.textSearchIndex.lastIndexedAt) : undefined}
 					>
 						{repo.textSearchIndex?.lastIndexedAt ? relativeTime(repo.textSearchIndex.lastIndexedAt) : 'no'}
 					</td>

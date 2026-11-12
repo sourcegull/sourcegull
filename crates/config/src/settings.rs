@@ -84,6 +84,18 @@ pub struct Settings {
     /// and site admins.
     #[serde(rename = "orgs.allMembersBatchChangesAdmin")]
     pub orgs_all_members_batch_changes_admin: bool,
+    /// How the UI shows dates and times: for the locale, or as ISO 8601 in every locale.
+    #[serde(rename = "display.dateFormat")]
+    pub display_date_format: DateFormat,
+    /// The locale the UI formats dates, times and numbers for, as a BCP 47 language tag such as
+    /// `en-GB` or `de-DE`. Unset, the browser's language is used.
+    #[serde(
+        rename = "display.locale",
+        skip_serializing_if = "Option::is_none",
+        deserialize_with = "deserialize_locale"
+    )]
+    #[schemars(regex(pattern = r"^[A-Za-z]{2,8}(-[A-Za-z0-9]{1,8})*$"))]
+    pub display_locale: Option<String>,
     /// Links shown on the search home page.
     pub quicklinks: Vec<Quicklink>,
     /// Banners shown to users.
@@ -100,6 +112,8 @@ impl Default for Settings {
             search_include_forks: false,
             search_include_archived: false,
             orgs_all_members_batch_changes_admin: false,
+            display_date_format: DateFormat::Locale,
+            display_locale: None,
             quicklinks: Vec::new(),
             notices: Vec::new(),
             extra: BTreeMap::new(),
@@ -157,6 +171,37 @@ pub enum PatternType {
     Regexp,
     /// Structural match.
     Structural,
+}
+
+/// How the UI shows dates and times.
+#[derive(Debug, Clone, Copy, Default, PartialEq, Eq, Serialize, Deserialize, JsonSchema)]
+#[serde(rename_all = "lowercase")]
+pub enum DateFormat {
+    /// Formatted for `display.locale`, or for the browser's language when that is unset.
+    #[default]
+    Locale,
+    /// ISO 8601, the same in every locale: `2026-10-30 14:05`.
+    Iso,
+}
+
+/// Whether `tag` has the shape of a BCP 47 language tag: a language subtag of 2 to 8 letters,
+/// then hyphen-separated subtags of 1 to 8 letters or digits.
+fn is_locale_tag(tag: &str) -> bool {
+    let mut parts = tag.split('-');
+    let language = parts.next().unwrap_or_default();
+    (2..=8).contains(&language.len())
+        && language.bytes().all(|b| b.is_ascii_alphabetic())
+        && parts.all(|p| (1..=8).contains(&p.len()) && p.bytes().all(|b| b.is_ascii_alphanumeric()))
+}
+
+fn deserialize_locale<'de, D: serde::Deserializer<'de>>(d: D) -> Result<Option<String>, D::Error> {
+    let tag = Option::<String>::deserialize(d)?;
+    match tag {
+        Some(t) if !is_locale_tag(&t) => Err(serde::de::Error::custom(format!(
+            "display.locale: {t:?} is not a language tag such as \"en-GB\""
+        ))),
+        _ => Ok(tag),
+    }
 }
 
 /// A link on the search home page.
@@ -248,6 +293,24 @@ mod tests {
             ..Default::default()
         };
         assert!(cascade.settings().is_err());
+    }
+
+    #[test]
+    fn display_settings() {
+        let s =
+            Settings::from_value(json!({"display.dateFormat": "iso", "display.locale": "de-DE"}))
+                .unwrap();
+        assert_eq!(s.display_date_format, DateFormat::Iso);
+        assert_eq!(s.display_locale.as_deref(), Some("de-DE"));
+        assert_eq!(Settings::default().display_date_format, DateFormat::Locale);
+        assert!(Settings::from_value(json!({"display.locale": null})).is_ok());
+        for bad in ["", "e", "en_GB", "en-", "en GB", "-en", "en-toolongsubtag"] {
+            assert!(
+                Settings::from_value(json!({"display.locale": bad})).is_err(),
+                "{bad:?} accepted"
+            );
+        }
+        assert!(Settings::from_value(json!({"display.dateFormat": "us"})).is_err());
     }
 
     #[test]

@@ -1,3 +1,4 @@
+import { formatNumber } from '#lib/format.svelte.ts';
 import type { RankingSummaryResult } from '#lib/queries.ts';
 
 type Summary = RankingSummaryResult['rankingSummary'];
@@ -11,7 +12,7 @@ function ago(iso: string, now: Date): string {
 }
 
 function plural(n: number, one: string, many: string): string {
-	return `${n.toLocaleString('en-US')} ${n === 1 ? one : many}`;
+	return `${formatNumber(n)} ${n === 1 ? one : many}`;
 }
 
 /** The one-line ranking status of the code graph admin page. */

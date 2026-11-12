@@ -1,4 +1,5 @@
 <script lang="ts">
+	import { formatDate } from '#lib/format.svelte.ts';
 	import Pager from '#lib/components/Pager.svelte';
 	import RelatedLinks from '#lib/components/RelatedLinks.svelte';
 	import SortHeader from '#lib/components/SortHeader.svelte';
@@ -180,7 +181,7 @@
 				<tr>
 					<td><a href={org.url}><strong>{org.name}</strong></a></td>
 					<td>{org.displayName ?? ''}</td>
-					<td>{new Date(org.createdAt).toLocaleDateString()}</td>
+					<td>{formatDate(org.createdAt)}</td>
 					<td class="actions">
 						<a class="btn btn-sm" href="{org.url}/members">Members</a>
 						<a class="btn btn-sm" href="{org.url}/settings">Settings</a>

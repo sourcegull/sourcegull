@@ -3,6 +3,7 @@
 	first. Off unless the site configuration sets `outboundRequestLogLimit`.
 -->
 <script lang="ts">
+	import { formatNumber } from '#lib/format.svelte.ts';
 	import RelatedLinks from '#lib/components/RelatedLinks.svelte';
 	import { onMount } from 'svelte';
 	import { formatDate, relativeTime } from '#lib/batches/batch-change.ts';
@@ -81,7 +82,7 @@
 		bind:value={filter}
 		aria-label="Filter"
 	/>
-	<span class="muted small" aria-live="polite">{total.toLocaleString('en-US')} requests logged.</span>
+	<span class="muted small" aria-live="polite">{formatNumber(total)} requests logged.</span>
 </div>
 
 {#if error}<div class="alert alert-danger" role="alert">{error}</div>{/if}

@@ -1,4 +1,5 @@
 <script lang="ts">
+	import { formatDateTime } from '#lib/format.svelte.ts';
 	import { onDestroy, onMount } from 'svelte';
 	import { errorMessage, graphql } from '#lib/graphql.ts';
 	import {
@@ -95,7 +96,7 @@
 								<ul>
 									{#each m.errors as e, i (i)}
 										<li>
-											<span class="muted small">{new Date(e.created).toLocaleString()}</span>
+											<span class="muted small">{formatDateTime(e.created)}</span>
 											<pre class="code">{e.message}</pre>
 										</li>
 									{/each}
@@ -109,7 +110,7 @@
 							{percent(m.progress)}% · {migrationState(m)}
 						</div>
 						{#if m.lastUpdated}
-							<div class="muted small">updated {new Date(m.lastUpdated).toLocaleString()}</div>
+							<div class="muted small">updated {formatDateTime(m.lastUpdated)}</div>
 						{/if}
 					</td>
 					<td class="small">

@@ -1,4 +1,5 @@
 <script lang="ts">
+	import { formatDateTime } from '#lib/format.svelte.ts';
 	import { page } from '$app/state';
 	import Icon from '#lib/components/Icon.svelte';
 	import { onMount } from 'svelte';
@@ -103,7 +104,7 @@
 	}
 
 	function formatDate(s: string): string {
-		return new Date(s).toLocaleString(undefined, { dateStyle: 'medium', timeStyle: 'short' });
+		return formatDateTime(s, { dateStyle: 'medium', timeStyle: 'short' });
 	}
 
 	function stateBadge(state: SearchJobState): string {

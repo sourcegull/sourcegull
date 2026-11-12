@@ -1,4 +1,5 @@
 <script lang="ts">
+	import { formatNumber } from '#lib/format.svelte.ts';
 	import {
 		hasNextPage,
 		hasPreviousPage,
@@ -29,7 +30,7 @@
 		onchange: () => void;
 	} = $props();
 
-	const fmt = (n: number) => n.toLocaleString('en-US');
+	const fmt = (n: number) => formatNumber(n);
 	const start = $derived(pageIndex(pages) * pages.size);
 </script>
 
