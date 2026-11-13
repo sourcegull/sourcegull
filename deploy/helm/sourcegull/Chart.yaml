@@ -2,8 +2,8 @@ apiVersion: v2
 name: sourcegull
 description: Sourcegull, a self-hosted code intelligence platform (code search, navigation, bulk changes).
 type: application
-version: 0.2.12
-appVersion: "0.9.0"
+version: 0.2.13
+appVersion: "0.10.0"
 kubeVersion: ">=1.27.0-0"
 keywords:
   - code-search
@@ -28,7 +28,7 @@ annotations:
       url: https://github.com/sourcegull/sourcegull/issues
   artifacthub.io/images: |
     - name: sourcegull
-      image: ghcr.io/sourcegull/sourcegull:0.9.0
+      image: ghcr.io/sourcegull/sourcegull:0.10.0
       platforms:
         - linux/amd64
     - name: postgres
