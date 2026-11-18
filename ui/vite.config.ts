@@ -5,6 +5,14 @@ import { defineConfig } from 'vite';
 
 /** Backend started with `sourcegull run` (or `sourcegull supervise`). */
 const backend = process.env.SOURCEGULL_DEV_BACKEND ?? 'http://127.0.0.1:7080';
+const proxy = {
+	'/.api': { target: backend, changeOrigin: false },
+	'/.auth': { target: backend, changeOrigin: false },
+	'/.oauth': { target: backend, changeOrigin: false },
+	'/.well-known/oauth-': { target: backend, changeOrigin: false },
+	'/.executors': { target: backend, changeOrigin: false },
+	'/-/': { target: backend, changeOrigin: false }
+};
 
 export default defineConfig({
 	plugins: [
@@ -14,20 +22,6 @@ export default defineConfig({
 			adapter: adapter({ pages: 'build', assets: 'build', fallback: 'index.html', strict: true })
 		})
 	],
-	server: {
-		proxy: {
-			'/.api': { target: backend, changeOrigin: false },
-			'/.auth': { target: backend, changeOrigin: false },
-			'/.executors': { target: backend, changeOrigin: false },
-			'/-/': { target: backend, changeOrigin: false }
-		}
-	},
-	preview: {
-		proxy: {
-			'/.api': { target: backend, changeOrigin: false },
-			'/.auth': { target: backend, changeOrigin: false },
-			'/.executors': { target: backend, changeOrigin: false },
-			'/-/': { target: backend, changeOrigin: false }
-		}
-	}
+	server: { proxy },
+	preview: { proxy }
 });

@@ -73,8 +73,9 @@ to the new text showing in the browser, with the default container limits (4 cor
 | Debug backend, `:7080` | `npm run build` in `ui/`, then reload the page | ~6 s |
 | Production image | `scripts/image-build.sh --test …`, then restart the container | ~4 min |
 
-Use Vite on `:5173` for UI work. It proxies `/.api`, `/.auth`, `/.executors` and `/-/` to the
-backend on `:7080`, so pages show real data. Only Rust changes need the backend restarted
+Use Vite on `:5173` for UI work. It proxies the API, sign-in, OAuth metadata and endpoints,
+executor and health requests to the backend on `:7080`. Compose uses the Vite origin as the
+external URL so MCP browser sign-in returns to the UI. Only Rust changes need the backend restarted
 (`scripts/dev restart`).
 
 - The services mount the checkout `docker compose` runs from. To serve a git worktree, run

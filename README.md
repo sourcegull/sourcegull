@@ -134,15 +134,12 @@ upgrades ([Compose](deploy/docker/upgrade.md), [Helm](deploy/helm/sourcegull/REA
 `/.api/mcp` is a [Model Context Protocol](https://modelcontextprotocol.io) server. Coding agents
 search code, read files, find symbols, definitions and references, and read history (log,
 commits, compare, blame) with the caller's permissions, in output sized for a model's context.
-**Connect an agent** in the sidebar gives copy-paste setup for Claude Code, Cursor, VS Code,
-Codex, Gemini CLI, Zed, JetBrains and others, with a one-click token. For Claude Code:
+**Connect an agent** in the sidebar gives copy-paste setup for Codex, Claude Code, Cursor,
+VS Code, Gemini CLI, Zed, JetBrains and others. Follow [Codex browser sign-in](docs/mcp.md#codex-with-browser-sign-in)
+or see the [MCP setup guide](docs/mcp.md) for other clients and access-token setup.
 
-```sh
-claude mcp add --transport http sourcegull https://sourcegull.example.com/.api/mcp \
-  --header "Authorization: Bearer <token>"
-```
-
-Tools and examples: [docs/mcp.md](docs/mcp.md).
+For agents working on Sourcegull itself, [AGENTS.md](AGENTS.md) contains the repository's
+development and testing instructions.
 
 ## How it works
 

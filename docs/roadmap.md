@@ -2,7 +2,7 @@
 
 Planned work, in the order it is expected to land. Each item lists its goal, design, the code it
 touches, how it is tested and when it is done. Items stay within the
-[fixed decisions](../CLAUDE.md): one binary, PostgreSQL only, GitLab, GitHub and Gitea.
+[fixed decisions](../AGENTS.md): one binary, PostgreSQL only, GitLab, GitHub and Gitea.
 
 Nothing is planned right now. CI runs on a self-hosted runner: only the release workflow
 starts on its own (on `v*` tags); every other check runs locally with `scripts/dev`, or by hand.
