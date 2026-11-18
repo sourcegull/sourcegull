@@ -90,10 +90,11 @@
   // Apply permissions to site admins too.
   // "authz.enforceForSiteAdmins": true,
 
-  // The permissions sync refreshes the oldest users and repositories every 15 s, at most once
-  // a minute each, and keeps 5 finished jobs per user and repository:
+  // The permissions scheduler runs every 15 s, waits at least 30 minutes between scheduled
+  // syncs for each user and repository, and keeps 5 finished jobs per user and repository:
   // "permissions.syncOldestUsers": 10, "permissions.syncOldestRepos": 10,
-  // "permissions.syncUsersBackoffSeconds": 60, "permissions.syncJobsHistorySize": 5,
+  // "permissions.syncUsersBackoffSeconds": 1800, "permissions.syncReposBackoffSeconds": 1800,
+  // "permissions.syncJobsHistorySize": 5,
 
   // Provision users from an identity provider through SCIM 2.0 (at least 20 characters):
   // "scim.authToken": "<random secret>",

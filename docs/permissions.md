@@ -248,7 +248,9 @@ and per repository (who can read this project?), and again on GitLab membership 
 events. Public projects are readable by everyone; `markInternalReposAsPublic` treats internal
 projects the same way. Site admins can see each user's and repository's permissions and sync
 history, and trigger a sync, under Site admin → Repository permissions and on the user and
-repository pages. The `permissions.sync*` keys tune the schedule.
+repository pages. By default, the scheduler waits at least 30 minutes after a sync before
+queuing another for the same user or repository. The site settings
+`permissions.syncUsersBackoffSeconds` and `permissions.syncReposBackoffSeconds` control those waits.
 
 Every sign-in queues a sync of that user ahead of other syncs. Until it finishes, a user who
 signs in for the first time sees only the repositories everyone can read, so Sourcegull shows a
