@@ -121,18 +121,39 @@ Cursor, VS Code (Copilot), Windsurf, Codex CLI, Gemini CLI, Zed, JetBrains IDEs,
 Continue and stdio-only clients. With OAuth sign-in on, it first asks how the agent signs in,
 and shows only the steps for that choice:
 
-- **Through the browser** (the default): the short form for clients that support MCP OAuth,
-  for example
-
-  ```sh
-  claude mcp add --transport http sourcegull https://sourcegull.example.com/.api/mcp
-  ```
+- **Through the browser** (the default): setup for clients that support MCP OAuth.
+  For Codex, copy the command under **Codex CLI** or follow the steps below.
 
 - **With an access token**: the endpoint URL, a button that creates a token and fills it into
   every snippet, the per-agent setup and a `curl` test.
 
 Without OAuth sign-in only the access token steps are shown. Both choices end with rules for
 the agent's instructions file, example prompts and the tool list.
+
+### Codex with browser sign-in
+
+Use a current Codex CLI and replace the example host with your Sourcegull instance.
+Connect to your organization's VPN first if the instance is on a private network.
+
+```sh
+codex mcp add sourcegull --url https://sourcegull.example.com/.api/mcp --oauth-client-registration dcr
+```
+
+Complete sign-in and consent in the browser. This command uses [Dynamic Client Registration](#oauth-sign-in)
+when adding the server. If the server is already registered and you still need to sign in, run
+`codex mcp login sourcegull --oauth-client-registration dcr`. The browser setup for Codex
+appears in the wizard when the instance enables `mcp.oauth.dynamicClientRegistration`.
+
+Start a new Codex session and run `/mcp` in the CLI to check that Sourcegull is connected and
+its tools are listed. The Codex desktop app also uses the Codex MCP configuration.
+
+If you previously set up access-token authentication, remove `bearer_token_env_var` from
+`[mcp_servers.sourcegull]` in `~/.codex/config.toml` before switching to OAuth. A startup error
+that says `SOURCEGULL_TOKEN` is not set indicates Codex is still configured for bearer-token
+authentication. For that mode, the variable must be in the environment of the process that
+starts Codex.
+
+### Access-token setup
 
 Examples with an access token in `SOURCEGULL_TOKEN`:
 

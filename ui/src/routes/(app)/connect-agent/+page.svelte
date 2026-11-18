@@ -11,7 +11,7 @@
 		EXAMPLE_PROMPTS,
 		MCP_TOOLS,
 		mcpEndpoint,
-		oauthAvailable,
+		oauthOptions,
 		oauthSnippets,
 		RULES_SNIPPET,
 		testCommands,
@@ -36,9 +36,9 @@
 	let tokenError = $state<string | null>(null);
 
 	/** Whether agents can sign in through OAuth (`mcp.oauth.enabled`). */
-	let oauth = $state(false);
+	let oauth = $state<Awaited<ReturnType<typeof oauthOptions>>>(null);
 	onMount(async () => {
-		oauth = await oauthAvailable();
+		oauth = await oauthOptions();
 	});
 
 	/** How the agent signs in: through the browser (OAuth) or with an access token. */
@@ -86,8 +86,8 @@
 		<div>
 			<h1>Connect an agent</h1>
 			<p class="page-description">
-				Give AI coding agents such as Claude Code, Cursor or Copilot access to Sourcegull's code search and navigation
-				through the Model Context Protocol (MCP). The agent sees exactly the repositories you can.
+				Give AI coding agents such as Codex, Claude Code, Cursor or Copilot access to Sourcegull's code search and
+				navigation through the Model Context Protocol (MCP). The agent sees exactly the repositories you can.
 			</p>
 		</div>
 	</div>
@@ -101,8 +101,8 @@
 				<span>
 					<strong>Through the browser</strong> <span class="badge">Recommended</span>
 					<span class="small muted method-text">
-						For Claude Code, VS Code and Cursor. Add only the server URL; the agent opens the browser for you to allow
-						access. No token to copy, store or rotate.
+						For {oauth.dynamicRegistration ? 'Codex, ' : ''}Claude Code, VS Code and Cursor. Follow your agent's setup
+						below to sign in and allow access in the browser.
 					</span>
 				</span>
 			</label>
@@ -119,7 +119,7 @@
 		</fieldset>
 	{/if}
 
-	{#if !useToken}
+	{#if oauth && !useToken}
 		<section aria-labelledby="step-oauth">
 			<div class="section-header">
 				<h2 id="step-oauth"><span class="step">1</span> Add Sourcegull to your agent</h2>
@@ -128,7 +128,7 @@
 				The first time the agent connects, it opens the browser: sign in and allow access. You can see and revoke the
 				agents you allowed under <a href="/user/settings/connected-apps">Connected apps</a>.
 			</p>
-			{#each oauthSnippets(url) as s (s.title)}
+			{#each oauthSnippets(url, oauth.dynamicRegistration) as s (s.title)}
 				<div class="snippet-block">
 					<h3>{s.title}</h3>
 					<p class="where small muted">{s.where}</p>

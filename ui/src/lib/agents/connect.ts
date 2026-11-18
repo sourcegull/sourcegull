@@ -278,7 +278,7 @@ export const OAUTH_METADATA_PATH = '/.well-known/oauth-authorization-server';
  * Setup for agents that sign in through OAuth: the URL alone, then a browser sign-in the
  * first time the agent connects.
  */
-export function oauthSnippets(url: string): Snippet[] {
+export function oauthSnippets(url: string, dynamicRegistration: boolean): Snippet[] {
 	return [
 		{
 			title: 'Claude Code',
@@ -286,6 +286,16 @@ export function oauthSnippets(url: string): Snippet[] {
 			code: `claude mcp add --transport http ${SERVER_NAME} ${url}`,
 			note: 'Then run /mcp inside Claude Code and choose Authenticate.'
 		},
+		...(dynamicRegistration
+			? [
+					{
+						title: 'Codex CLI',
+						where: 'Terminal',
+						code: `codex mcp add ${SERVER_NAME} --url ${url} --oauth-client-registration dcr`,
+						note: 'Complete sign-in in your browser, then start a new Codex session and run /mcp.'
+					}
+				]
+			: []),
 		{
 			title: 'VS Code / Copilot',
 			where: '.vscode/mcp.json',
@@ -299,13 +309,16 @@ export function oauthSnippets(url: string): Snippet[] {
 	];
 }
 
-/** Whether the instance at the page's origin offers OAuth sign-in to MCP clients. */
-export async function oauthAvailable(doFetch: typeof fetch = fetch): Promise<boolean> {
+/** Sign-in options advertised by the instance, or null when OAuth is unavailable. */
+export async function oauthOptions(doFetch: typeof fetch = fetch): Promise<{ dynamicRegistration: boolean } | null> {
 	try {
 		const res = await doFetch(OAUTH_METADATA_PATH, { headers: { Accept: 'application/json' } });
-		return res.ok;
+		if (!res.ok) return null;
+		const metadata = await res.json();
+		if (typeof metadata?.authorization_endpoint !== 'string') return null;
+		return { dynamicRegistration: typeof metadata.registration_endpoint === 'string' };
 	} catch {
-		return false;
+		return null;
 	}
 }
 

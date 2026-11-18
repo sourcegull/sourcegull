@@ -76,7 +76,7 @@ services:
     environment:
       <<: *dev-env
       SOURCEGULL_DATA_DIR: /data
-      SOURCEGULL_EXTERNAL_URL: http://localhost:${SOURCEGULL_HTTP_PORT:-7080}
+      SOURCEGULL_EXTERNAL_URL: http://localhost:${SOURCEGULL_UI_PORT:-5173}
     volumes:
       - .:/src
       - cargo:/cargo

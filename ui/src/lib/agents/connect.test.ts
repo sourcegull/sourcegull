@@ -4,7 +4,7 @@ import {
 	exportLine,
 	mcpEndpoint,
 	MCP_TOOLS,
-	oauthAvailable,
+	oauthOptions,
 	oauthSnippets,
 	shellQuote,
 	testCommands,
@@ -124,22 +124,37 @@ describe('MCP_TOOLS', () => {
 
 describe('oauthSnippets', () => {
 	it('needs only the URL', () => {
-		const snippets = oauthSnippets(URL);
+		const snippets = oauthSnippets(URL, true);
 		expect(snippets[0]!.code).toBe(`claude mcp add --transport http sourcegull ${URL}`);
 		for (const s of snippets) {
 			expect(s.code).toContain(URL);
 			expect(s.code).not.toContain('Authorization');
 		}
-		expect(JSON.parse(snippets[1]!.code)).toEqual({ servers: { sourcegull: { type: 'http', url: URL } } });
+		expect(snippets.find((s) => s.title === 'Codex CLI')?.code).toBe(
+			`codex mcp add sourcegull --url ${URL} --oauth-client-registration dcr`
+		);
+		const vsCode = snippets.find((s) => s.title === 'VS Code / Copilot')!;
+		expect(JSON.parse(vsCode.code)).toEqual({
+			servers: { sourcegull: { type: 'http', url: URL } }
+		});
+	});
+
+	it('omits Codex browser setup when dynamic registration is disabled', () => {
+		expect(oauthSnippets(URL, false).some((s) => s.title === 'Codex CLI')).toBe(false);
 	});
 
 	it('detects OAuth from the metadata document', async () => {
-		const ok = (status: number) => (async () => new Response('{}', { status })) as unknown as typeof fetch;
-		expect(await oauthAvailable(ok(200))).toBe(true);
-		expect(await oauthAvailable(ok(404))).toBe(false);
-		const failing = (async () => {
-			throw new Error('offline');
-		}) as unknown as typeof fetch;
-		expect(await oauthAvailable(failing)).toBe(false);
+		const metadata = { authorization_endpoint: `${URL}/authorize` };
+		expect(await oauthOptions(async () => Response.json(metadata))).toEqual({ dynamicRegistration: false });
+		expect(
+			await oauthOptions(async () => Response.json({ ...metadata, registration_endpoint: `${URL}/register` }))
+		).toEqual({ dynamicRegistration: true });
+		expect(await oauthOptions(async () => new Response('<html>'))).toBeNull();
+		expect(await oauthOptions(async () => new Response(null, { status: 404 }))).toBeNull();
+		expect(
+			await oauthOptions(async () => {
+				throw new Error('offline');
+			})
+		).toBeNull();
 	});
 });
