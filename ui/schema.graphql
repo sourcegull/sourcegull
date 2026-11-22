@@ -2925,9 +2925,9 @@ type ExternalService implements Node {
 	"""
 	updatedAt: DateTime!
 	"""
-	When the connection's token expires, as the worker last read it from the code host
-	(daily, and after each configuration change). Null until the first check, and when
-	the code host does not say (OAuth tokens, GitHub Apps, Gitea).
+	When the connection's token expires, as last read from the code host. Checked on
+	creation, on configuration changes in the editor, and periodically by the worker.
+	Null until the first check and when the code host does not say.
 	"""
 	tokenExpiry: TokenExpiryCheck
 	"""
@@ -10179,7 +10179,7 @@ type TokenExpiryCheck {
 	"""
 	neverExpires: Boolean!
 	"""
-	Why the last check failed; `expiresAt` is then that of the last successful check.
+	Why the last check failed. A previous expiry is kept only for the checked configuration.
 	"""
 	error: String
 }

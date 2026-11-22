@@ -473,14 +473,7 @@ async fn token_expiry_checks_and_alerts() {
         email: Arc::new(email.clone()),
     };
     let expiry = |v: Value| v["node"]["tokenExpiry"].clone();
-    assert_eq!(
-        expiry(
-            env.ok(Some(env.admin), TOKEN_EXPIRY, json!({ "id": gid }))
-                .await
-        ),
-        Value::Null
-    );
-    checker.check_due(now).await.unwrap();
+    // Adding the connection stores the expiry before the worker runs.
     assert_eq!(
         expiry(
             env.ok(Some(env.admin), TOKEN_EXPIRY, json!({ "id": gid }))
@@ -524,17 +517,42 @@ async fn token_expiry_checks_and_alerts() {
     assert_eq!(subjects[1], "The GitLab token of GitLab expires in 6 days");
     assert_eq!(subjects[2], "The GitLab token of GitLab has expired");
 
-    // A new token (configuration change) is checked at once and gets its own alerts.
-    env.gitlab
-        .with(|s| s.token_expires_at = Some(day(5).to_string()));
+    // Saving a replacement token publishes its expiry before the worker runs.
+    let old_version = env
+        .db
+        .external_services(None)
+        .get(id)
+        .await
+        .unwrap()
+        .unwrap()
+        .updated_at;
+    env.gitlab.with(|s| {
+        s.token = "replacement".into();
+        s.token_expires_at = Some(day(5).to_string());
+    });
     env.ok(
         Some(env.admin),
         UPDATE,
         json!({ "input": { "id": gid,
-            "config": env.config_text(r#", "repositoryPathPattern": "x/{pathWithNamespace}""#) } }),
+            "config": env.config_text("").replace(r#""tok""#, r#""replacement""#) } }),
     )
     .await;
+    // A check already in progress for the previous token cannot overwrite the new expiry.
+    env.db
+        .token_checks()
+        .record(id, old_version, sourcegull_db::StoredExpiry::Never)
+        .await
+        .unwrap();
+    assert_eq!(
+        expiry(
+            env.ok(Some(env.admin), TOKEN_EXPIRY, json!({ "id": gid }))
+                .await
+        ),
+        json!({ "expiresAt": format!("{}T00:00:00+00:00", day(5)), "neverExpires": false, "error": null })
+    );
+    let before = token_requests();
     checker.check_due(now).await.unwrap();
+    assert_eq!(token_requests(), before);
     // Disabled: no email.
     let mut off = site.clone();
     off.code_hosts_token_expiry_alerts.enabled = false;
@@ -554,14 +572,12 @@ async fn token_expiry_checks_and_alerts() {
         "The GitLab token of GitLab expires in 5 days"
     );
 
-    // No expiry date.
+    // No expiry date on the next periodic check.
     env.gitlab.with(|s| s.token_expires_at = None);
-    env.db
-        .token_checks()
-        .record_error(id, chrono::DateTime::UNIX_EPOCH, "stale")
+    checker
+        .check_due(now + chrono::Duration::days(2))
         .await
         .unwrap();
-    checker.check_due(now).await.unwrap();
     assert_eq!(
         expiry(
             env.ok(Some(env.admin), TOKEN_EXPIRY, json!({ "id": gid }))
@@ -569,6 +585,21 @@ async fn token_expiry_checks_and_alerts() {
         ),
         json!({ "expiresAt": null, "neverExpires": true, "error": null })
     );
+
+    // A rejected replacement must clear the previous token's status.
+    env.ok(
+        Some(env.admin),
+        UPDATE,
+        json!({ "input": { "id": gid, "config": env.config_text("") } }),
+    )
+    .await;
+    let failed = expiry(
+        env.ok(Some(env.admin), TOKEN_EXPIRY, json!({ "id": gid }))
+            .await,
+    );
+    assert!(failed["expiresAt"].is_null());
+    assert_eq!(failed["neverExpires"], false);
+    assert!(failed["error"].is_string());
 }
 
 #[tokio::test(flavor = "multi_thread", worker_threads = 2)]

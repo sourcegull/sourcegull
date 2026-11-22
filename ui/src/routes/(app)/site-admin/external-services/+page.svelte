@@ -102,6 +102,8 @@
 		</thead>
 		<tbody>
 			{#each services as s (s.id)}
+				{@const editURL = `/site-admin/external-services/${encodeURIComponent(s.id)}/edit`}
+				{@const level = expiryLevel(s.tokenExpiry)}
 				<tr data-connection={s.displayName}>
 					<td>
 						<a href="/site-admin/external-services/{encodeURIComponent(s.id)}"><strong>{s.displayName}</strong></a>
@@ -118,13 +120,18 @@
 						{#if s.lastSyncError}
 							<div><span class="badge badge-danger" title={s.lastSyncError}>failed</span></div>
 						{/if}
-						{#if s.tokenExpiry && expiryLevel(s.tokenExpiry) === 'expired'}
-							<div><span class="badge badge-danger">token expired</span></div>
-						{:else if s.tokenExpiry && expiryLevel(s.tokenExpiry) === 'soon' && s.tokenExpiry.expiresAt}
+						{#if s.tokenExpiry?.expiresAt && (level === 'expired' || level === 'soon')}
 							<div>
-								<span class="badge badge-warning" title={expiryText(s.tokenExpiry)}
-									>token expires in {daysLeft(s.tokenExpiry.expiresAt)}d</span
+								<span
+									class="badge"
+									class:badge-danger={level === 'expired'}
+									class:badge-warning={level === 'soon'}
+									title={expiryText(s.tokenExpiry)}
+									>{level === 'expired'
+										? 'token expired'
+										: `token expires in ${daysLeft(s.tokenExpiry.expiresAt)}d`}</span
 								>
+								{#if !s.managedBy}<a class="small" href={editURL}>(Update token)</a>{/if}
 							</div>
 						{/if}
 					</td>
@@ -138,7 +145,7 @@
 					<td class="actions">
 						<button class="btn btn-sm" type="button" onclick={() => syncNow(s)}>Sync now</button>
 						{#if !s.managedBy}
-							<a class="btn btn-sm" href="/site-admin/external-services/{encodeURIComponent(s.id)}/edit">Edit</a>
+							<a class="btn btn-sm" href={editURL}>Edit</a>
 						{/if}
 					</td>
 				</tr>

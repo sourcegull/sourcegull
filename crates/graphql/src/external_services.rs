@@ -133,7 +133,7 @@ pub struct TokenExpiryCheck {
     pub expires_at: Option<DateTime<Utc>>,
     /// Whether the token has no expiry date.
     pub never_expires: bool,
-    /// Why the last check failed; `expiresAt` is then that of the last successful check.
+    /// Why the last check failed. A previous expiry is kept only for the checked configuration.
     pub error: Option<String>,
 }
 
@@ -227,9 +227,9 @@ impl ExternalServiceNode {
         self.service.updated_at
     }
 
-    /// When the connection's token expires, as the worker last read it from the code host
-    /// (daily, and after each configuration change). Null until the first check, and when
-    /// the code host does not say (OAuth tokens, GitHub Apps, Gitea).
+    /// When the connection's token expires, as last read from the code host. Checked on
+    /// creation, on configuration changes in the editor, and periodically by the worker.
+    /// Null until the first check and when the code host does not say.
     async fn token_expiry(&self, ctx: &Context<'_>) -> Result<Option<TokenExpiryCheck>> {
         let check = services(ctx)?
             .db
@@ -761,6 +761,33 @@ async fn check(svc: &Services, kind: ExternalServiceKind, config: &str) -> Vec<S
     }
 }
 
+/// Checks a saved connection and records the token expiry for its configuration.
+async fn check_saved(svc: &Services, saved: &ExternalService, config: &str) -> Vec<String> {
+    let checks = svc.db.token_checks();
+    let (mut warnings, result) = match check_report(svc, saved.kind, config).await {
+        Ok(report) => {
+            let expiry = match report.token_expiry {
+                TokenExpiry::At(at) => StoredExpiry::At(at),
+                TokenExpiry::Never => StoredExpiry::Never,
+                TokenExpiry::Unknown => StoredExpiry::Unknown,
+            };
+            let result = checks.record(saved.id, saved.updated_at, expiry).await;
+            (report.warnings, result)
+        }
+        Err(problem) => {
+            let result = checks
+                .record_error(saved.id, saved.updated_at, &problem)
+                .await;
+            (vec![problem], result)
+        }
+    };
+    if let Err(err) = result {
+        tracing::warn!(connection = saved.id.get(), error = %err, "could not store token expiry check");
+        warnings.push("Could not store the token expiry check.".to_owned());
+    }
+    warnings
+}
+
 /// Checks the connection against the code host. `Err` is the reason it failed.
 async fn check_report(
     svc: &Services,
@@ -836,7 +863,7 @@ impl ExternalServicesMutation {
             .set_unrestricted(created.id, svc.registry.unrestricted(kind, &input.config))
             .await
             .map_err(db_error)?;
-        warnings.extend(check(svc, kind, &input.config).await);
+        warnings.extend(check_saved(svc, &created, &input.config).await);
         audit::record(
             svc,
             events::EXTERNAL_SERVICE_CREATED,
@@ -912,7 +939,7 @@ impl ExternalServicesMutation {
                 .set_unrestricted(id, svc.registry.unrestricted(current.kind, config))
                 .await
                 .map_err(db_error)?;
-            warnings.extend(check(svc, current.kind, config).await);
+            warnings.extend(check_saved(svc, &updated, config).await);
         }
         audit::record(
             svc,
