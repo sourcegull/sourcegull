@@ -93,55 +93,63 @@ impl TokenCheckStore {
         .await?)
     }
 
-    /// Records a successful check of the configuration last updated at `config_updated_at`.
+    /// Records a successful check if the checked configuration is still current.
     /// A changed expiry clears `alerted_days`, so the new expiry gets its own alerts.
     pub async fn record(
         &self,
         id: ExternalServiceId,
         config_updated_at: DateTime<Utc>,
         expiry: StoredExpiry,
-    ) -> Result<TokenCheck> {
+    ) -> Result<()> {
         let (kind, at) = expiry.columns();
-        Ok(sqlx::query_as(&format!(
+        sqlx::query(
             "INSERT INTO external_service_token_checks AS c
                  (external_service_id, checked_at, config_updated_at, expiry, expires_at)
-             VALUES ($1, now(), $2, $3, $4)
+             SELECT id, now(), updated_at, $3, $4 FROM external_services
+             WHERE id = $1 AND updated_at = $2 AND deleted_at IS NULL
+             FOR SHARE
              ON CONFLICT (external_service_id) DO UPDATE SET
                  checked_at = now(), config_updated_at = $2, expiry = $3, expires_at = $4,
                  error = NULL,
                  alerted_days = CASE
                      WHEN c.expiry = $3 AND c.expires_at IS NOT DISTINCT FROM $4
-                     THEN c.alerted_days END
-             RETURNING {COLUMNS}"
-        ))
+                     THEN c.alerted_days END",
+        )
         .bind(id)
         .bind(config_updated_at)
         .bind(kind)
         .bind(at)
-        .fetch_one(&self.pool)
-        .await?)
+        .execute(&self.pool)
+        .await?;
+        Ok(())
     }
 
-    /// Records a failed check, keeping the expiry of the last successful one.
+    /// Records a failed check if the checked configuration is still current.
+    /// Keeps the last known expiry only for the configuration that was checked.
     pub async fn record_error(
         &self,
         id: ExternalServiceId,
         config_updated_at: DateTime<Utc>,
         error: &str,
-    ) -> Result<TokenCheck> {
-        Ok(sqlx::query_as(&format!(
-            "INSERT INTO external_service_token_checks
+    ) -> Result<()> {
+        sqlx::query(
+            "INSERT INTO external_service_token_checks AS c
                  (external_service_id, checked_at, config_updated_at, expiry, error)
-             VALUES ($1, now(), $2, 'unknown', $3)
+             SELECT id, now(), updated_at, 'unknown', $3 FROM external_services
+             WHERE id = $1 AND updated_at = $2 AND deleted_at IS NULL
+             FOR SHARE
              ON CONFLICT (external_service_id) DO UPDATE SET
-                 checked_at = now(), config_updated_at = $2, error = $3
-             RETURNING {COLUMNS}"
-        ))
+                 checked_at = now(), config_updated_at = $2, error = $3,
+                 expiry = CASE WHEN c.config_updated_at = $2 THEN c.expiry ELSE 'unknown' END,
+                 expires_at = CASE WHEN c.config_updated_at = $2 THEN c.expires_at END,
+                 alerted_days = CASE WHEN c.config_updated_at = $2 THEN c.alerted_days END",
+        )
         .bind(id)
         .bind(config_updated_at)
         .bind(error)
-        .fetch_one(&self.pool)
-        .await?)
+        .execute(&self.pool)
+        .await?;
+        Ok(())
     }
 
     /// Records that the alert for `days` before the expiry was sent.

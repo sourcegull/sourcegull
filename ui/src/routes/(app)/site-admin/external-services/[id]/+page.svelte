@@ -36,6 +36,7 @@
 		type SyncJob
 	} from '#lib/connections/queries.ts';
 	import { errorMessage, graphql } from '#lib/graphql.ts';
+	import { parseJsonc } from '#lib/jsonc-edit.ts';
 	import { connectionNextSteps } from '#lib/admin/setup.ts';
 	import SetupChecklist from '#lib/components/SetupChecklist.svelte';
 	import { SITE_CONFIGURATION, type SiteConfigurationResult } from '#lib/queries.ts';
@@ -47,6 +48,7 @@
 	const editURL = $derived(`/site-admin/external-services/${encodeURIComponent(id)}/edit`);
 
 	let service = $state.raw<ExternalServiceDetail | null>(null);
+	const hasToken = $derived(service !== null && typeof parseJsonc(service.config)?.token === 'string');
 	const host = $derived(service ? kindLabel(service.kind) : 'the code host');
 	let jobs = $state.raw<SyncJob[]>([]);
 	let jobsTotal = $state(0);
@@ -281,14 +283,17 @@
 					<span title={formatDate(service.nextSyncAt)}>{relativeTime(service.nextSyncAt)}</span>
 				{:else}—{/if}
 			</dd>
-			{#if service.tokenExpiry}
+			{#if service.tokenExpiry || hasToken}
 				{@const te = service.tokenExpiry}
 				{@const level = expiryLevel(te)}
 				<dt>Token</dt>
 				<dd data-testid="token-expiry">
-					<span class:bad={level === 'expired'} class:warn={level === 'soon'}>{expiryText(te)}</span>
-					<span class="muted small">· checked {relativeTime(te.checkedAt)}</span>
-					{#if te.error}
+					<span class:bad={level === 'expired'} class:warn={level === 'soon'}
+						>{te ? expiryText(te) : 'Expiry unavailable'}</span
+					>
+					{#if hasToken && !service.managedBy}<a class="small" href={editURL}>(Update token)</a>{/if}
+					{#if te}<span class="muted small">· checked {relativeTime(te.checkedAt)}</span>{/if}
+					{#if te?.error}
 						<div class="bad small">The last check failed: {te.error}</div>
 					{/if}
 				</dd>
