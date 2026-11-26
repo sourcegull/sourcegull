@@ -3638,6 +3638,14 @@ export type CompareQueryVariables = Exact<{
 
 export type CompareQuery = { repository: { comparison: { range: { expr: string, mergeBase: { oid: string, abbreviatedOID: string } | null, headRevSpec: { object: { oid: string } | null } }, commits: { truncated: boolean, nodes: Array<{ oid: string, abbreviatedOID: string, subject: string, url: string, author: { date: string, person: { name: string, email: string } } }> }, changedFiles: { truncated: boolean, nodes: Array<{ oldPath: string | null, newPath: string | null, status: string, stat: { added: number, deleted: number } }> } } } | null };
 
+export type CompareBranchesQueryVariables = Exact<{
+  repo: string;
+  query: string;
+}>;
+
+
+export type CompareBranchesQuery = { repository: { gitRefs: { nodes: Array<{ displayName: string }>, pageInfo: { hasNextPage: boolean } } } | null };
+
 export type CompareFileQueryVariables = Exact<{
   repo: string;
   base: string;

@@ -3,6 +3,7 @@
 	import { errorMessage, graphql } from '#lib/graphql.ts';
 	import CommitTable from './CommitTable.svelte';
 	import CompareReview from './CompareReview.svelte';
+	import RevisionInput from './RevisionInput.svelte';
 	import { cloneStateMessage, COMPARE, type CompareResult } from './queries.ts';
 	import { parseCompareSpec, repoPageURL } from './url.ts';
 
@@ -61,11 +62,8 @@
 <div class="compare-view">
 	<h2>Compare revisions</h2>
 	<form class="compare-form" {onsubmit}>
-		<label class="visually-hidden" for="cmp-base">Base</label>
-		<input id="cmp-base" class="input mono" placeholder="base (default branch)" bind:value={base} />
-		<span class="muted">…</span>
-		<label class="visually-hidden" for="cmp-head">Head</label>
-		<input id="cmp-head" class="input mono" placeholder="head (branch, tag or commit)" bind:value={head} />
+		<RevisionInput {repo} label="Base" bind:value={base} placeholder="Default branch" />
+		<RevisionInput {repo} label="Head" bind:value={head} placeholder="Branch, tag, or commit" />
 		<button class="btn btn-primary" type="submit">Compare</button>
 	</form>
 
@@ -115,7 +113,7 @@
 	}
 	.compare-form {
 		display: flex;
-		align-items: center;
+		align-items: flex-end;
 		gap: var(--space-2);
 		margin-bottom: var(--space-4);
 		max-width: 48rem;

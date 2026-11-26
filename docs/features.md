@@ -2,7 +2,8 @@
 
 ## Reviewing branch changes
 
-Open **Compare** in a repository and enter a base and head revision. The comparison shows files
+Open **Compare** in a repository. For **Base** and **Head**, choose a branch from the list,
+type part of its name to search, or enter a revision such as a tag or commit ID. The comparison shows files
 changed on the head since the branches' common ancestor. Expand a folder or filter by path,
 then select a file to load its patch. Choose **Side by side** to align the old and new lines,
 or **Unified** to read them together. The commit list expands above the file tree.

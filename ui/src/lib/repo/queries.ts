@@ -320,6 +320,15 @@ export type ChangedFile = NonNullable<CompareQuery['repository']>['comparison'][
 
 export type GitRefType = 'GIT_BRANCH' | 'GIT_TAG';
 
+export const COMPARE_BRANCHES = `query CompareBranches($repo: String!, $query: String!) {
+	repository(name: $repo) {
+		gitRefs(type: GIT_BRANCH, first: 50, query: $query, orderBy: ALPHABETICAL) {
+			nodes { displayName }
+			pageInfo { hasNextPage }
+		}
+	}
+}`;
+
 export const GIT_REFS = `query GitRefs($repo: String!, $type: GitRefType, $first: Int!, $query: String, $order: GitRefOrder!) {
 	repository(name: $repo) {
 		defaultBranch { name }
