@@ -831,11 +831,18 @@ impl<R: RemoteResolver> RepoService for RepoNodeService<R> {
             move |r, send| {
                 let mut buf = Vec::with_capacity(batch);
                 let mut gone = false;
-                diff::diff_commits(r, old, new, &opts, |f| {
+                let keep = |f: &diff::FileDiff| {
+                    req.exact_file.as_ref().is_none_or(|pair| {
+                        f.old_path.as_deref().unwrap_or_default() == pair.old_path
+                            && f.new_path.as_deref().unwrap_or_default() == pair.new_path
+                    })
+                };
+                let truncated = diff::diff_commits_where(r, old, new, &opts, keep, |f| {
                     buf.push(to_pb_file(f));
                     if buf.len() == batch
                         && !send(pb::DiffResponse {
                             files: std::mem::take(&mut buf),
+                            truncated: false,
                         })
                     {
                         gone = true;
@@ -843,8 +850,11 @@ impl<R: RemoteResolver> RepoService for RepoNodeService<R> {
                     }
                     std::ops::ControlFlow::Continue(())
                 })?;
-                if !gone && !buf.is_empty() {
-                    send(pb::DiffResponse { files: buf });
+                if !gone && (!buf.is_empty() || truncated) {
+                    send(pb::DiffResponse {
+                        files: buf,
+                        truncated,
+                    });
                 }
                 Ok(())
             },
@@ -869,6 +879,7 @@ impl<R: RemoteResolver> RepoService for RepoNodeService<R> {
             commits: c.commits.into_iter().map(to_pb_commit).collect(),
             commits_truncated: c.commits_truncated,
             files: c.files.into_iter().map(to_pb_file).collect(),
+            files_truncated: c.files_truncated,
         }))
     }
 

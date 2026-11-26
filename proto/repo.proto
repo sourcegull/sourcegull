@@ -453,10 +453,18 @@ message DiffRequest {
   bool stats_only = 5;
   uint32 context_lines = 6;
   bool detect_renames = 7;
+  // When set, match this exact change before reading blob contents.
+  FileDiffPaths exact_file = 8;
+}
+
+message FileDiffPaths {
+  string old_path = 1;
+  string new_path = 2;
 }
 
 message DiffResponse {
   repeated FileDiff files = 1;
+  bool truncated = 2;
 }
 
 message CompareRequest {
@@ -473,6 +481,7 @@ message CompareResponse {
   bool commits_truncated = 3;
   // File list merge-base..head, stats only.
   repeated FileDiff files = 4;
+  bool files_truncated = 5;
 }
 
 message MergeBaseRequest {

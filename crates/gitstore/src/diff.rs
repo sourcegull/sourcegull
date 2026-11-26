@@ -464,6 +464,8 @@ pub struct Comparison {
     pub commits_truncated: bool,
     /// Files changed merge-base..head (stats only).
     pub files: Vec<FileDiff>,
+    /// Whether the file list reached the comparison limit.
+    pub files_truncated: bool,
 }
 
 /// The compare view `base...head`: commits in `base..head` and the files
@@ -497,21 +499,22 @@ pub fn compare(
         commits.push(read::commit_info(repo, info.id)?);
     }
 
-    let files = match merge_base {
+    let (files, files_truncated) = match merge_base {
         Some(mb) => {
             let opts = DiffOptions {
                 stats_only: true,
                 ..Default::default()
             };
-            diff_commits_vec(repo, Some(mb), head, &opts)?.0
+            diff_commits_vec(repo, Some(mb), head, &opts)?
         }
-        None => Vec::new(),
+        None => (Vec::new(), false),
     };
     Ok(Comparison {
         merge_base,
         commits,
         commits_truncated,
         files,
+        files_truncated,
     })
 }
 

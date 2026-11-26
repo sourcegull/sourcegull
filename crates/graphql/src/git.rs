@@ -1520,6 +1520,17 @@ impl FileDiffNode {
     }
 }
 
+fn change_status(status: i32) -> &'static str {
+    match pb::ChangeStatus::try_from(status) {
+        Ok(pb::ChangeStatus::Added) => "ADDED",
+        Ok(pb::ChangeStatus::Deleted) => "DELETED",
+        Ok(pb::ChangeStatus::Renamed) => "RENAMED",
+        Ok(pb::ChangeStatus::Copied) => "COPIED",
+        Ok(pb::ChangeStatus::TypeChanged) => "TYPE_CHANGED",
+        _ => "MODIFIED",
+    }
+}
+
 #[Object(name = "FileDiff")]
 impl FileDiffNode {
     /// Path before the change (null for added files).
@@ -1534,14 +1545,7 @@ impl FileDiffNode {
 
     /// `ADDED`, `DELETED`, `MODIFIED`, `RENAMED`, `COPIED` or `TYPE_CHANGED`.
     async fn status(&self) -> &'static str {
-        match pb::ChangeStatus::try_from(self.f.status) {
-            Ok(pb::ChangeStatus::Added) => "ADDED",
-            Ok(pb::ChangeStatus::Deleted) => "DELETED",
-            Ok(pb::ChangeStatus::Renamed) => "RENAMED",
-            Ok(pb::ChangeStatus::Copied) => "COPIED",
-            Ok(pb::ChangeStatus::TypeChanged) => "TYPE_CHANGED",
-            _ => "MODIFIED",
-        }
+        change_status(self.f.status)
     }
 
     /// Whether either side is binary.
@@ -1602,6 +1606,37 @@ impl FileDiffNode {
                 &self.f.new_path
             }
         )
+    }
+}
+
+/// Changed paths and line counts for a revision comparison.
+#[derive(SimpleObject)]
+struct ChangedFiles {
+    nodes: Vec<ChangedFile>,
+    /// The repository server stopped at its file limit.
+    truncated: bool,
+}
+
+#[derive(SimpleObject)]
+struct ChangedFile {
+    old_path: Option<String>,
+    new_path: Option<String>,
+    status: String,
+    stat: DiffStat,
+}
+
+impl From<&pb::FileDiff> for ChangedFile {
+    fn from(f: &pb::FileDiff) -> Self {
+        Self {
+            old_path: (!f.old_path.is_empty()).then(|| f.old_path.clone()),
+            new_path: (!f.new_path.is_empty()).then(|| f.new_path.clone()),
+            status: change_status(f.status).into(),
+            stat: DiffStat {
+                added: int(f.additions),
+                deleted: int(f.deletions),
+                changed: 0,
+            },
+        }
     }
 }
 
@@ -1667,6 +1702,68 @@ impl RepositoryComparisonNode {
             },
             truncated: resp.commits_truncated,
         })
+    }
+
+    /// The changed paths and stats, without patch bodies.
+    async fn changed_files(&self) -> Result<ChangedFiles> {
+        let cmp = &self.0;
+        if cmp.three_dot {
+            let result = cmp.compare().await?;
+            return Ok(ChangedFiles {
+                nodes: result.files.iter().map(ChangedFile::from).collect(),
+                truncated: result.files_truncated,
+            });
+        }
+        let result = cmp
+            .h
+            .git
+            .diff_files(
+                cmp.base_oid.as_deref().unwrap_or_default(),
+                &cmp.head_oid,
+                Vec::new(),
+                true,
+                None,
+            )
+            .await
+            .map_err(git_error)?;
+        Ok(ChangedFiles {
+            nodes: result.files.iter().map(ChangedFile::from).collect(),
+            truncated: result.truncated,
+        })
+    }
+
+    /// The patch for a single change identified by its paths before and after.
+    async fn file_diff(
+        &self,
+        old_path: Option<String>,
+        new_path: Option<String>,
+    ) -> Result<Option<FileDiffNode>> {
+        let cmp = &self.0;
+        let old = cmp.old_side().await?;
+        if old.is_none() && cmp.three_dot {
+            return Ok(None);
+        }
+        let pair = pb::FileDiffPaths {
+            old_path: old_path.unwrap_or_default(),
+            new_path: new_path.unwrap_or_default(),
+        };
+        let result = cmp
+            .h
+            .git
+            .diff_files(
+                old.as_deref().unwrap_or_default(),
+                &cmp.head_oid,
+                Vec::new(),
+                false,
+                Some(pair),
+            )
+            .await
+            .map_err(git_error)?;
+        Ok(result.files.into_iter().next().map(|f| FileDiffNode {
+            cmp: cmp.clone(),
+            f,
+            old_commit: old,
+        }))
     }
 
     /// The changed files with hunks. `paths` restricts the diff (prefix match on directories).
