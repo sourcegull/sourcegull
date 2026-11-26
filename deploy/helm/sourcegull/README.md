@@ -218,6 +218,7 @@ use that only on throwaway installs.
 | 0.2.12 | Sourcegull 0.9.0 |
 | 0.2.13 | Sourcegull 0.10.0 |
 | 0.2.14 | Sourcegull 0.11.0 |
+| 0.2.15 | Sourcegull 0.12.0 |
 
 Chart 0.2.10 changes the bundled database's image from the Debian to the Alpine build of the same
 PostgreSQL version; it starts on the existing data directory as it is. The two C libraries
