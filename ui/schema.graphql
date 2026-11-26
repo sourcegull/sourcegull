@@ -1430,6 +1430,24 @@ enum BulkOperationType {
 	PUBLISH
 }
 
+type ChangedFile {
+	oldPath: String
+	newPath: String
+	status: String!
+	stat: DiffStat!
+}
+
+"""
+Changed paths and line counts for a revision comparison.
+"""
+type ChangedFiles {
+	nodes: [ChangedFile!]!
+	"""
+	The repository server stopped at its file limit.
+	"""
+	truncated: Boolean!
+}
+
 """
 A changeset (`Changeset` interface).
 """
@@ -8588,6 +8606,14 @@ type RepositoryComparison {
 	Commits in `base..head`, newest first (just the head commit for a commit's own diff).
 	"""
 	commits(first: Int): GitCommitConnection!
+	"""
+	The changed paths and stats, without patch bodies.
+	"""
+	changedFiles: ChangedFiles!
+	"""
+	The patch for a single change identified by its paths before and after.
+	"""
+	fileDiff(oldPath: String, newPath: String): FileDiff
 	"""
 	The changed files with hunks. `paths` restricts the diff (prefix match on directories).
 	"""

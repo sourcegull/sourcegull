@@ -368,6 +368,21 @@ impl GitReader {
         paths: Vec<String>,
         stats_only: bool,
     ) -> GitResult<Vec<pb::FileDiff>> {
+        Ok(self
+            .diff_files(old, new, paths, stats_only, None)
+            .await?
+            .files)
+    }
+
+    /// Collects the file list and its truncation flag, optionally for one exact path pair.
+    pub async fn diff_files(
+        &self,
+        old: &str,
+        new: &str,
+        paths: Vec<String>,
+        stats_only: bool,
+        exact_file: Option<pb::FileDiffPaths>,
+    ) -> GitResult<pb::DiffResponse> {
         let mut stream = self
             .client()?
             .diff(pb::DiffRequest {
@@ -378,14 +393,16 @@ impl GitReader {
                 stats_only,
                 context_lines: 3,
                 detect_renames: true,
+                exact_file,
             })
             .await?
             .into_inner();
-        let mut files = Vec::new();
+        let mut result = pb::DiffResponse::default();
         while let Some(msg) = stream.message().await? {
-            files.extend(msg.files);
+            result.files.extend(msg.files);
+            result.truncated |= msg.truncated;
         }
-        Ok(files)
+        Ok(result)
     }
 
     /// Commits in `base..head` and the changed files of `merge-base..head`.

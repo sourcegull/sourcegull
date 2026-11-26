@@ -203,3 +203,34 @@ export function textFileDiff(path: string, oldText: string, newText: string, con
 		hunks
 	};
 }
+
+export interface SplitLine {
+	old: DiffLine | null;
+	new: DiffLine | null;
+}
+
+/** Align each run of removed and added lines between two context lines. */
+export function splitDiffLines(lines: DiffLine[]): SplitLine[] {
+	const rows: SplitLine[] = [];
+	let removed: DiffLine[] = [];
+	let added: DiffLine[] = [];
+	function flush() {
+		for (let i = 0; i < Math.max(removed.length, added.length); i++) {
+			rows.push({ old: removed[i] ?? null, new: added[i] ?? null });
+		}
+		removed = [];
+		added = [];
+	}
+	let previous: DiffLine['kind'] = 'context';
+	for (const line of lines) {
+		if (line.kind === 'deleted' || (line.kind === 'note' && previous === 'deleted')) removed.push(line);
+		else if (line.kind === 'added' || (line.kind === 'note' && previous === 'added')) added.push(line);
+		else {
+			flush();
+			rows.push({ old: line, new: line });
+		}
+		previous = line.kind;
+	}
+	flush();
+	return rows;
+}

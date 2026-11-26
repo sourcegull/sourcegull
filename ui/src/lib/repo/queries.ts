@@ -219,14 +219,15 @@ export type BlobResult = BlobQuery;
 
 // ---- Commits --------------------------------------------------------------------------------
 
+const PATCH_FIELDS = `
+	oldPath newPath status binary tooLarge
+	stat { added deleted }
+	hunks { oldRange { startLine lines } newRange { startLine lines } body }`;
+
 const FILE_DIFF_FIELDS = `
 	totalCount
 	diffStat { added deleted }
-	nodes {
-		oldPath newPath status binary tooLarge
-		stat { added deleted }
-		hunks { oldRange { startLine lines } newRange { startLine lines } body }
-	}`;
+	nodes { ${PATCH_FIELDS} }`;
 
 export interface FileDiffNode {
 	oldPath: string | null;
@@ -292,21 +293,41 @@ export type HistoryResult = HistoryQuery;
 export const COMPARE = `query Compare($repo: String!, $base: String, $head: String) {
 	repository(name: $repo) {
 		comparison(base: $base, head: $head) {
-			range { expr mergeBase { oid abbreviatedOID } }
+			range { expr mergeBase { oid abbreviatedOID } headRevSpec { object { oid } } }
 			commits(first: 250) {
 				nodes { oid abbreviatedOID subject url author { person { name email } date } }
 				truncated
 			}
-			fileDiffs(first: 500) { ${FILE_DIFF_FIELDS} }
+			changedFiles { truncated nodes { oldPath newPath status stat { added deleted } } }
 		}
 	}
 }`;
 
+export const COMPARE_FILE = `query CompareFile($repo: String!, $base: String!, $head: String!, $oldPath: String, $newPath: String) {
+    repository(name: $repo) {
+        commit(rev: $head) {
+            diff(base: $base) {
+                fileDiff(oldPath: $oldPath, newPath: $newPath) { ${PATCH_FIELDS} }
+            }
+        }
+    }
+}`;
+
 export type CompareResult = CompareQuery;
+export type ChangedFile = NonNullable<CompareQuery['repository']>['comparison']['changedFiles']['nodes'][number];
 
 // ---- Refs -----------------------------------------------------------------------------------
 
 export type GitRefType = 'GIT_BRANCH' | 'GIT_TAG';
+
+export const COMPARE_BRANCHES = `query CompareBranches($repo: String!, $query: String!) {
+	repository(name: $repo) {
+		gitRefs(type: GIT_BRANCH, first: 50, query: $query, orderBy: ALPHABETICAL) {
+			nodes { displayName }
+			pageInfo { hasNextPage }
+		}
+	}
+}`;
 
 export const GIT_REFS = `query GitRefs($repo: String!, $type: GitRefType, $first: Int!, $query: String, $order: GitRefOrder!) {
 	repository(name: $repo) {

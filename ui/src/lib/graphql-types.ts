@@ -3636,7 +3636,26 @@ export type CompareQueryVariables = Exact<{
 }>;
 
 
-export type CompareQuery = { repository: { comparison: { range: { expr: string, mergeBase: { oid: string, abbreviatedOID: string } | null }, commits: { truncated: boolean, nodes: Array<{ oid: string, abbreviatedOID: string, subject: string, url: string, author: { date: string, person: { name: string, email: string } } }> }, fileDiffs: { totalCount: number, diffStat: { added: number, deleted: number }, nodes: Array<{ oldPath: string | null, newPath: string | null, status: string, binary: boolean, tooLarge: boolean, stat: { added: number, deleted: number }, hunks: Array<{ body: string, oldRange: { startLine: number, lines: number }, newRange: { startLine: number, lines: number } }> }> } } } | null };
+export type CompareQuery = { repository: { comparison: { range: { expr: string, mergeBase: { oid: string, abbreviatedOID: string } | null, headRevSpec: { object: { oid: string } | null } }, commits: { truncated: boolean, nodes: Array<{ oid: string, abbreviatedOID: string, subject: string, url: string, author: { date: string, person: { name: string, email: string } } }> }, changedFiles: { truncated: boolean, nodes: Array<{ oldPath: string | null, newPath: string | null, status: string, stat: { added: number, deleted: number } }> } } } | null };
+
+export type CompareBranchesQueryVariables = Exact<{
+  repo: string;
+  query: string;
+}>;
+
+
+export type CompareBranchesQuery = { repository: { gitRefs: { nodes: Array<{ displayName: string }>, pageInfo: { hasNextPage: boolean } } } | null };
+
+export type CompareFileQueryVariables = Exact<{
+  repo: string;
+  base: string;
+  head: string;
+  oldPath?: string | null | undefined;
+  newPath?: string | null | undefined;
+}>;
+
+
+export type CompareFileQuery = { repository: { commit: { diff: { fileDiff: { oldPath: string | null, newPath: string | null, status: string, binary: boolean, tooLarge: boolean, stat: { added: number, deleted: number }, hunks: Array<{ body: string, oldRange: { startLine: number, lines: number }, newRange: { startLine: number, lines: number } }> } | null } } | null } | null };
 
 export type GitRefsQueryVariables = Exact<{
   repo: string;

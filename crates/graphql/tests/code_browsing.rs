@@ -370,6 +370,9 @@ async fn comparisons_and_commit_diffs() {
                     range { expr baseRevSpec { expr object { oid } } headRevSpec { object { oid } }
                             mergeBase { oid } }
                     commits { nodes { subject } }
+                    changedFiles { nodes { oldPath newPath status stat { added deleted } } truncated }
+                    fileDiff(oldPath: "src/lib.rs", newPath: "src/lib.rs") { hunks { body } }
+                    missing: fileDiff(newPath: "src/lib.rs") { newPath }
                     fileDiffs {
                         totalCount diffStat { added deleted }
                         nodes { oldPath newPath status stat { added deleted }
@@ -400,6 +403,15 @@ async fn comparisons_and_commit_diffs() {
     assert_eq!(fd["totalCount"], 1);
     assert_eq!(fd["diffStat"], json!({ "added": 4, "deleted": 0 }));
     let f = &fd["nodes"][0];
+    assert_eq!(
+        cmp["changedFiles"],
+        json!({
+            "nodes": [{"oldPath": "src/lib.rs", "newPath": "src/lib.rs", "status": "MODIFIED",
+                       "stat": {"added": 4, "deleted": 0}}], "truncated": false
+        })
+    );
+    assert_eq!(cmp["fileDiff"]["hunks"][0]["body"], f["hunks"][0]["body"]);
+    assert!(cmp["missing"].is_null());
     assert_eq!(f["oldPath"], "src/lib.rs");
     assert_eq!(f["newPath"], "src/lib.rs");
     assert_eq!(f["status"], "MODIFIED");

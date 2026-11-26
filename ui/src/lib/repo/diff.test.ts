@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { diffLines, textFileDiff, textLineDiff } from './diff.ts';
+import { diffLines, splitDiffLines, textFileDiff, textLineDiff } from './diff.ts';
 
 const lines = (n: number, f: (i: number) => string = (i) => `line ${i}`) =>
 	Array.from({ length: n }, (_, i) => f(i + 1)).join('\n') + '\n';
@@ -44,4 +44,19 @@ describe('textFileDiff', () => {
 		expect(near.hunks).toHaveLength(1);
 		expect(textFileDiff('f', oldText, oldText).hunks).toEqual([]);
 	});
+});
+
+it('aligns uneven changes within each hunk and keeps final-newline notes on their side', () => {
+	const body = ' a\n-b\n-c\n+B\n d\n-e\n\\ No newline at end of file\n+E\n';
+	const rows = splitDiffLines(diffLines(body, 7, 12));
+	expect(rows.map((r) => [r.old?.oldLine ?? null, r.new?.newLine ?? null])).toEqual([
+		[7, 12],
+		[8, 13],
+		[9, null],
+		[10, 14],
+		[11, 15],
+		[null, null]
+	]);
+	expect(rows[5]?.old?.kind).toBe('note');
+	expect(rows[5]?.new).toBeNull();
 });

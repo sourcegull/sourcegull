@@ -2,7 +2,8 @@
 	import { goto } from '$app/navigation';
 	import { errorMessage, graphql } from '#lib/graphql.ts';
 	import CommitTable from './CommitTable.svelte';
-	import DiffView from './DiffView.svelte';
+	import CompareReview from './CompareReview.svelte';
+	import RevisionInput from './RevisionInput.svelte';
 	import { cloneStateMessage, COMPARE, type CompareResult } from './queries.ts';
 	import { parseCompareSpec, repoPageURL } from './url.ts';
 
@@ -27,11 +28,13 @@
 		base = parsed.base || defaultBranch || '';
 		head = parsed.head;
 		result = null;
-		if (spec) void load(repo, parsed.base, parsed.head);
+		loading = false;
+		error = null;
+		const mine = ++seq;
+		if (spec) void load(repo, parsed.base, parsed.head, mine);
 	});
 
-	async function load(repoName: string, b: string, h: string): Promise<void> {
-		const mine = ++seq;
+	async function load(repoName: string, b: string, h: string, mine: number): Promise<void> {
 		loading = true;
 		error = null;
 		try {
@@ -59,11 +62,8 @@
 <div class="compare-view">
 	<h2>Compare revisions</h2>
 	<form class="compare-form" {onsubmit}>
-		<label class="visually-hidden" for="cmp-base">Base</label>
-		<input id="cmp-base" class="input mono" placeholder="base (default branch)" bind:value={base} />
-		<span class="muted">…</span>
-		<label class="visually-hidden" for="cmp-head">Head</label>
-		<input id="cmp-head" class="input mono" placeholder="head (branch, tag or commit)" bind:value={head} />
+		<RevisionInput {repo} label="Base" bind:value={base} placeholder="Default branch" />
+		<RevisionInput {repo} label="Head" bind:value={head} placeholder="Branch, tag, or commit" />
 		<button class="btn btn-primary" type="submit">Compare</button>
 	</form>
 
@@ -76,9 +76,32 @@
 			<code>{result.range.expr}</code>
 			{#if result.range.mergeBase}· merge base <code>{result.range.mergeBase.abbreviatedOID}</code>{/if}
 		</p>
-		<h3>{result.commits.nodes.length}{result.commits.truncated ? '+' : ''} commits</h3>
-		<CommitTable {repo} commits={result.commits.nodes} emptyText="The head has no commits that are not in the base." />
-		<DiffView {repo} diffs={result.fileDiffs} headRev={parsed.head || 'HEAD'} />
+		<details class="commits">
+			<summary
+				>{result.commits.nodes.length}{result.commits.truncated ? '+' : ''}
+				{result.commits.nodes.length === 1 ? 'commit' : 'commits'}</summary
+			>
+			<CommitTable
+				{repo}
+				commits={result.commits.nodes}
+				emptyText="The head has no commits that are not in the base."
+			/>
+		</details>
+		{#if !result.range.mergeBase}
+			<p class="muted">These revisions have no common ancestor.</p>
+		{:else if !result.changedFiles.nodes.length}
+			<p class="muted">No files changed.</p>
+		{:else if result.range.headRevSpec.object}
+			{#key result}
+				<CompareReview
+					{repo}
+					files={result.changedFiles.nodes}
+					truncated={result.changedFiles.truncated}
+					base={result.range.mergeBase.oid}
+					head={result.range.headRevSpec.object.oid}
+				/>
+			{/key}
+		{/if}
 	{:else if !spec}
 		<p class="muted">Choose two revisions to see the commits and changes between them.</p>
 	{/if}
@@ -87,17 +110,17 @@
 <style>
 	.compare-view {
 		padding: var(--space-4);
-		max-width: 90rem;
 	}
 	.compare-form {
 		display: flex;
-		align-items: center;
+		align-items: flex-end;
 		gap: var(--space-2);
 		margin-bottom: var(--space-4);
 		max-width: 48rem;
 	}
-	h3 {
-		margin-top: var(--space-4);
-		font-size: 1rem;
+
+	.commits summary {
+		cursor: pointer;
+		color: var(--color-text-muted);
 	}
 </style>
